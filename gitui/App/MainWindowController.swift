@@ -476,6 +476,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 }
                 await MainActor.run {
                     self.showToolbarAlert(title: "Fetch Complete", message: "Successfully fetched from all remotes.", isError: false)
+                    let repoName = URL(fileURLWithPath: path).lastPathComponent
+                    self.updateBranchLabel(for: path, repoName: repoName)
                     self.refreshCurrentTab()
                 }
             } catch {
@@ -648,6 +650,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 try await GitService.shared.pull(remote: remote, branch: branch, in: repoPath)
                 await MainActor.run {
                     self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
+                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                    self.updateBranchLabel(for: repoPath, repoName: repoName)
                     self.refreshCurrentTab()
                 }
             } catch {
@@ -664,6 +668,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 try await GitService.shared.push(remote: remote, branch: branch, in: repoPath)
                 await MainActor.run {
                     self.showToolbarAlert(title: "Push Complete", message: "Successfully pushed \(branch) to '\(remote)'.", isError: false)
+                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                    self.updateBranchLabel(for: repoPath, repoName: repoName)
                     self.refreshCurrentTab()
                 }
             } catch {

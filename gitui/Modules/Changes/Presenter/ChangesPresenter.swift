@@ -136,5 +136,6 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
     func didCommitSuccessfully() {
         view?.showLoading(false)
         // Refresh the whole status, reset commit message view is done in VC
+        NotificationCenter.default.post(name: .repositoryFilesChanged, object: nil)
     }
 }
