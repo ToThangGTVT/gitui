@@ -7,22 +7,44 @@ protocol SidebarViewProtocol: AnyObject {
     func showLoading(_ loading: Bool)
 }
 
-class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
+// Wrapper classes to preserve pointer identity for NSOutlineView
+class RepositoryItem: NSObject {
+    var bookmark: RepositoryBookmark
+    var branches: [BranchItem]
+    
+    init(bookmark: RepositoryBookmark, branches: [BranchItem] = []) {
+        self.bookmark = bookmark
+        self.branches = branches
+    }
+}
+
+class BranchItem: NSObject {
+    let branch: GitBranch
+    let repoPath: String
+    
+    init(branch: GitBranch, repoPath: String) {
+        self.branch = branch
+        self.repoPath = repoPath
+    }
+}
+
+class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSearchFieldDelegate {
     
     var presenter: SidebarPresenterProtocol?
     
-    private var bookmarks: [RepositoryBookmark] = []
+    private var repositoryItems: [RepositoryItem] = []
     private var activePath: String?
     private var lineStatsCache: [String: (added: Int, removed: Int)] = [:]
     
     // UI Elements
     private var searchField: NSSearchField!
-    private var tableView: NSTableView!
+    private var outlineView: NSOutlineView!
     private var actionButton: NSButton!
     private var removeButton: NSButton!
     private var progressIndicator: NSProgressIndicator!
     
     private let dragType = NSPasteboard.PasteboardType("gitflow.sidebar.drag")
+    private var visualEffectView: NSVisualEffectView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -38,8 +60,8 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
     
     @objc private func handleRefreshStats() {
         fetchLineStatsForAll()
+        fetchBranchesForAll()
     }
-    private var visualEffectView: NSVisualEffectView!
     
     private func setupUI() {
         // Translucent sidebar using NSVisualEffectView
@@ -68,7 +90,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchContainer.addSubview(searchField)
         
-        // 2. Table Scroll View
+        // 2. Outline Scroll View
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
         scroll.borderType = .noBorder
@@ -76,24 +98,23 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
         scroll.translatesAutoresizingMaskIntoConstraints = false
         visualEffectView.addSubview(scroll)
         
-        tableView = NSTableView()
-        tableView.headerView = nil
-        tableView.backgroundColor = NSColor.clear
-        tableView.gridStyleMask = []
-        tableView.allowsMultipleSelection = false
-        tableView.rowHeight = 46
-        tableView.doubleAction = #selector(tableDoubleClicked(_:))
+        outlineView = NSOutlineView()
+        outlineView.headerView = nil
+        outlineView.backgroundColor = NSColor.clear
+        outlineView.gridStyleMask = []
+        outlineView.allowsMultipleSelection = false
+        outlineView.doubleAction = #selector(outlineDoubleClicked(_:))
         
         // Register drag & drop
-        tableView.registerForDraggedTypes([dragType])
+        outlineView.registerForDraggedTypes([dragType])
         
         let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("bookmarkColumn"))
         col.width = 200
-        tableView.addTableColumn(col)
+        outlineView.addTableColumn(col)
         
-        tableView.dataSource = self
-        tableView.delegate = self
-        scroll.documentView = tableView
+        outlineView.dataSource = self
+        outlineView.delegate = self
+        scroll.documentView = outlineView
         
         // 3. Bottom Bar
         let bottomView = NSView()
@@ -194,148 +215,276 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
     }
     
     @objc private func minusClicked(_ sender: NSButton) {
-        let row = tableView.selectedRow
-        guard row >= 0 && row < bookmarks.count else { return }
-        presenter?.didClickRemoveRepository(at: row)
+        let row = outlineView.selectedRow
+        guard row >= 0 else { return }
+        if let repoItem = outlineView.item(atRow: row) as? RepositoryItem,
+           let index = repositoryItems.firstIndex(of: repoItem) {
+            presenter?.didClickRemoveRepository(at: index)
+        }
     }
     
-    @objc private func tableDoubleClicked(_ sender: NSTableView) {
+    @objc private func outlineDoubleClicked(_ sender: NSOutlineView) {
         let row = sender.clickedRow
-        guard row >= 0 && row < bookmarks.count else { return }
-        presenter?.didSelectRepository(bookmarks[row])
-    }
-    
-    // MARK: - NSTableViewDataSource & Delegate
-    
-    func numberOfRows(in tableView: NSTableView) -> Int {
-        return bookmarks.count
-    }
-    
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        let bookmark = bookmarks[row]
-        let isActive = bookmark.path == activePath
+        guard row >= 0 else { return }
         
-        let cellIdentifier = NSUserInterfaceItemIdentifier("BookmarkCell")
-        var cell = tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
-        
-        if cell == nil {
-            cell = NSTableCellView()
-            cell?.identifier = cellIdentifier
-            
-            let icon = NSImageView()
-            icon.image = NSImage(named: NSImage.folderName)
-            icon.imageScaling = .scaleProportionallyUpOrDown
-            icon.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(icon)
-            
-            let label = NSTextField(labelWithString: "")
-            label.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(label)
-            cell?.textField = label
-            
-            let pathLabel = NSTextField(labelWithString: "")
-            pathLabel.font = NSFont.systemFont(ofSize: 9)
-            pathLabel.textColor = NSColor.secondaryLabelColor
-            pathLabel.lineBreakMode = .byTruncatingHead
-            pathLabel.identifier = NSUserInterfaceItemIdentifier("pathLabel")
-            pathLabel.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(pathLabel)
-            
-            let statsLabel = NSTextField(labelWithString: "")
-            statsLabel.font = NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
-            statsLabel.identifier = NSUserInterfaceItemIdentifier("statsLabel")
-            statsLabel.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(statsLabel)
-            
-            NSLayoutConstraint.activate([
-                icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
-                icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                icon.widthAnchor.constraint(equalToConstant: 16),
-                icon.heightAnchor.constraint(equalToConstant: 16),
-                
-                label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
-                label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 4),
-                
-                statsLabel.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 4),
-                statsLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
-                statsLabel.centerYAnchor.constraint(equalTo: label.centerYAnchor),
-                
-                pathLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
-                pathLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
-                pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 2)
-            ])
-        }
-        
-        if let textField = cell?.textField {
-            textField.stringValue = bookmark.name
-            if isActive {
-                textField.font = NSFont.systemFont(ofSize: 12, weight: .bold)
-                textField.textColor = NSColor.gitFlowAccent
-            } else {
-                textField.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-                textField.textColor = NSColor.labelColor
+        if let clickedItem = sender.item(atRow: row) {
+            if let repoItem = clickedItem as? RepositoryItem {
+                if sender.isItemExpanded(repoItem) {
+                    sender.animator().collapseItem(repoItem)
+                } else {
+                    sender.animator().expandItem(repoItem)
+                }
+            } else if let branchItem = clickedItem as? BranchItem {
+                presenter?.didSelectBranch(branchItem.branch, in: branchItem.repoPath)
             }
         }
-        
-        if let pathLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "pathLabel" }) as? NSTextField {
-            pathLabel.stringValue = bookmark.path
-            pathLabel.textColor = isActive ? NSColor.gitFlowAccent.withAlphaComponent(0.7) : NSColor.secondaryLabelColor
-        }
-        
-        if let statsLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "statsLabel" }) as? NSTextField {
-            if let stats = lineStatsCache[bookmark.path], (stats.added > 0 || stats.removed > 0) {
-                let result = NSMutableAttributedString()
-                if stats.added > 0 {
-                    result.append(NSAttributedString(string: "+\(stats.added)", attributes: [
-                        .foregroundColor: NSColor.gitFlowStagedAddText,
-                        .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
-                    ]))
-                }
-                if stats.added > 0 && stats.removed > 0 {
-                    result.append(NSAttributedString(string: " ", attributes: [
-                        .font: NSFont.systemFont(ofSize: 10)
-                    ]))
-                }
-                if stats.removed > 0 {
-                    result.append(NSAttributedString(string: "-\(stats.removed)", attributes: [
-                        .foregroundColor: NSColor.gitFlowStagedDeleteText,
-                        .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
-                    ]))
-                }
-                statsLabel.attributedStringValue = result
-            } else {
-                statsLabel.stringValue = ""
-            }
-        }
-        
-        return cell
     }
     
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        removeButton.isEnabled = tableView.selectedRow >= 0
+    // MARK: - NSOutlineViewDataSource
+    
+    func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+        if item == nil {
+            return repositoryItems.count
+        } else if let repoItem = item as? RepositoryItem {
+            return repoItem.branches.count
+        }
+        return 0
+    }
+    
+    func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+        if item == nil {
+            return repositoryItems[index]
+        } else if let repoItem = item as? RepositoryItem {
+            return repoItem.branches[index]
+        }
+        fatalError("Requested child out of bounds")
+    }
+    
+    func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+        if let repoItem = item as? RepositoryItem {
+            // Repositories are always expandable to fetch/show branches
+            return true
+        }
+        return false
+    }
+    
+    // MARK: - NSOutlineViewDelegate
+    
+    func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
+        if item is RepositoryItem {
+            return 46
+        } else {
+            return 28
+        }
+    }
+    
+    func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+        if let repoItem = item as? RepositoryItem {
+            let bookmark = repoItem.bookmark
+            let isActive = bookmark.path == activePath
+            
+            let cellIdentifier = NSUserInterfaceItemIdentifier("BookmarkCell")
+            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+            
+            if cell == nil {
+                cell = NSTableCellView()
+                cell?.identifier = cellIdentifier
+                
+                let icon = NSImageView()
+                icon.image = NSImage(named: NSImage.folderName)
+                icon.imageScaling = .scaleProportionallyUpOrDown
+                icon.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(icon)
+                
+                let label = NSTextField(labelWithString: "")
+                label.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(label)
+                cell?.textField = label
+                
+                let pathLabel = NSTextField(labelWithString: "")
+                pathLabel.font = NSFont.systemFont(ofSize: 9)
+                pathLabel.textColor = NSColor.secondaryLabelColor
+                pathLabel.lineBreakMode = .byTruncatingHead
+                pathLabel.identifier = NSUserInterfaceItemIdentifier("pathLabel")
+                pathLabel.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(pathLabel)
+                
+                let statsLabel = NSTextField(labelWithString: "")
+                statsLabel.font = NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                statsLabel.identifier = NSUserInterfaceItemIdentifier("statsLabel")
+                statsLabel.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(statsLabel)
+                
+                NSLayoutConstraint.activate([
+                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
+                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    icon.widthAnchor.constraint(equalToConstant: 16),
+                    icon.heightAnchor.constraint(equalToConstant: 16),
+                    
+                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
+                    label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 4),
+                    
+                    statsLabel.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 4),
+                    statsLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
+                    statsLabel.centerYAnchor.constraint(equalTo: label.centerYAnchor),
+                    
+                    pathLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
+                    pathLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
+                    pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 2)
+                ])
+            }
+            
+            if let textField = cell?.textField {
+                textField.stringValue = bookmark.name
+                if isActive {
+                    textField.font = NSFont.systemFont(ofSize: 12, weight: .bold)
+                    textField.textColor = NSColor.gitFlowAccent
+                } else {
+                    textField.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+                    textField.textColor = NSColor.labelColor
+                }
+            }
+            
+            if let pathLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "pathLabel" }) as? NSTextField {
+                pathLabel.stringValue = bookmark.path
+                pathLabel.textColor = isActive ? NSColor.gitFlowAccent.withAlphaComponent(0.7) : NSColor.secondaryLabelColor
+            }
+            
+            if let statsLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "statsLabel" }) as? NSTextField {
+                if let stats = lineStatsCache[bookmark.path], (stats.added > 0 || stats.removed > 0) {
+                    let result = NSMutableAttributedString()
+                    if stats.added > 0 {
+                        result.append(NSAttributedString(string: "+\(stats.added)", attributes: [
+                            .foregroundColor: NSColor.gitFlowStagedAddText,
+                            .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                        ]))
+                    }
+                    if stats.added > 0 && stats.removed > 0 {
+                        result.append(NSAttributedString(string: " ", attributes: [
+                            .font: NSFont.systemFont(ofSize: 10)
+                        ]))
+                    }
+                    if stats.removed > 0 {
+                        result.append(NSAttributedString(string: "-\(stats.removed)", attributes: [
+                            .foregroundColor: NSColor.gitFlowStagedDeleteText,
+                            .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                        ]))
+                    }
+                    statsLabel.attributedStringValue = result
+                } else {
+                    statsLabel.stringValue = ""
+                }
+            }
+            
+            return cell
+        } else if let branchItem = item as? BranchItem {
+            let branch = branchItem.branch
+            
+            let cellIdentifier = NSUserInterfaceItemIdentifier("BranchCell")
+            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+            
+            if cell == nil {
+                cell = NSTableCellView()
+                cell?.identifier = cellIdentifier
+                
+                let icon = NSImageView()
+                if #available(macOS 11.0, *) {
+                    let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+                    icon.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Branch")?.withSymbolConfiguration(config)
+                } else {
+                    icon.image = NSImage(named: NSImage.slideshowTemplateName)
+                }
+                icon.imageScaling = .scaleProportionallyUpOrDown
+                icon.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(icon)
+                cell?.imageView = icon
+                
+                let label = NSTextField(labelWithString: "")
+                label.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(label)
+                cell?.textField = label
+                
+                NSLayoutConstraint.activate([
+                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
+                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    icon.widthAnchor.constraint(equalToConstant: 12),
+                    icon.heightAnchor.constraint(equalToConstant: 12),
+                    
+                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
+                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8)
+                ])
+            }
+            
+            if let textField = cell?.textField {
+                textField.stringValue = branch.shortName
+                if branch.isCurrent {
+                    textField.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+                    textField.textColor = NSColor.gitFlowAccent
+                    if #available(macOS 11.0, *) {
+                        cell?.imageView?.contentTintColor = NSColor.gitFlowAccent
+                    }
+                } else {
+                    textField.font = NSFont.systemFont(ofSize: 11, weight: .regular)
+                    textField.textColor = NSColor.labelColor
+                    if #available(macOS 11.0, *) {
+                        cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor
+                    }
+                }
+            }
+            
+            return cell
+        }
+        
+        return nil
+    }
+    
+    func outlineViewSelectionDidChange(_ notification: Notification) {
+        let selectedRow = outlineView.selectedRow
+        guard selectedRow >= 0 else {
+            removeButton.isEnabled = false
+            return
+        }
+        
+        if let selectedItem = outlineView.item(atRow: selectedRow) {
+            if let repoItem = selectedItem as? RepositoryItem {
+                removeButton.isEnabled = true
+                presenter?.didSelectRepository(repoItem.bookmark)
+            } else if let branchItem = selectedItem as? BranchItem {
+                removeButton.isEnabled = false
+                if let parentRepo = repositoryItems.first(where: { $0.bookmark.path == branchItem.repoPath }) {
+                    presenter?.didSelectRepository(parentRepo.bookmark)
+                }
+            }
+        }
     }
     
     // MARK: - Drag & Drop Reordering
     
-    func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> NSPasteboardWriting? {
-        let item = NSPasteboardItem()
-        item.setString(String(row), forType: dragType)
-        return item
+    func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
+        guard let repoItem = item as? RepositoryItem,
+              let index = repositoryItems.firstIndex(of: repoItem) else { return nil }
+        
+        let pasteboardItem = NSPasteboardItem()
+        pasteboardItem.setString(String(index), forType: dragType)
+        return pasteboardItem
     }
     
-    func tableView(_ tableView: NSTableView, validateDrop info: NSDraggingInfo, proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
-        if dropOperation == .above {
+    func outlineView(_ outlineView: NSOutlineView, validateDrop info: NSDraggingInfo, proposedItem item: Any?, proposedChildIndex index: Int) -> NSDragOperation {
+        // Only allow dropping at root level above another repository
+        if item == nil && index != NSOutlineViewDropOnItemIndex {
             return .move
         }
         return []
     }
     
-    func tableView(_ tableView: NSTableView, acceptDrop info: NSDraggingInfo, row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
-        guard let item = info.draggingPasteboard.pasteboardItems?.first,
-              let strValue = item.string(forType: dragType),
-              let sourceRow = Int(strValue) else { return false }
+    func outlineView(_ outlineView: NSOutlineView, acceptDrop info: NSDraggingInfo, item: Any?, childIndex index: Int) -> Bool {
+        guard item == nil,
+              let draggingItem = info.draggingPasteboard.pasteboardItems?.first,
+              let strValue = draggingItem.string(forType: dragType),
+              let sourceIndex = Int(strValue) else { return false }
         
-        presenter?.didMoveRepository(from: sourceRow, to: row)
+        presenter?.didMoveRepository(from: sourceIndex, to: index)
         return true
     }
     
@@ -349,28 +498,58 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
     // MARK: - SidebarViewProtocol
     
     func showBookmarks(_ bookmarks: [RepositoryBookmark], activePath: String?) {
-        self.bookmarks = bookmarks
         self.activePath = activePath
-        tableView.reloadData()
+        
+        // Re-use or rebuild repositoryItems to preserve expansion state
+        let existingMap = Dictionary(uniqueKeysWithValues: self.repositoryItems.map { ($0.bookmark.path, $0) })
+        self.repositoryItems = bookmarks.map { bookmark in
+            if let existing = existingMap[bookmark.path] {
+                existing.bookmark = bookmark
+                return existing
+            } else {
+                return RepositoryItem(bookmark: bookmark)
+            }
+        }
+        
+        outlineView.reloadData()
         removeButton.isEnabled = false
         fetchLineStatsForAll()
+        fetchBranchesForAll()
     }
     
     private func fetchLineStatsForAll() {
-        for bookmark in bookmarks {
-            let path = bookmark.path
+        for item in repositoryItems {
+            let path = item.bookmark.path
             Task {
                 do {
                     let stats = try await GitService.shared.getLineStats(in: path)
                     await MainActor.run {
                         self.lineStatsCache[path] = stats
-                        // Find the row for this bookmark and reload just that row
-                        if let idx = self.bookmarks.firstIndex(where: { $0.path == path }) {
-                            self.tableView.reloadData(forRowIndexes: IndexSet(integer: idx), columnIndexes: IndexSet(integer: 0))
+                        if let targetItem = self.repositoryItems.first(where: { $0.bookmark.path == path }) {
+                            self.outlineView.reloadItem(targetItem, reloadChildren: false)
                         }
                     }
                 } catch {
-                    // Silently ignore — repo may not exist or not be a git repo
+                    // Silently ignore
+                }
+            }
+        }
+    }
+    
+    private func fetchBranchesForAll() {
+        for item in repositoryItems {
+            let path = item.bookmark.path
+            Task {
+                do {
+                    let branches = try await GitService.shared.getBranches(in: path)
+                    await MainActor.run {
+                        if let targetItem = self.repositoryItems.first(where: { $0.bookmark.path == path }) {
+                            targetItem.branches = branches.map { BranchItem(branch: $0, repoPath: path) }
+                            self.outlineView.reloadItem(targetItem, reloadChildren: true)
+                        }
+                    }
+                } catch {
+                    // Ignore error - folder might not exist or not be a git repo
                 }
             }
         }

@@ -10,6 +10,7 @@ protocol SidebarInteractorInputProtocol: AnyObject {
     func selectRepository(path: String)
     func cloneRepository(url: String, targetPath: String)
     func initRepository(at path: String)
+    func checkout(branchName: String, in repoPath: String)
 }
 
 protocol SidebarInteractorOutputProtocol: AnyObject {
@@ -74,6 +75,25 @@ class SidebarInteractor: SidebarInteractorInputProtocol {
                 await MainActor.run {
                     self.addRepository(name: name, path: path)
                     self.presenter?.didInitSuccess(name: name, path: path)
+                }
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+    
+    func checkout(branchName: String, in repoPath: String) {
+        Task {
+            do {
+                try await GitService.shared.checkout(branch: branchName, in: repoPath)
+                await MainActor.run {
+                    RepositoryStore.shared.setActiveRepository(path: repoPath)
+                    self.loadBookmarks()
+                    NotificationCenter.default.post(name: .repositoryContentShouldRefresh, object: nil)
+                    NotificationCenter.default.post(name: .repositoryFilesChanged, object: nil)
+                    NotificationCenter.default.post(name: .sidebarShouldRefreshStats, object: nil)
                 }
             } catch {
                 await MainActor.run {

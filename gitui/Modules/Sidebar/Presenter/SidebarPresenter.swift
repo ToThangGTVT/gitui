@@ -7,6 +7,7 @@ protocol SidebarPresenterProtocol: AnyObject {
     func refresh()
     func filterBookmarks(query: String)
     func didSelectRepository(_ bookmark: RepositoryBookmark)
+    func didSelectBranch(_ branch: GitBranch, in repoPath: String)
     func didMoveRepository(from: Int, to: Int)
     func didClickRemoveRepository(at index: Int)
     func didClickOpen()
@@ -58,6 +59,10 @@ class SidebarPresenter: SidebarPresenterProtocol, SidebarInteractorOutputProtoco
     
     func didSelectRepository(_ bookmark: RepositoryBookmark) {
         interactor.selectRepository(path: bookmark.path)
+    }
+    
+    func didSelectBranch(_ branch: GitBranch, in repoPath: String) {
+        interactor.checkout(branchName: branch.name, in: repoPath)
     }
     
     func didMoveRepository(from: Int, to: Int) {
