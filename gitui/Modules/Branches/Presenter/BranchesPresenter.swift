@@ -1,6 +1,6 @@
 // MARK: - BranchesPresenter.swift
 
-import Foundation
+import Cocoa
 
 protocol BranchesPresenterProtocol: AnyObject {
     func viewDidLoad()
@@ -99,8 +99,11 @@ class BranchesPresenter: BranchesPresenterProtocol, BranchesInteractorOutputProt
     func didClickPush(_ node: BranchNode) {
         guard let path = activePath else { return }
         guard !node.isHeader && !node.isRemote else { return }
-        view?.showLoading(true)
-        interactor.pushBranch(repoPath: path, branchName: node.name)
+        
+        let window = (view as? NSViewController)?.view.window
+        GitPushProgressViewController.show(remote: "origin", branch: node.name, repoPath: path, from: window) { [weak self] success in
+            self?.refresh()
+        }
     }
     
     // MARK: - BranchesInteractorOutputProtocol

@@ -119,6 +119,71 @@ class GitService {
         }.value
     }
     
+    // Execute a git command and stream output in real-time
+    func runGitStreaming(_ args: [String], in repoPath: String, onOutput: @escaping (String) -> Void) async throws -> String {
+        return try await Task.detached(priority: .userInitiated) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: self.resolveGitPath())
+            process.arguments = args
+            process.currentDirectoryURL = URL(fileURLWithPath: repoPath)
+            
+            let outPipe = Pipe()
+            let errPipe = Pipe()
+            process.standardOutput = outPipe
+            process.standardError = errPipe
+            
+            var fullOutput = ""
+            let outputQueue = DispatchQueue(label: "git.stream.output")
+            
+            let handleOutput = { (data: Data) in
+                guard !data.isEmpty else { return }
+                if let str = String(data: data, encoding: .utf8) {
+                    outputQueue.async {
+                        fullOutput += str
+                        DispatchQueue.main.async {
+                            onOutput(str)
+                        }
+                    }
+                }
+            }
+            
+            outPipe.fileHandleForReading.readabilityHandler = { handle in
+                handleOutput(handle.availableData)
+            }
+            
+            errPipe.fileHandleForReading.readabilityHandler = { handle in
+                handleOutput(handle.availableData)
+            }
+            
+            try process.run()
+            process.waitUntilExit()
+            
+            // Clean up handlers
+            outPipe.fileHandleForReading.readabilityHandler = nil
+            errPipe.fileHandleForReading.readabilityHandler = nil
+            
+            // Read any remaining data
+            let remainingOut = outPipe.fileHandleForReading.readDataToEndOfFile()
+            let remainingErr = errPipe.fileHandleForReading.readDataToEndOfFile()
+            handleOutput(remainingOut)
+            handleOutput(remainingErr)
+            
+            if process.terminationStatus != 0 {
+                let cleanErr = String(data: remainingErr, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                var errMsg = cleanErr
+                if errMsg.isEmpty {
+                    errMsg = fullOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                if errMsg.isEmpty {
+                    errMsg = "Unknown Git error (exit code \(process.terminationStatus))"
+                }
+                throw NSError(domain: "GitErrorDomain", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: errMsg])
+            }
+            
+            return fullOutput
+        }.value
+    }
+    
     // MARK: - Wrappers & Parsers
     
     func getStatus(in repoPath: String) async throws -> (staged: [GitFileStatus], unstaged: [GitFileStatus]) {
@@ -451,6 +516,11 @@ class GitService {
     
     func push(remote: String, branch: String, in repoPath: String) async throws {
         _ = try await runGit(["push", remote, branch], in: repoPath)
+    }
+    
+    @discardableResult
+    func pushStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping (String) -> Void) async throws -> String {
+        return try await runGitStreaming(["push", remote, branch], in: repoPath, onOutput: onOutput)
     }
     
     func getTags(in repoPath: String) async throws -> [GitTag] {

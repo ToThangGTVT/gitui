@@ -430,20 +430,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     }
     
     private func performPush(remote: String, branch: String, repoPath: String) {
-        Task {
-            do {
-                try await GitService.shared.push(remote: remote, branch: branch, in: repoPath)
-                await MainActor.run {
-                    self.showToolbarAlert(title: "Push Complete", message: "Successfully pushed \(branch) to '\(remote)'.", isError: false)
-                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
-                    self.updateBranchLabel(for: repoPath, repoName: repoName)
-                    self.refreshCurrentTab()
-                }
-            } catch {
-                await MainActor.run {
-                    self.showToolbarAlert(title: "Push Failed", message: error.localizedDescription, isError: true)
-                }
-            }
+        let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+        GitPushProgressViewController.show(remote: remote, branch: branch, repoPath: repoPath, from: self.window) { [weak self] success in
+            guard let self = self else { return }
+            self.updateBranchLabel(for: repoPath, repoName: repoName)
+            self.refreshCurrentTab()
         }
     }
     

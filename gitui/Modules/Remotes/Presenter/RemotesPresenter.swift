@@ -1,6 +1,6 @@
 // MARK: - RemotesPresenter.swift
 
-import Foundation
+import Cocoa
 
 protocol RemotesPresenterProtocol: AnyObject {
     func viewDidLoad()
@@ -95,8 +95,11 @@ class RemotesPresenter: RemotesPresenterProtocol, RemotesInteractorOutputProtoco
             router.showAlert(title: "Branch Required", message: "Please specify which local branch to push.", isError: true)
             return
         }
-        view?.showLoading(true)
-        interactor.pushRemote(repoPath: path, name: remote.name, branch: cleanBranch)
+        
+        let window = (view as? NSViewController)?.view.window
+        GitPushProgressViewController.show(remote: remote.name, branch: cleanBranch, repoPath: path, from: window) { [weak self] success in
+            self?.refresh()
+        }
     }
     
     // MARK: - RemotesInteractorOutputProtocol
