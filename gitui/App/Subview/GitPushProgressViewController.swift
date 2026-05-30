@@ -98,14 +98,14 @@ class GitPushProgressViewController: NSViewController {
         view.addSubview(logScrollView)
         
         // 6. Text View for Terminal Logs
-        logTextView = NSTextView(frame: .zero)
-        logTextView.translatesAutoresizingMaskIntoConstraints = false
+        logTextView = NSTextView(frame: NSRect(x: 0, y: 0, width: 510, height: 200))
         logTextView.isEditable = false
         logTextView.isSelectable = true
+        logTextView.autoresizingMask = [.width]
         logTextView.backgroundColor = NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.0)
         logTextView.textColor = NSColor(red: 0.85, green: 0.85, blue: 0.85, alpha: 1.0)
         logTextView.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
-        logTextView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        logTextView.textContainer?.containerSize = NSSize(width: 510, height: CGFloat.greatestFiniteMagnitude)
         logTextView.textContainer?.widthTracksTextView = true
         logScrollView.documentView = logTextView
         
@@ -152,11 +152,6 @@ class GitPushProgressViewController: NSViewController {
             actionButton.widthAnchor.constraint(equalToConstant: 100),
             actionButton.heightAnchor.constraint(equalToConstant: 30)
         ])
-        
-        // Auto-embed Text View inside Scroll View properly
-        if let textContainer = logTextView.textContainer {
-            logTextView.widthAnchor.constraint(equalTo: logScrollView.widthAnchor, constant: -10).isActive = true
-        }
     }
     
     private func appendLog(_ text: String) {

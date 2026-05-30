@@ -134,53 +134,58 @@ class GitService {
             
             var fullOutput = ""
             let outputQueue = DispatchQueue(label: "git.stream.output")
+            let readQueue = DispatchQueue(label: "git.read.queue", attributes: .concurrent)
             
-            let handleOutput = { (data: Data) in
-                guard !data.isEmpty else { return }
-                if let str = String(data: data, encoding: .utf8) {
-                    outputQueue.async {
-                        fullOutput += str
-                        DispatchQueue.main.async {
-                            onOutput(str)
+            readQueue.async {
+                let fileHandle = outPipe.fileHandleForReading
+                while true {
+                    let data = fileHandle.availableData
+                    guard !data.isEmpty else { break }
+                    if let str = String(data: data, encoding: .utf8) {
+                        outputQueue.async {
+                            fullOutput += str
+                            DispatchQueue.main.async {
+                                onOutput(str)
+                            }
                         }
                     }
                 }
             }
             
-            outPipe.fileHandleForReading.readabilityHandler = { handle in
-                handleOutput(handle.availableData)
-            }
-            
-            errPipe.fileHandleForReading.readabilityHandler = { handle in
-                handleOutput(handle.availableData)
+            readQueue.async {
+                let fileHandle = errPipe.fileHandleForReading
+                while true {
+                    let data = fileHandle.availableData
+                    guard !data.isEmpty else { break }
+                    if let str = String(data: data, encoding: .utf8) {
+                        outputQueue.async {
+                            fullOutput += str
+                            DispatchQueue.main.async {
+                                onOutput(str)
+                            }
+                        }
+                    }
+                }
             }
             
             try process.run()
             process.waitUntilExit()
             
-            // Clean up handlers
-            outPipe.fileHandleForReading.readabilityHandler = nil
-            errPipe.fileHandleForReading.readabilityHandler = nil
+            // Give readers a brief moment to complete writing any remaining buffered data
+            Thread.sleep(forTimeInterval: 0.05)
             
-            // Read any remaining data
-            let remainingOut = outPipe.fileHandleForReading.readDataToEndOfFile()
-            let remainingErr = errPipe.fileHandleForReading.readDataToEndOfFile()
-            handleOutput(remainingOut)
-            handleOutput(remainingErr)
+            var finalOutput = ""
+            outputQueue.sync {
+                finalOutput = fullOutput
+            }
             
             if process.terminationStatus != 0 {
-                let cleanErr = String(data: remainingErr, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-                var errMsg = cleanErr
-                if errMsg.isEmpty {
-                    errMsg = fullOutput.trimmingCharacters(in: .whitespacesAndNewlines)
-                }
-                if errMsg.isEmpty {
-                    errMsg = "Unknown Git error (exit code \(process.terminationStatus))"
-                }
+                let cleanErr = finalOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+                let errMsg = cleanErr.isEmpty ? "Unknown Git error (exit code \(process.terminationStatus))" : cleanErr
                 throw NSError(domain: "GitErrorDomain", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: errMsg])
             }
             
-            return fullOutput
+            return finalOutput
         }.value
     }
     
