@@ -1,0 +1,107 @@
+// MARK: - ChangesPresenter.swift
+
+import Foundation
+
+protocol ChangesPresenterProtocol: AnyObject {
+    func viewDidLoad()
+    func refresh()
+    func didSelectFile(_ file: GitFileStatus)
+    func didDoubleClickFile(_ file: GitFileStatus)
+    func didClickStageAll()
+    func didClickUnstageAll()
+    func didClickCommit(message: String)
+}
+
+class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtocol {
+    
+    private weak var view: ChangesViewProtocol?
+    private let interactor: ChangesInteractorInputProtocol
+    private let router: ChangesRouterProtocol
+    
+    init(view: ChangesViewProtocol, interactor: ChangesInteractorInputProtocol, router: ChangesRouterProtocol) {
+        self.view = view
+        self.interactor = interactor
+        self.router = router
+    }
+    
+    private var activePath: String? {
+        return RepositoryStore.shared.getActiveRepositoryPath()
+    }
+    
+    func viewDidLoad() {
+        refresh()
+    }
+    
+    func refresh() {
+        guard let path = activePath else {
+            view?.showStagedFiles([])
+            view?.showUnstagedFiles([])
+            view?.clearDiff()
+            return
+        }
+        view?.showLoading(true)
+        interactor.loadStatus(repoPath: path)
+    }
+    
+    func didSelectFile(_ file: GitFileStatus) {
+        guard let path = activePath else { return }
+        view?.showLoading(true)
+        interactor.loadDiff(repoPath: path, file: file)
+    }
+    
+    func didDoubleClickFile(_ file: GitFileStatus) {
+        guard let path = activePath else { return }
+        view?.showLoading(true)
+        if file.isStaged {
+            interactor.unstageFile(repoPath: path, file: file)
+        } else {
+            interactor.stageFile(repoPath: path, file: file)
+        }
+    }
+    
+    func didClickStageAll() {
+        guard let path = activePath else { return }
+        view?.showLoading(true)
+        interactor.stageAll(repoPath: path)
+    }
+    
+    func didClickUnstageAll() {
+        guard let path = activePath else { return }
+        view?.showLoading(true)
+        interactor.unstageAll(repoPath: path)
+    }
+    
+    func didClickCommit(message: String) {
+        guard let path = activePath else { return }
+        let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else {
+            router.showAlert(title: "Empty Commit Message", message: "Please enter a valid commit message before committing.")
+            return
+        }
+        view?.showLoading(true)
+        interactor.commit(repoPath: path, message: trimmed)
+    }
+    
+    // MARK: - ChangesInteractorOutputProtocol
+    
+    func didLoadStatus(staged: [GitFileStatus], unstaged: [GitFileStatus]) {
+        view?.showLoading(false)
+        view?.showStagedFiles(staged)
+        view?.showUnstagedFiles(unstaged)
+    }
+    
+    func didLoadDiff(text: String, file: String) {
+        view?.showLoading(false)
+        view?.showDiffText(text, for: file)
+    }
+    
+    func didOperationError(_ error: Error) {
+        view?.showLoading(false)
+        router.showAlert(title: "Git Operation Failed", message: error.localizedDescription)
+    }
+    
+    func didCommitSuccessfully() {
+        view?.showLoading(false)
+        // Refresh the whole status, reset commit message view is done in VC
+    }
+}

@@ -1,28 +1,24 @@
-//
-//  AppDelegate.swift
-//  Created by ThangTQ on 30/5/26.
-//  
+// MARK: - AppDelegate.swift
 
 import Cocoa
 
 @main
 class AppDelegate: NSObject, NSApplicationDelegate {
 
-    @IBOutlet var window: NSWindow!
-
+    var mainWindowController: MainWindowController?
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
-        // Insert code here to initialize your application
+        // Initialize the main window controller and show the window
+        let controller = MainWindowController()
+        controller.showWindow(nil)
+        self.mainWindowController = controller
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
-        // Insert code here to tear down your application
+        // Tear down your application
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
         return true
     }
-
-
 }
-
