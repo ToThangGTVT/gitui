@@ -1,6 +1,6 @@
 // MARK: - ChangesPresenter.swift
 
-import Foundation
+import Cocoa
 
 protocol ChangesPresenterProtocol: AnyObject {
     func viewDidLoad()
@@ -10,6 +10,10 @@ protocol ChangesPresenterProtocol: AnyObject {
     func didClickStageAll()
     func didClickUnstageAll()
     func didClickCommit(message: String)
+    func didClickDiscard(_ file: GitFileStatus)
+    func didClickRemoveFile(_ file: GitFileStatus)
+    func didClickIgnoreFile(_ file: GitFileStatus)
+    func didClickShowInFinder(_ file: GitFileStatus)
 }
 
 class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtocol {
@@ -17,6 +21,7 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
     private weak var view: ChangesViewProtocol?
     private let interactor: ChangesInteractorInputProtocol
     private let router: ChangesRouterProtocol
+    private var stagedCount: Int = 0
     
     init(view: ChangesViewProtocol, interactor: ChangesInteractorInputProtocol, router: ChangesRouterProtocol) {
         self.view = view
@@ -73,6 +78,10 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
     
     func didClickCommit(message: String) {
         guard let path = activePath else { return }
+        guard stagedCount > 0 else {
+            router.showWarning(title: "Nothing to Commit", message: "No files are staged. Please stage your changes before committing.")
+            return
+        }
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             router.showAlert(title: "Empty Commit Message", message: "Please enter a valid commit message before committing.")
@@ -82,9 +91,33 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
         interactor.commit(repoPath: path, message: trimmed)
     }
     
+    func didClickDiscard(_ file: GitFileStatus) {
+        guard let path = activePath else { return }
+        view?.showLoading(true)
+        interactor.discardFile(repoPath: path, file: file)
+    }
+    
+    func didClickRemoveFile(_ file: GitFileStatus) {
+        guard let path = activePath else { return }
+        view?.showLoading(true)
+        interactor.removeFile(repoPath: path, file: file)
+    }
+    
+    func didClickIgnoreFile(_ file: GitFileStatus) {
+        guard let path = activePath else { return }
+        interactor.ignoreFile(repoPath: path, file: file)
+    }
+    
+    func didClickShowInFinder(_ file: GitFileStatus) {
+        guard let path = activePath else { return }
+        let fullPath = (path as NSString).appendingPathComponent(file.path)
+        NSWorkspace.shared.selectFile(fullPath, inFileViewerRootedAtPath: path)
+    }
+    
     // MARK: - ChangesInteractorOutputProtocol
     
     func didLoadStatus(staged: [GitFileStatus], unstaged: [GitFileStatus]) {
+        stagedCount = staged.count
         view?.showLoading(false)
         view?.showStagedFiles(staged)
         view?.showUnstagedFiles(unstaged)

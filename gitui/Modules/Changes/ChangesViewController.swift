@@ -24,7 +24,7 @@ private enum FilesSplitKey {
     static let divider1 = "gitflow.changes.files.divider1"
 }
 
-class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate {
+class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate, NSMenuDelegate {
     
     var presenter: ChangesPresenterProtocol?
     
@@ -61,6 +61,17 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         super.viewDidLoad()
         setupUI()
         presenter?.viewDidLoad()
+        
+        // Listen for file-system changes to auto-refresh data (no view rebuild)
+        NotificationCenter.default.addObserver(self, selector: #selector(handleContentRefresh), name: .repositoryContentShouldRefresh, object: nil)
+    }
+    
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleContentRefresh() {
+        presenter?.refresh()
     }
     
     override func viewDidAppear() {
@@ -173,6 +184,17 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         // Set double click actions on tables
         stagedTableView.doubleAction = #selector(stagedTableDoubleClicked(_:))
         unstagedTableView.doubleAction = #selector(unstagedTableDoubleClicked(_:))
+        
+        // Context menus (right-click)
+        let stagedMenu = NSMenu()
+        stagedMenu.delegate = self
+        stagedMenu.identifier = NSUserInterfaceItemIdentifier("stagedMenu")
+        stagedTableView.menu = stagedMenu
+        
+        let unstagedMenu = NSMenu()
+        unstagedMenu.delegate = self
+        unstagedMenu.identifier = NSUserInterfaceItemIdentifier("unstagedMenu")
+        unstagedTableView.menu = unstagedMenu
     }
     
     // MARK: - Left split (3-pane) save/restore
@@ -242,11 +264,23 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         container.translatesAutoresizingMaskIntoConstraints = true
         container.autoresizingMask = [.width, .height]
         
+        let headerBar = NSView()
+        headerBar.wantsLayer = true
+        headerBar.layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.6).cgColor
+        headerBar.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(headerBar)
+        
         let label = NSTextField(labelWithString: title.uppercased())
         label.font = NSFont.systemFont(ofSize: 10, weight: .bold)
         label.textColor = NSColor.secondaryLabelColor
         label.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(label)
+        headerBar.addSubview(label)
+        
+        let headerBorder = NSView()
+        headerBorder.wantsLayer = true
+        headerBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        headerBorder.translatesAutoresizingMaskIntoConstraints = false
+        headerBar.addSubview(headerBorder)
         
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
@@ -273,10 +307,20 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         scroll.documentView = table
         
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: container.topAnchor, constant: 8),
-            label.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            headerBar.topAnchor.constraint(equalTo: container.topAnchor),
+            headerBar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            headerBar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            headerBar.heightAnchor.constraint(equalToConstant: 26),
             
-            scroll.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 4),
+            label.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
+            label.leadingAnchor.constraint(equalTo: headerBar.leadingAnchor, constant: 12),
+            
+            headerBorder.leadingAnchor.constraint(equalTo: headerBar.leadingAnchor),
+            headerBorder.trailingAnchor.constraint(equalTo: headerBar.trailingAnchor),
+            headerBorder.bottomAnchor.constraint(equalTo: headerBar.bottomAnchor),
+            headerBorder.heightAnchor.constraint(equalToConstant: 1),
+            
+            scroll.topAnchor.constraint(equalTo: headerBar.bottomAnchor),
             scroll.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: container.bottomAnchor)
@@ -437,6 +481,101 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         presenter?.didClickCommit(message: message)
         commitTextView.string = "Commit message..."
         commitTextView.textColor = NSColor.placeholderTextColor
+    }
+    // MARK: - Context Menu (NSMenuDelegate)
+    
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        
+        let isStaged = menu.identifier?.rawValue == "stagedMenu"
+        let table = isStaged ? stagedTableView! : unstagedTableView!
+        let row = table.clickedRow
+        guard row >= 0 else { return }
+        
+        let files = isStaged ? stagedFiles : unstagedFiles
+        guard row < files.count else { return }
+        let file = files[row]
+        
+        // Select the clicked row
+        table.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        
+        if isStaged {
+            let unstageItem = NSMenuItem(title: "Unstage File", action: #selector(contextUnstageFile(_:)), keyEquivalent: "")
+            unstageItem.representedObject = file
+            menu.addItem(unstageItem)
+        } else {
+            let stageItem = NSMenuItem(title: "Stage File", action: #selector(contextStageFile(_:)), keyEquivalent: "")
+            stageItem.representedObject = file
+            menu.addItem(stageItem)
+            
+            let discardItem = NSMenuItem(title: "Discard Changes", action: #selector(contextDiscardFile(_:)), keyEquivalent: "")
+            discardItem.representedObject = file
+            menu.addItem(discardItem)
+        }
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        if !isStaged {
+            let removeItem = NSMenuItem(title: "Remove File", action: #selector(contextRemoveFile(_:)), keyEquivalent: "")
+            removeItem.representedObject = file
+            menu.addItem(removeItem)
+            
+            let ignoreItem = NSMenuItem(title: "Ignore File", action: #selector(contextIgnoreFile(_:)), keyEquivalent: "")
+            ignoreItem.representedObject = file
+            menu.addItem(ignoreItem)
+            
+            menu.addItem(NSMenuItem.separator())
+        }
+        
+        let finderItem = NSMenuItem(title: "Show in Finder", action: #selector(contextShowInFinder(_:)), keyEquivalent: "")
+        finderItem.representedObject = file
+        menu.addItem(finderItem)
+    }
+    
+    @objc private func contextStageFile(_ sender: NSMenuItem) {
+        guard let file = sender.representedObject as? GitFileStatus else { return }
+        presenter?.didDoubleClickFile(file) // stage action
+    }
+    
+    @objc private func contextUnstageFile(_ sender: NSMenuItem) {
+        guard let file = sender.representedObject as? GitFileStatus else { return }
+        presenter?.didDoubleClickFile(file) // unstage action
+    }
+    
+    @objc private func contextDiscardFile(_ sender: NSMenuItem) {
+        guard let file = sender.representedObject as? GitFileStatus else { return }
+        let alert = NSAlert()
+        alert.messageText = "Discard Changes?"
+        alert.informativeText = "Are you sure you want to discard changes to \"\(file.path)\"? This cannot be undone."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Discard")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            presenter?.didClickDiscard(file)
+        }
+    }
+    
+    @objc private func contextRemoveFile(_ sender: NSMenuItem) {
+        guard let file = sender.representedObject as? GitFileStatus else { return }
+        let alert = NSAlert()
+        alert.messageText = "Remove File?"
+        alert.informativeText = "Are you sure you want to remove \"\(file.path)\" from the repository?"
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Remove")
+        alert.addButton(withTitle: "Cancel")
+        if alert.runModal() == .alertFirstButtonReturn {
+            presenter?.didClickRemoveFile(file)
+        }
+    }
+    
+    @objc private func contextIgnoreFile(_ sender: NSMenuItem) {
+        guard let file = sender.representedObject as? GitFileStatus else { return }
+        presenter?.didClickIgnoreFile(file)
+    }
+    
+    @objc private func contextShowInFinder(_ sender: NSMenuItem) {
+        guard let file = sender.representedObject as? GitFileStatus else { return }
+        presenter?.didClickShowInFinder(file)
     }
     
     // MARK: - NSSplitViewDelegate
@@ -623,13 +762,25 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     // MARK: - ChangesViewProtocol
     
     func showStagedFiles(_ files: [GitFileStatus]) {
+        let previousSelection = stagedTableView.selectedRow >= 0 && stagedTableView.selectedRow < stagedFiles.count
+            ? stagedFiles[stagedTableView.selectedRow].path : nil
         stagedFiles = files
         stagedTableView.reloadData()
+        if let selected = previousSelection,
+           let newIdx = files.firstIndex(where: { $0.path == selected }) {
+            stagedTableView.selectRowIndexes(IndexSet(integer: newIdx), byExtendingSelection: false)
+        }
     }
     
     func showUnstagedFiles(_ files: [GitFileStatus]) {
+        let previousSelection = unstagedTableView.selectedRow >= 0 && unstagedTableView.selectedRow < unstagedFiles.count
+            ? unstagedFiles[unstagedTableView.selectedRow].path : nil
         unstagedFiles = files
         unstagedTableView.reloadData()
+        if let selected = previousSelection,
+           let newIdx = files.firstIndex(where: { $0.path == selected }) {
+            unstagedTableView.selectRowIndexes(IndexSet(integer: newIdx), byExtendingSelection: false)
+        }
     }
     
     func showDiffText(_ text: String, for file: String) {
@@ -655,27 +806,97 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     
     private func highlightDiffText(_ text: String) -> NSAttributedString {
         let font = NSFont(name: "SF Mono", size: 11) ?? NSFont(name: "Menlo", size: 11) ?? NSFont.userFixedPitchFont(ofSize: 11)!
-        let attrStr = NSMutableAttributedString(string: text, attributes: [.font: font, .foregroundColor: NSColor.labelColor])
+        let gutterFont = NSFont(name: "SF Mono", size: 10) ?? NSFont(name: "Menlo", size: 10) ?? NSFont.userFixedPitchFont(ofSize: 10)!
+        let gutterColor = NSColor.secondaryLabelColor
+        let gutterSepColor = NSColor.separatorColor
         
-        let lines = text.components(separatedBy: .newlines)
-        var currentOffset = 0
+        let lines = text.components(separatedBy: "\n")
+        let result = NSMutableAttributedString()
         
-        for line in lines {
-            let lineRange = NSRange(location: currentOffset, length: line.count)
-            if line.hasPrefix("+") {
-                attrStr.addAttribute(.backgroundColor, value: NSColor.gitFlowStagedAdd, range: lineRange)
-                attrStr.addAttribute(.foregroundColor, value: NSColor.gitFlowStagedAddText, range: lineRange)
+        var oldLine: Int = 0
+        var newLine: Int = 0
+        
+        for (index, line) in lines.enumerated() {
+            // Parse @@ hunk header to extract line numbers
+            // Format: @@ -oldStart,oldCount +newStart,newCount @@
+            if line.hasPrefix("@@") {
+                if let range = line.range(of: #"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@"#, options: .regularExpression) {
+                    let matched = String(line[range])
+                    let nums = matched.components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }
+                    if nums.count >= 2 {
+                        oldLine = Int(nums[0]) ?? 0
+                        newLine = Int(nums[1]) ?? 0
+                    }
+                }
+                // Gutter for hunk header: blank line numbers
+                let gutter = NSAttributedString(string: "      │       │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor])
+                result.append(gutter)
+                let lineStr = NSAttributedString(string: line, attributes: [.font: font, .foregroundColor: NSColor.secondaryLabelColor])
+                result.append(lineStr)
+            } else if line.hasPrefix("+") {
+                // Added line: show only new line number
+                let gutter = NSMutableAttributedString()
+                gutter.append(NSAttributedString(string: "      ", attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
+                gutter.append(NSAttributedString(string: "│ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
+                let numStr = String(format: "%5d", newLine)
+                gutter.append(NSAttributedString(string: numStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
+                gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
+                result.append(gutter)
+                let lineStr = NSAttributedString(string: line, attributes: [
+                    .font: font,
+                    .foregroundColor: NSColor.gitFlowStagedAddText,
+                    .backgroundColor: NSColor.gitFlowStagedAdd
+                ])
+                result.append(lineStr)
+                newLine += 1
             } else if line.hasPrefix("-") {
-                attrStr.addAttribute(.backgroundColor, value: NSColor.gitFlowStagedDelete, range: lineRange)
-                attrStr.addAttribute(.foregroundColor, value: NSColor.gitFlowStagedDeleteText, range: lineRange)
-            } else if line.hasPrefix("@@") {
-                attrStr.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: lineRange)
+                // Removed line: show only old line number
+                let gutter = NSMutableAttributedString()
+                let numStr = String(format: "%5d", oldLine)
+                gutter.append(NSAttributedString(string: numStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
+                gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
+                gutter.append(NSAttributedString(string: "      ", attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
+                gutter.append(NSAttributedString(string: "│ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
+                result.append(gutter)
+                let lineStr = NSAttributedString(string: line, attributes: [
+                    .font: font,
+                    .foregroundColor: NSColor.gitFlowStagedDeleteText,
+                    .backgroundColor: NSColor.gitFlowStagedDelete
+                ])
+                result.append(lineStr)
+                oldLine += 1
             } else if line.hasPrefix("diff") || line.hasPrefix("index") || line.hasPrefix("---") || line.hasPrefix("+++") {
-                attrStr.addAttribute(.foregroundColor, value: NSColor.gitFlowAccent, range: lineRange)
+                // Meta header lines: blank gutter
+                let gutter = NSAttributedString(string: "      │       │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor])
+                result.append(gutter)
+                let lineStr = NSAttributedString(string: line, attributes: [.font: font, .foregroundColor: NSColor.gitFlowAccent])
+                result.append(lineStr)
+            } else {
+                // Context line: show both old and new line numbers
+                let gutter = NSMutableAttributedString()
+                if oldLine > 0 && newLine > 0 {
+                    let oldStr = String(format: "%5d", oldLine)
+                    let newStr = String(format: "%5d", newLine)
+                    gutter.append(NSAttributedString(string: oldStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
+                    gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
+                    gutter.append(NSAttributedString(string: newStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
+                    gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
+                } else {
+                    gutter.append(NSAttributedString(string: "      │       │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
+                }
+                result.append(gutter)
+                let lineStr = NSAttributedString(string: line, attributes: [.font: font, .foregroundColor: NSColor.labelColor])
+                result.append(lineStr)
+                oldLine += 1
+                newLine += 1
             }
-            currentOffset += line.count + 1
+            
+            // Add newline except for the last line
+            if index < lines.count - 1 {
+                result.append(NSAttributedString(string: "\n"))
+            }
         }
         
-        return attrStr
+        return result
     }
 }

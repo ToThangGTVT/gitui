@@ -13,6 +13,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
     
     private var bookmarks: [RepositoryBookmark] = []
     private var activePath: String?
+    private var lineStatsCache: [String: (added: Int, removed: Int)] = [:]
     
     // UI Elements
     private var searchField: NSSearchField!
@@ -27,16 +28,38 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
         super.viewDidLoad()
         setupUI()
         presenter?.viewDidLoad()
+        
+        NotificationCenter.default.addObserver(self, selector: #selector(handleRefreshStats), name: .sidebarShouldRefreshStats, object: nil)
     }
     
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+    
+    @objc private func handleRefreshStats() {
+        fetchLineStatsForAll()
+    }
+    private var visualEffectView: NSVisualEffectView!
+    
     private func setupUI() {
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.gitFlowSidebarBackground.cgColor
+        // Translucent sidebar using NSVisualEffectView
+        visualEffectView = NSVisualEffectView()
+        visualEffectView.material = .sidebar
+        visualEffectView.blendingMode = .behindWindow
+        visualEffectView.state = .followsWindowActiveState
+        visualEffectView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(visualEffectView)
+        NSLayoutConstraint.activate([
+            visualEffectView.topAnchor.constraint(equalTo: view.topAnchor),
+            visualEffectView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            visualEffectView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            visualEffectView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
         
         // 1. Search Bar at Top
         let searchContainer = NSView()
         searchContainer.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(searchContainer)
+        visualEffectView.addSubview(searchContainer)
         
         searchField = NSSearchField()
         searchField.placeholderString = "Search repositories..."
@@ -51,14 +74,14 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
         scroll.borderType = .noBorder
         scroll.drawsBackground = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scroll)
+        visualEffectView.addSubview(scroll)
         
         tableView = NSTableView()
         tableView.headerView = nil
         tableView.backgroundColor = NSColor.clear
         tableView.gridStyleMask = []
         tableView.allowsMultipleSelection = false
-        tableView.rowHeight = 36
+        tableView.rowHeight = 46
         tableView.doubleAction = #selector(tableDoubleClicked(_:))
         
         // Register drag & drop
@@ -74,10 +97,8 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
         
         // 3. Bottom Bar
         let bottomView = NSView()
-        bottomView.wantsLayer = true
-        bottomView.layer?.backgroundColor = NSColor.gitFlowSidebarBackground.cgColor
         bottomView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(bottomView)
+        visualEffectView.addSubview(bottomView)
         
         let border = NSView()
         border.wantsLayer = true
@@ -103,13 +124,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
         progressIndicator.isDisplayedWhenStopped = false
         progressIndicator.controlSize = .small
         progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(progressIndicator)
+        visualEffectView.addSubview(progressIndicator)
         
         // Constraints
         NSLayoutConstraint.activate([
-            searchContainer.topAnchor.constraint(equalTo: view.topAnchor),
-            searchContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            searchContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            searchContainer.topAnchor.constraint(equalTo: visualEffectView.topAnchor),
+            searchContainer.leadingAnchor.constraint(equalTo: visualEffectView.leadingAnchor),
+            searchContainer.trailingAnchor.constraint(equalTo: visualEffectView.trailingAnchor),
             searchContainer.heightAnchor.constraint(equalToConstant: 44),
             
             searchField.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
@@ -117,13 +138,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
             searchField.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -12),
             
             scroll.topAnchor.constraint(equalTo: searchContainer.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            scroll.leadingAnchor.constraint(equalTo: visualEffectView.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: visualEffectView.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: bottomView.topAnchor),
             
-            bottomView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            bottomView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            bottomView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            bottomView.bottomAnchor.constraint(equalTo: visualEffectView.bottomAnchor),
+            bottomView.leadingAnchor.constraint(equalTo: visualEffectView.leadingAnchor),
+            bottomView.trailingAnchor.constraint(equalTo: visualEffectView.trailingAnchor),
             bottomView.heightAnchor.constraint(equalToConstant: 40),
             
             border.topAnchor.constraint(equalTo: bottomView.topAnchor),
@@ -216,8 +237,15 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
             pathLabel.font = NSFont.systemFont(ofSize: 9)
             pathLabel.textColor = NSColor.secondaryLabelColor
             pathLabel.lineBreakMode = .byTruncatingHead
+            pathLabel.identifier = NSUserInterfaceItemIdentifier("pathLabel")
             pathLabel.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(pathLabel)
+            
+            let statsLabel = NSTextField(labelWithString: "")
+            statsLabel.font = NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+            statsLabel.identifier = NSUserInterfaceItemIdentifier("statsLabel")
+            statsLabel.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(statsLabel)
             
             NSLayoutConstraint.activate([
                 icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
@@ -226,12 +254,15 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
                 icon.heightAnchor.constraint(equalToConstant: 16),
                 
                 label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
-                label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
-                label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 3),
+                label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 4),
+                
+                statsLabel.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 4),
+                statsLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
+                statsLabel.centerYAnchor.constraint(equalTo: label.centerYAnchor),
                 
                 pathLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
                 pathLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
-                pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 1)
+                pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 2)
             ])
         }
         
@@ -246,9 +277,35 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
             }
         }
         
-        if let pathLabel = cell?.subviews.first(where: { ($0 as? NSTextField)?.font?.pointSize == 9 }) as? NSTextField {
+        if let pathLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "pathLabel" }) as? NSTextField {
             pathLabel.stringValue = bookmark.path
             pathLabel.textColor = isActive ? NSColor.gitFlowAccent.withAlphaComponent(0.7) : NSColor.secondaryLabelColor
+        }
+        
+        if let statsLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "statsLabel" }) as? NSTextField {
+            if let stats = lineStatsCache[bookmark.path], (stats.added > 0 || stats.removed > 0) {
+                let result = NSMutableAttributedString()
+                if stats.added > 0 {
+                    result.append(NSAttributedString(string: "+\(stats.added)", attributes: [
+                        .foregroundColor: NSColor.gitFlowStagedAddText,
+                        .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                    ]))
+                }
+                if stats.added > 0 && stats.removed > 0 {
+                    result.append(NSAttributedString(string: " ", attributes: [
+                        .font: NSFont.systemFont(ofSize: 10)
+                    ]))
+                }
+                if stats.removed > 0 {
+                    result.append(NSAttributedString(string: "-\(stats.removed)", attributes: [
+                        .foregroundColor: NSColor.gitFlowStagedDeleteText,
+                        .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                    ]))
+                }
+                statsLabel.attributedStringValue = result
+            } else {
+                statsLabel.stringValue = ""
+            }
         }
         
         return cell
@@ -296,6 +353,27 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSTableViewD
         self.activePath = activePath
         tableView.reloadData()
         removeButton.isEnabled = false
+        fetchLineStatsForAll()
+    }
+    
+    private func fetchLineStatsForAll() {
+        for bookmark in bookmarks {
+            let path = bookmark.path
+            Task {
+                do {
+                    let stats = try await GitService.shared.getLineStats(in: path)
+                    await MainActor.run {
+                        self.lineStatsCache[path] = stats
+                        // Find the row for this bookmark and reload just that row
+                        if let idx = self.bookmarks.firstIndex(where: { $0.path == path }) {
+                            self.tableView.reloadData(forRowIndexes: IndexSet(integer: idx), columnIndexes: IndexSet(integer: 0))
+                        }
+                    }
+                } catch {
+                    // Silently ignore — repo may not exist or not be a git repo
+                }
+            }
+        }
     }
     
     func showLoading(_ loading: Bool) {

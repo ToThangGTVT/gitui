@@ -19,6 +19,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     private var headerContainer: NSView!
     private var segmentedControl: NSSegmentedControl!
     private var repoTitleLabel: NSTextField!
+    private var branchButton: NSButton!
     private var tabContentContainer: NSView!
     private var placeholderView: NSView!
     
@@ -45,6 +46,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         // Listen for active repository changes
         NotificationCenter.default.addObserver(self, selector: #selector(handleRepoChanged(_:)), name: .activeRepositoryChanged, object: nil)
+        
+        // Listen for file system changes in active repo
+        NotificationCenter.default.addObserver(self, selector: #selector(handleFilesChanged), name: .repositoryFilesChanged, object: nil)
         
         // Load initial state
         updateWorkspaceState(path: RepositoryStore.shared.getActiveRepositoryPath())
@@ -84,6 +88,30 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         repoTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         headerContainer.addSubview(repoTitleLabel)
         
+        // Branch Button (clickable, shows sheet to switch branches)
+        let branchContainer = NSView()
+        branchContainer.wantsLayer = true
+        branchContainer.layer?.cornerRadius = 6
+        branchContainer.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
+        branchContainer.translatesAutoresizingMaskIntoConstraints = false
+        branchContainer.identifier = NSUserInterfaceItemIdentifier("branchContainer")
+        headerContainer.addSubview(branchContainer)
+        
+        branchButton = NSButton()
+        branchButton.isBordered = false
+        branchButton.contentTintColor = NSColor.controlAccentColor
+        branchButton.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        branchButton.target = self
+        branchButton.action = #selector(branchButtonClicked(_:))
+        branchButton.translatesAutoresizingMaskIntoConstraints = false
+        branchContainer.isHidden = true
+        if #available(macOS 11.0, *) {
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+            branchButton.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Branch")?.withSymbolConfiguration(config)
+        }
+        branchButton.imagePosition = .imageLeading
+        branchContainer.addSubview(branchButton)
+        
         // Segmented Control
         segmentedControl = NSSegmentedControl()
         segmentedControl.segmentStyle = .texturedRounded
@@ -122,6 +150,14 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             
             repoTitleLabel.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
             repoTitleLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 20),
+            
+            branchContainer.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            branchContainer.leadingAnchor.constraint(equalTo: repoTitleLabel.trailingAnchor, constant: 10),
+            branchContainer.heightAnchor.constraint(equalToConstant: 26),
+            
+            branchButton.leadingAnchor.constraint(equalTo: branchContainer.leadingAnchor, constant: 8),
+            branchButton.trailingAnchor.constraint(equalTo: branchContainer.trailingAnchor, constant: -8),
+            branchButton.centerYAnchor.constraint(equalTo: branchContainer.centerYAnchor),
             
             segmentedControl.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
             segmentedControl.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -20),
@@ -300,6 +336,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
     }
     
+    @objc private func handleFilesChanged() {
+        guard let path = activeRepoPath else { return }
+        // Update branch label (in case of checkout)
+        let repoName = URL(fileURLWithPath: path).lastPathComponent
+        updateBranchLabel(for: path, repoName: repoName)
+        // Notify modules to refresh data (NOT rebuild views)
+        NotificationCenter.default.post(name: .repositoryContentShouldRefresh, object: nil)
+        // Notify sidebar to update line stats
+        NotificationCenter.default.post(name: .sidebarShouldRefreshStats, object: nil)
+    }
+    
     private func updateWorkspaceState(path: String?) {
         self.activeRepoPath = path
         
@@ -311,11 +358,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             let url = URL(fileURLWithPath: path)
             repoTitleLabel.stringValue = url.lastPathComponent
             
+            // Fetch and display current branch name
+            updateBranchLabel(for: path, repoName: url.lastPathComponent)
+            
+            // Start watching this repo for file changes
+            FileWatcherService.shared.watch(repoPath: path)
+            
             // Reload the current active tab
             selectTab(index: segmentedControl.selectedSegment)
         } else {
             headerContainer.isHidden = true
             tabContentContainer.isHidden = true
+            
+            // Stop watching when no repo is active
+            FileWatcherService.shared.stopWatching()
             
             if placeholderView.superview == nil {
                 mainContainer.addSubview(placeholderView)
@@ -459,11 +515,73 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     
     @objc private func toolbarTerminalClicked() {
         guard let path = activeRepoPath else { return }
-        let escapedPath = path.replacingOccurrences(of: "\"", with: "\\\"")
-        let script = "tell application \"Terminal\"\nactivate\ndo script \"cd \\\"\(escapedPath)\\\"\"\nend tell"
-        if let appleScript = NSAppleScript(source: script) {
-            var error: NSDictionary?
-            appleScript.executeAndReturnError(&error)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-a", "Terminal", path]
+        try? process.run()
+    }
+    
+    // MARK: - Branch Label & Switcher
+    
+    private func updateBranchLabel(for repoPath: String, repoName: String) {
+        Task {
+            let branch = await detectCurrentBranch(in: repoPath)
+            await MainActor.run {
+                guard self.activeRepoPath == repoPath else { return }
+                if let branch = branch {
+                    self.repoTitleLabel.stringValue = repoName
+                    self.repoTitleLabel.font = NSFont.systemFont(ofSize: 15, weight: .bold)
+                    self.branchButton.title = " \(branch) ▾"
+                    self.branchButton.superview?.isHidden = false
+                } else {
+                    self.branchButton.superview?.isHidden = true
+                }
+            }
+        }
+    }
+    
+    @objc private func branchButtonClicked(_ sender: NSButton) {
+        guard let path = activeRepoPath, let window = self.window else { return }
+        
+        Task {
+            do {
+                let branches = try await GitService.shared.getBranches(in: path)
+                let localBranches = branches.filter { !$0.isRemote }
+                await MainActor.run {
+                    let sheetVC = BranchSheetViewController(branches: localBranches) { [weak self] selectedBranch in
+                        self?.switchToBranch(selectedBranch, in: path)
+                    }
+                    
+                    let sheetWindow = NSWindow(contentViewController: sheetVC)
+                    sheetWindow.styleMask = [.titled, .closable]
+                    sheetWindow.title = "Switch Branch"
+                    sheetWindow.setContentSize(NSSize(width: 400, height: 420))
+                    
+                    window.beginSheet(sheetWindow, completionHandler: nil)
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Error", message: error.localizedDescription, isError: true)
+                }
+            }
+        }
+    }
+    
+    private func switchToBranch(_ branch: GitBranch, in repoPath: String) {
+        guard !branch.isCurrent else { return }
+        Task {
+            do {
+                try await GitService.shared.checkout(branch: branch.name, in: repoPath)
+                await MainActor.run {
+                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                    self.updateBranchLabel(for: repoPath, repoName: repoName)
+                    self.refreshCurrentTab()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Checkout Failed", message: error.localizedDescription, isError: true)
+                }
+            }
         }
     }
     
@@ -573,5 +691,277 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     
     private func refreshCurrentTab() {
         selectTab(index: segmentedControl.selectedSegment)
+    }
+}
+
+// MARK: - Branch Switcher Sheet
+
+private class BranchSheetViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
+    
+    private let allBranches: [GitBranch]
+    private var filteredBranches: [GitBranch]
+    private let onSelect: (GitBranch) -> Void
+    private var tableView: NSTableView!
+    private var searchField: NSSearchField!
+    private var checkoutButton: NSButton!
+    
+    init(branches: [GitBranch], onSelect: @escaping (GitBranch) -> Void) {
+        self.allBranches = branches
+        self.filteredBranches = branches
+        self.onSelect = onSelect
+        super.init(nibName: nil, bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) { fatalError() }
+    
+    override func loadView() {
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 420))
+        container.wantsLayer = true
+        
+        // Title
+        let titleLabel = NSTextField(labelWithString: "Switch Branch")
+        titleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
+        titleLabel.textColor = NSColor.labelColor
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+        
+        // Current branch info
+        let currentBranch = allBranches.first(where: { $0.isCurrent })
+        let currentLabel = NSTextField(labelWithString: "Current: \(currentBranch?.name ?? "unknown")")
+        currentLabel.font = NSFont.systemFont(ofSize: 12)
+        currentLabel.textColor = NSColor.secondaryLabelColor
+        currentLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(currentLabel)
+        
+        // Search field
+        searchField = NSSearchField()
+        searchField.placeholderString = "Filter branches..."
+        searchField.font = NSFont.systemFont(ofSize: 13)
+        searchField.delegate = self
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(searchField)
+        
+        // Separator
+        let separator = NSView()
+        separator.wantsLayer = true
+        separator.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(separator)
+        
+        // Table
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.autohidesScrollers = true
+        scrollView.borderType = .noBorder
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(scrollView)
+        
+        tableView = NSTableView()
+        tableView.headerView = nil
+        tableView.backgroundColor = .clear
+        tableView.rowHeight = 32
+        tableView.intercellSpacing = NSSize(width: 0, height: 1)
+        tableView.selectionHighlightStyle = .regular
+        tableView.allowsMultipleSelection = false
+        tableView.doubleAction = #selector(doubleClickCheckout)
+        tableView.target = self
+        
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("branch"))
+        column.width = 340
+        tableView.addTableColumn(column)
+        
+        tableView.dataSource = self
+        tableView.delegate = self
+        scrollView.documentView = tableView
+        
+        // Bottom bar separator
+        let bottomSep = NSView()
+        bottomSep.wantsLayer = true
+        bottomSep.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        bottomSep.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(bottomSep)
+        
+        // Buttons
+        let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancelClicked))
+        cancelButton.bezelStyle = .rounded
+        cancelButton.keyEquivalent = "\u{1b}" // Escape
+        cancelButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(cancelButton)
+        
+        checkoutButton = NSButton(title: "Checkout", target: self, action: #selector(checkoutClicked))
+        checkoutButton.bezelStyle = .rounded
+        checkoutButton.keyEquivalent = "\r"
+        checkoutButton.isEnabled = false
+        checkoutButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(checkoutButton)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
+            
+            currentLabel.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
+            currentLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            
+            searchField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
+            searchField.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
+            searchField.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            
+            separator.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 12),
+            separator.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            separator.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            separator.heightAnchor.constraint(equalToConstant: 1),
+            
+            scrollView.topAnchor.constraint(equalTo: separator.bottomAnchor),
+            scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            scrollView.bottomAnchor.constraint(equalTo: bottomSep.topAnchor),
+            
+            bottomSep.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            bottomSep.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            bottomSep.bottomAnchor.constraint(equalTo: cancelButton.topAnchor, constant: -12),
+            bottomSep.heightAnchor.constraint(equalToConstant: 1),
+            
+            checkoutButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
+            checkoutButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16),
+            checkoutButton.widthAnchor.constraint(equalToConstant: 90),
+            
+            cancelButton.trailingAnchor.constraint(equalTo: checkoutButton.leadingAnchor, constant: -8),
+            cancelButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16),
+            cancelButton.widthAnchor.constraint(equalToConstant: 70)
+        ])
+        
+        self.view = container
+    }
+    
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        // Pre-select current branch
+        if let idx = filteredBranches.firstIndex(where: { $0.isCurrent }) {
+            tableView.selectRowIndexes(IndexSet(integer: idx), byExtendingSelection: false)
+            tableView.scrollRowToVisible(idx)
+        }
+        view.window?.makeFirstResponder(searchField)
+    }
+    
+    // MARK: - Actions
+    
+    private func closeSheet() {
+        guard let sheetWindow = view.window, let parent = sheetWindow.sheetParent else { return }
+        parent.endSheet(sheetWindow)
+    }
+    
+    @objc private func cancelClicked() {
+        closeSheet()
+    }
+    
+    @objc private func checkoutClicked() {
+        let row = tableView.selectedRow
+        guard row >= 0 && row < filteredBranches.count else { return }
+        let branch = filteredBranches[row]
+        closeSheet()
+        onSelect(branch)
+    }
+    
+    @objc private func doubleClickCheckout() {
+        let row = tableView.clickedRow
+        guard row >= 0 && row < filteredBranches.count else { return }
+        let branch = filteredBranches[row]
+        closeSheet()
+        onSelect(branch)
+    }
+    
+    // MARK: - NSSearchFieldDelegate
+    
+    func controlTextDidChange(_ obj: Notification) {
+        let query = searchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if query.isEmpty {
+            filteredBranches = allBranches
+        } else {
+            filteredBranches = allBranches.filter { $0.name.lowercased().contains(query) }
+        }
+        tableView.reloadData()
+        checkoutButton.isEnabled = false
+    }
+    
+    // MARK: - NSTableViewDataSource
+    
+    func numberOfRows(in tableView: NSTableView) -> Int {
+        return filteredBranches.count
+    }
+    
+    // MARK: - NSTableViewDelegate
+    
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        let row = tableView.selectedRow
+        checkoutButton.isEnabled = row >= 0 && row < filteredBranches.count
+    }
+    
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        let branch = filteredBranches[row]
+        let cellId = NSUserInterfaceItemIdentifier("BranchCell")
+        var cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSTableCellView
+        
+        if cell == nil {
+            cell = NSTableCellView()
+            cell?.identifier = cellId
+            
+            let icon = NSImageView()
+            icon.translatesAutoresizingMaskIntoConstraints = false
+            if #available(macOS 11.0, *) {
+                let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+                icon.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: nil)?.withSymbolConfiguration(config)
+            }
+            icon.contentTintColor = NSColor.secondaryLabelColor
+            cell?.addSubview(icon)
+            cell?.imageView = icon
+            
+            let label = NSTextField(labelWithString: "")
+            label.font = NSFont.systemFont(ofSize: 13)
+            label.lineBreakMode = .byTruncatingTail
+            label.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(label)
+            cell?.textField = label
+            
+            let check = NSTextField(labelWithString: "")
+            check.identifier = NSUserInterfaceItemIdentifier("checkmark")
+            check.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+            check.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(check)
+            
+            NSLayoutConstraint.activate([
+                icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 12),
+                icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                icon.widthAnchor.constraint(equalToConstant: 18),
+                
+                label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
+                label.trailingAnchor.constraint(equalTo: check.leadingAnchor, constant: -4),
+                label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                
+                check.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -12),
+                check.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                check.widthAnchor.constraint(equalToConstant: 20)
+            ])
+        }
+        
+        cell?.textField?.stringValue = branch.name
+        
+        if branch.isCurrent {
+            cell?.textField?.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+            cell?.textField?.textColor = NSColor.controlAccentColor
+            cell?.imageView?.contentTintColor = NSColor.controlAccentColor
+            if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
+                check.stringValue = "✓"
+                check.textColor = NSColor.controlAccentColor
+            }
+        } else {
+            cell?.textField?.font = NSFont.systemFont(ofSize: 13)
+            cell?.textField?.textColor = NSColor.labelColor
+            cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor
+            if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
+                check.stringValue = ""
+            }
+        }
+        
+        return cell
     }
 }

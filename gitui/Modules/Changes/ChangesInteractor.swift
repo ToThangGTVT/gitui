@@ -10,6 +10,9 @@ protocol ChangesInteractorInputProtocol: AnyObject {
     func stageAll(repoPath: String)
     func unstageAll(repoPath: String)
     func commit(repoPath: String, message: String)
+    func discardFile(repoPath: String, file: GitFileStatus)
+    func removeFile(repoPath: String, file: GitFileStatus)
+    func ignoreFile(repoPath: String, file: GitFileStatus)
 }
 
 protocol ChangesInteractorOutputProtocol: AnyObject {
@@ -112,6 +115,51 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
                 await MainActor.run {
                     self.presenter?.didCommitSuccessfully()
                 }
+                self.loadStatus(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+    
+    func discardFile(repoPath: String, file: GitFileStatus) {
+        Task {
+            do {
+                if file.status == "?" {
+                    // Untracked file: delete it
+                    try GitService.shared.discardUntrackedFile(file.path, in: repoPath)
+                } else {
+                    // Tracked file: restore from HEAD
+                    try await GitService.shared.discardFile(file.path, in: repoPath)
+                }
+                self.loadStatus(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+    
+    func removeFile(repoPath: String, file: GitFileStatus) {
+        Task {
+            do {
+                try await GitService.shared.removeFile(file.path, in: repoPath)
+                self.loadStatus(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+    
+    func ignoreFile(repoPath: String, file: GitFileStatus) {
+        Task {
+            do {
+                try GitService.shared.addToGitignore(file.path, in: repoPath)
                 self.loadStatus(repoPath: repoPath)
             } catch {
                 await MainActor.run {

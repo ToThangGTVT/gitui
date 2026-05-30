@@ -275,6 +275,34 @@ class GitService {
         }
     }
     
+    func discardFile(_ filePath: String, in repoPath: String) async throws {
+        _ = try await runGit(["checkout", "--", filePath], in: repoPath)
+    }
+    
+    func discardUntrackedFile(_ filePath: String, in repoPath: String) throws {
+        let fullPath = (repoPath as NSString).appendingPathComponent(filePath)
+        try FileManager.default.removeItem(atPath: fullPath)
+    }
+    
+    func removeFile(_ filePath: String, in repoPath: String) async throws {
+        _ = try await runGit(["rm", "-f", filePath], in: repoPath)
+    }
+    
+    func addToGitignore(_ filePath: String, in repoPath: String) throws {
+        let gitignorePath = (repoPath as NSString).appendingPathComponent(".gitignore")
+        let entry = filePath + "\n"
+        if FileManager.default.fileExists(atPath: gitignorePath) {
+            let handle = try FileHandle(forWritingTo: URL(fileURLWithPath: gitignorePath))
+            handle.seekToEndOfFile()
+            if let data = entry.data(using: .utf8) {
+                handle.write(data)
+            }
+            handle.closeFile()
+        } else {
+            try entry.write(toFile: gitignorePath, atomically: true, encoding: .utf8)
+        }
+    }
+    
     func merge(branch: String, in repoPath: String) async throws {
         _ = try await runGit(["merge", branch], in: repoPath)
     }
@@ -374,6 +402,25 @@ class GitService {
     
     func removeRemote(name: String, in repoPath: String) async throws {
         _ = try await runGit(["remote", "remove", name], in: repoPath)
+    }
+    
+    func getLineStats(in repoPath: String) async throws -> (added: Int, removed: Int) {
+        // Get stats for both staged and unstaged changes
+        let unstagedOutput = try await runGit(["diff", "--numstat"], in: repoPath)
+        let stagedOutput = try await runGit(["diff", "--numstat", "--staged"], in: repoPath)
+        
+        var totalAdded = 0
+        var totalRemoved = 0
+        
+        for line in (unstagedOutput + "\n" + stagedOutput).components(separatedBy: .newlines) {
+            let parts = line.components(separatedBy: "\t")
+            guard parts.count >= 2 else { continue }
+            // Binary files show "-" instead of numbers
+            if let added = Int(parts[0]) { totalAdded += added }
+            if let removed = Int(parts[1]) { totalRemoved += removed }
+        }
+        
+        return (totalAdded, totalRemoved)
     }
     
     func fetch(remote: String, in repoPath: String) async throws {

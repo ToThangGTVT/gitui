@@ -92,4 +92,6 @@ class RepositoryStore {
 extension Notification.Name {
     static let repositoryBookmarksChanged = Notification.Name("repositoryBookmarksChanged")
     static let activeRepositoryChanged = Notification.Name("activeRepositoryChanged")
+    static let sidebarShouldRefreshStats = Notification.Name("sidebarShouldRefreshStats")
+    static let repositoryContentShouldRefresh = Notification.Name("repositoryContentShouldRefresh")
 }
