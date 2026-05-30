@@ -16,12 +16,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     @IBOutlet weak var mainSplitView: NSSplitView!
     
     // UI Elements for main workarea
-    private var headerContainer: NSView!
-    private var segmentedControl: NSSegmentedControl!
-    private var repoTitleLabel: NSTextField!
-    private var branchButton: NSButton!
-    private var syncStatusLabel: NSTextField!
-    private var tabContentContainer: NSView!
+    @IBOutlet weak var headerContainer: NSView!
+    @IBOutlet weak var segmentedControl: NSSegmentedControl!
+    @IBOutlet weak var repoTitleLabel: NSTextField!
+    @IBOutlet weak var branchButton: NSButton!
+    @IBOutlet weak var branchContainer: NSView!
+    @IBOutlet weak var syncStatusLabel: NSTextField!
+    @IBOutlet weak var tabContentContainer: NSView!
+    @IBOutlet weak var headerBorder: NSView!
+    @IBOutlet weak var customToolbar: CustomToolbarView!
     private var placeholderView: NSView!
     
     override var windowNibName: NSNib.Name? {
@@ -41,7 +44,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             splitPersistence = SplitViewPersistence(splitView: mainSplitView, key: "gitflow.split.main")
         }
         
-        setupCustomToolbar()
+        customToolbar.delegate = self
         setupWorkspaceUI()
         loadSidebar()
         
@@ -68,271 +71,35 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         mainContainer.wantsLayer = true
         mainContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         
-        // 1. Header Container
-        headerContainer = NSView()
         headerContainer.wantsLayer = true
         headerContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-        headerContainer.translatesAutoresizingMaskIntoConstraints = false
-        mainContainer.addSubview(headerContainer)
         
-        // Bottom border line for header
-        let border = NSView()
-        border.wantsLayer = true
-        border.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
-        border.translatesAutoresizingMaskIntoConstraints = false
-        headerContainer.addSubview(border)
+        headerBorder.wantsLayer = true
+        headerBorder.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
         
-        // Repo Title
-        repoTitleLabel = NSTextField(labelWithString: "No Repository Open")
-        repoTitleLabel.font = NSFont.systemFont(ofSize: 15, weight: .bold)
-        repoTitleLabel.textColor = NSColor.labelColor
-        repoTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        headerContainer.addSubview(repoTitleLabel)
-        
-        // Branch Button (clickable, shows sheet to switch branches)
-        let branchContainer = NSView()
         branchContainer.wantsLayer = true
         branchContainer.layer?.cornerRadius = 6
         branchContainer.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
-        branchContainer.translatesAutoresizingMaskIntoConstraints = false
-        branchContainer.identifier = NSUserInterfaceItemIdentifier("branchContainer")
-        headerContainer.addSubview(branchContainer)
         
-        branchButton = NSButton()
         branchButton.isBordered = false
         branchButton.contentTintColor = NSColor.controlAccentColor
         branchButton.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         branchButton.target = self
         branchButton.action = #selector(branchButtonClicked(_:))
-        branchButton.translatesAutoresizingMaskIntoConstraints = false
-        branchContainer.isHidden = true
         if #available(macOS 11.0, *) {
             let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
             branchButton.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Branch")?.withSymbolConfiguration(config)
         }
         branchButton.imagePosition = .imageLeading
-        branchContainer.addSubview(branchButton)
         
-        // Sync Status Label (↑N ↓M)
-        syncStatusLabel = NSTextField(labelWithString: "")
-        syncStatusLabel.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
-        syncStatusLabel.translatesAutoresizingMaskIntoConstraints = false
-        syncStatusLabel.isHidden = true
-        headerContainer.addSubview(syncStatusLabel)
-        
-        // Segmented Control
-        segmentedControl = NSSegmentedControl()
-        segmentedControl.segmentStyle = .texturedRounded
-        segmentedControl.segmentCount = 6
-        segmentedControl.setLabel("Changes", forSegment: 0)
-        segmentedControl.setLabel("History", forSegment: 1)
-        segmentedControl.setLabel("Branches", forSegment: 2)
-        segmentedControl.setLabel("Stashes", forSegment: 3)
-        segmentedControl.setLabel("Remotes", forSegment: 4)
-        segmentedControl.setLabel("Tags", forSegment: 5)
-        segmentedControl.selectedSegment = 0
         segmentedControl.target = self
         segmentedControl.action = #selector(tabChanged(_:))
-        segmentedControl.translatesAutoresizingMaskIntoConstraints = false
-        headerContainer.addSubview(segmentedControl)
         
-        // 2. Tab Content Container
-        tabContentContainer = NSView()
-        tabContentContainer.translatesAutoresizingMaskIntoConstraints = false
-        mainContainer.addSubview(tabContentContainer)
-        
-        // 3. Placeholder View
-        setupPlaceholderView()
-        
-        // Layout constraints
-        NSLayoutConstraint.activate([
-            headerContainer.topAnchor.constraint(equalTo: mainContainer.topAnchor),
-            headerContainer.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor),
-            headerContainer.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor),
-            headerContainer.heightAnchor.constraint(equalToConstant: 55),
-            
-            border.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor),
-            border.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor),
-            border.bottomAnchor.constraint(equalTo: headerContainer.bottomAnchor),
-            border.heightAnchor.constraint(equalToConstant: 1),
-            
-            repoTitleLabel.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
-            repoTitleLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 20),
-            
-            branchContainer.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
-            branchContainer.leadingAnchor.constraint(equalTo: repoTitleLabel.trailingAnchor, constant: 10),
-            branchContainer.heightAnchor.constraint(equalToConstant: 26),
-            
-            branchButton.leadingAnchor.constraint(equalTo: branchContainer.leadingAnchor, constant: 8),
-            branchButton.trailingAnchor.constraint(equalTo: branchContainer.trailingAnchor, constant: -8),
-            branchButton.centerYAnchor.constraint(equalTo: branchContainer.centerYAnchor),
-            
-            syncStatusLabel.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
-            syncStatusLabel.leadingAnchor.constraint(equalTo: branchContainer.trailingAnchor, constant: 8),
-            
-            segmentedControl.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
-            segmentedControl.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -20),
-            segmentedControl.leadingAnchor.constraint(greaterThanOrEqualTo: repoTitleLabel.trailingAnchor, constant: 20),
-            segmentedControl.widthAnchor.constraint(equalToConstant: 520),
-            
-            tabContentContainer.topAnchor.constraint(equalTo: headerContainer.bottomAnchor),
-            tabContentContainer.leadingAnchor.constraint(equalTo: mainContainer.leadingAnchor),
-            tabContentContainer.trailingAnchor.constraint(equalTo: mainContainer.trailingAnchor),
-            tabContentContainer.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor)
-        ])
-    }
-    
-    private var toolbarContainer: NSView!
-    
-    private func setupCustomToolbar() {
-        guard let contentView = window?.contentView, let splitView = mainSplitView else { return }
-        
-        // Remove splitView's original XIB constraints and re-add it
-        splitView.removeFromSuperview()
-        contentView.addSubview(splitView)
-        splitView.translatesAutoresizingMaskIntoConstraints = false
-        
-        toolbarContainer = NSView()
-        toolbarContainer.wantsLayer = true
-        toolbarContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        toolbarContainer.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(toolbarContainer)
-        
-        let leftStack = NSStackView()
-        leftStack.orientation = .horizontal
-        leftStack.spacing = 15
-        leftStack.translatesAutoresizingMaskIntoConstraints = false
-        toolbarContainer.addSubview(leftStack)
-        
-        let rightStack = NSStackView()
-        rightStack.orientation = .horizontal
-        rightStack.spacing = 15
-        rightStack.translatesAutoresizingMaskIntoConstraints = false
-        toolbarContainer.addSubview(rightStack)
-        
-        let leftButtons: [(String, String, Selector?)] = [
-            ("Commit", "plus.circle", nil),
-            ("Pull", "arrow.down.circle", #selector(toolbarPullClicked)),
-            ("Push", "arrow.up.circle", #selector(toolbarPushClicked)),
-            ("Fetch", "arrow.clockwise.circle", #selector(toolbarFetchClicked)),
-            ("Branch", "arrow.triangle.branch", nil),
-            ("Merge", "arrow.triangle.merge", nil),
-            ("Stash", "archivebox", nil)
-        ]
-        
-        for b in leftButtons {
-            leftStack.addArrangedSubview(createToolbarButton(title: b.0, symbolName: b.1, action: b.2))
-        }
-        
-        let rightButtons: [(String, String, Selector?)] = [
-            ("View Remote", "globe", nil),
-            ("Show in Finder", "folder", #selector(toolbarShowInFinderClicked)),
-            ("Terminal", "terminal", #selector(toolbarTerminalClicked)),
-            ("Settings", "gearshape", nil)
-        ]
-        
-        for b in rightButtons {
-            rightStack.addArrangedSubview(createToolbarButton(title: b.0, symbolName: b.1, action: b.2))
-        }
-        
-        // Bottom border
-        let border = NSView()
-        border.wantsLayer = true
-        border.layer?.backgroundColor = NSColor.gridColor.cgColor
-        border.translatesAutoresizingMaskIntoConstraints = false
-        toolbarContainer.addSubview(border)
-        
-        NSLayoutConstraint.activate([
-            toolbarContainer.topAnchor.constraint(equalTo: contentView.topAnchor),
-            toolbarContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            toolbarContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            toolbarContainer.heightAnchor.constraint(equalToConstant: 60),
-            
-            leftStack.leadingAnchor.constraint(equalTo: toolbarContainer.leadingAnchor, constant: 20),
-            leftStack.centerYAnchor.constraint(equalTo: toolbarContainer.centerYAnchor),
-            
-            rightStack.trailingAnchor.constraint(equalTo: toolbarContainer.trailingAnchor, constant: -20),
-            rightStack.centerYAnchor.constraint(equalTo: toolbarContainer.centerYAnchor),
-            
-            border.leadingAnchor.constraint(equalTo: toolbarContainer.leadingAnchor),
-            border.trailingAnchor.constraint(equalTo: toolbarContainer.trailingAnchor),
-            border.bottomAnchor.constraint(equalTo: toolbarContainer.bottomAnchor),
-            border.heightAnchor.constraint(equalToConstant: 1),
-            
-            splitView.topAnchor.constraint(equalTo: toolbarContainer.bottomAnchor),
-            splitView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            splitView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            splitView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
-        ])
-    }
-    
-    private func createToolbarButton(title: String, symbolName: String, action: Selector?) -> NSButton {
-        let button = NSButton()
-        button.title = title
-        if #available(macOS 11.0, *) {
-            let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .regular)
-            button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: title)?.withSymbolConfiguration(config)
-        } else {
-            button.image = NSImage(named: NSImage.actionTemplateName)
-        }
-        button.imagePosition = .imageAbove
-        button.isBordered = false
-        button.font = NSFont.systemFont(ofSize: 11)
-        button.contentTintColor = NSColor.controlAccentColor
-        button.target = self
-        button.action = action
-        return button
-    }
-    
-    private func setupPlaceholderView() {
-        placeholderView = NSView()
+        placeholderView = WelcomePlaceholderView()
         placeholderView.translatesAutoresizingMaskIntoConstraints = false
-        
-        let container = NSView()
-        container.translatesAutoresizingMaskIntoConstraints = false
-        placeholderView.addSubview(container)
-        
-        let imageView = NSImageView()
-        imageView.image = NSImage(named: NSImage.actionTemplateName)
-        imageView.imageScaling = .scaleProportionallyUpOrDown
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(imageView)
-        
-        let title = NSTextField(labelWithString: "Welcome to GitFlow")
-        title.font = NSFont.systemFont(ofSize: 22, weight: .semibold)
-        title.textColor = NSColor.labelColor
-        title.alignment = .center
-        title.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(title)
-        
-        let subtitle = NSTextField(labelWithString: "Open, clone, or initialize a Git repository from the sidebar to get started.")
-        subtitle.font = NSFont.systemFont(ofSize: 13, weight: .regular)
-        subtitle.textColor = NSColor.secondaryLabelColor
-        subtitle.alignment = .center
-        subtitle.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(subtitle)
-        
-        NSLayoutConstraint.activate([
-            container.centerXAnchor.constraint(equalTo: placeholderView.centerXAnchor),
-            container.centerYAnchor.constraint(equalTo: placeholderView.centerYAnchor),
-            container.leadingAnchor.constraint(equalTo: placeholderView.leadingAnchor, constant: 40),
-            container.trailingAnchor.constraint(equalTo: placeholderView.trailingAnchor, constant: -40),
-            
-            imageView.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            imageView.topAnchor.constraint(equalTo: container.topAnchor),
-            imageView.widthAnchor.constraint(equalToConstant: 64),
-            imageView.heightAnchor.constraint(equalToConstant: 64),
-            
-            title.topAnchor.constraint(equalTo: imageView.bottomAnchor, constant: 16),
-            title.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            title.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            
-            subtitle.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 8),
-            subtitle.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            subtitle.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            subtitle.bottomAnchor.constraint(equalTo: container.bottomAnchor)
-        ])
     }
+
+
     
     private func loadSidebar() {
         let sidebar = SidebarModule.build()
@@ -746,274 +513,39 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     }
 }
 
-// MARK: - Branch Switcher Sheet
+// MARK: - CustomToolbarViewDelegate
 
-private class BranchSheetViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate {
+extension MainWindowController: CustomToolbarViewDelegate {
+    func toolbarDidClickCommit() {}
     
-    private let allBranches: [GitBranch]
-    private var filteredBranches: [GitBranch]
-    private let onSelect: (GitBranch) -> Void
-    private var tableView: NSTableView!
-    private var searchField: NSSearchField!
-    private var checkoutButton: NSButton!
-    
-    init(branches: [GitBranch], onSelect: @escaping (GitBranch) -> Void) {
-        self.allBranches = branches
-        self.filteredBranches = branches
-        self.onSelect = onSelect
-        super.init(nibName: nil, bundle: nil)
+    func toolbarDidClickPull() {
+        toolbarPullClicked()
     }
     
-    required init?(coder: NSCoder) { fatalError() }
-    
-    override func loadView() {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 360, height: 420))
-        container.wantsLayer = true
-        
-        // Title
-        let titleLabel = NSTextField(labelWithString: "Switch Branch")
-        titleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
-        titleLabel.textColor = NSColor.labelColor
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(titleLabel)
-        
-        // Current branch info
-        let currentBranch = allBranches.first(where: { $0.isCurrent })
-        let currentLabel = NSTextField(labelWithString: "Current: \(currentBranch?.name ?? "unknown")")
-        currentLabel.font = NSFont.systemFont(ofSize: 12)
-        currentLabel.textColor = NSColor.secondaryLabelColor
-        currentLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(currentLabel)
-        
-        // Search field
-        searchField = NSSearchField()
-        searchField.placeholderString = "Filter branches..."
-        searchField.font = NSFont.systemFont(ofSize: 13)
-        searchField.delegate = self
-        searchField.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(searchField)
-        
-        // Separator
-        let separator = NSView()
-        separator.wantsLayer = true
-        separator.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        separator.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(separator)
-        
-        // Table
-        let scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
-        scrollView.autohidesScrollers = true
-        scrollView.borderType = .noBorder
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(scrollView)
-        
-        tableView = NSTableView()
-        tableView.headerView = nil
-        tableView.backgroundColor = .clear
-        tableView.rowHeight = 32
-        tableView.intercellSpacing = NSSize(width: 0, height: 1)
-        tableView.selectionHighlightStyle = .regular
-        tableView.allowsMultipleSelection = false
-        tableView.doubleAction = #selector(doubleClickCheckout)
-        tableView.target = self
-        
-        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("branch"))
-        column.width = 340
-        tableView.addTableColumn(column)
-        
-        tableView.dataSource = self
-        tableView.delegate = self
-        scrollView.documentView = tableView
-        
-        // Bottom bar separator
-        let bottomSep = NSView()
-        bottomSep.wantsLayer = true
-        bottomSep.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        bottomSep.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(bottomSep)
-        
-        // Buttons
-        let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancelClicked))
-        cancelButton.bezelStyle = .rounded
-        cancelButton.keyEquivalent = "\u{1b}" // Escape
-        cancelButton.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(cancelButton)
-        
-        checkoutButton = NSButton(title: "Checkout", target: self, action: #selector(checkoutClicked))
-        checkoutButton.bezelStyle = .rounded
-        checkoutButton.keyEquivalent = "\r"
-        checkoutButton.isEnabled = false
-        checkoutButton.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(checkoutButton)
-        
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
-            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
-            
-            currentLabel.centerYAnchor.constraint(equalTo: titleLabel.centerYAnchor),
-            currentLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
-            
-            searchField.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 12),
-            searchField.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 20),
-            searchField.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
-            
-            separator.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 12),
-            separator.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            separator.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            separator.heightAnchor.constraint(equalToConstant: 1),
-            
-            scrollView.topAnchor.constraint(equalTo: separator.bottomAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomSep.topAnchor),
-            
-            bottomSep.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            bottomSep.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            bottomSep.bottomAnchor.constraint(equalTo: cancelButton.topAnchor, constant: -12),
-            bottomSep.heightAnchor.constraint(equalToConstant: 1),
-            
-            checkoutButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -20),
-            checkoutButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16),
-            checkoutButton.widthAnchor.constraint(equalToConstant: 90),
-            
-            cancelButton.trailingAnchor.constraint(equalTo: checkoutButton.leadingAnchor, constant: -8),
-            cancelButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16),
-            cancelButton.widthAnchor.constraint(equalToConstant: 70)
-        ])
-        
-        self.view = container
+    func toolbarDidClickPush() {
+        toolbarPushClicked()
     }
     
-    override func viewDidAppear() {
-        super.viewDidAppear()
-        // Pre-select current branch
-        if let idx = filteredBranches.firstIndex(where: { $0.isCurrent }) {
-            tableView.selectRowIndexes(IndexSet(integer: idx), byExtendingSelection: false)
-            tableView.scrollRowToVisible(idx)
-        }
-        view.window?.makeFirstResponder(searchField)
+    func toolbarDidClickFetch() {
+        toolbarFetchClicked()
     }
     
-    // MARK: - Actions
+    func toolbarDidClickBranch() {}
     
-    private func closeSheet() {
-        guard let sheetWindow = view.window, let parent = sheetWindow.sheetParent else { return }
-        parent.endSheet(sheetWindow)
+    func toolbarDidClickMerge() {}
+    
+    func toolbarDidClickStash() {}
+    
+    func toolbarDidClickViewRemote() {}
+    
+    func toolbarDidClickShowInFinder() {
+        toolbarShowInFinderClicked()
     }
     
-    @objc private func cancelClicked() {
-        closeSheet()
+    func toolbarDidClickTerminal() {
+        toolbarTerminalClicked()
     }
     
-    @objc private func checkoutClicked() {
-        let row = tableView.selectedRow
-        guard row >= 0 && row < filteredBranches.count else { return }
-        let branch = filteredBranches[row]
-        closeSheet()
-        onSelect(branch)
-    }
-    
-    @objc private func doubleClickCheckout() {
-        let row = tableView.clickedRow
-        guard row >= 0 && row < filteredBranches.count else { return }
-        let branch = filteredBranches[row]
-        closeSheet()
-        onSelect(branch)
-    }
-    
-    // MARK: - NSSearchFieldDelegate
-    
-    func controlTextDidChange(_ obj: Notification) {
-        let query = searchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        if query.isEmpty {
-            filteredBranches = allBranches
-        } else {
-            filteredBranches = allBranches.filter { $0.name.lowercased().contains(query) }
-        }
-        tableView.reloadData()
-        checkoutButton.isEnabled = false
-    }
-    
-    // MARK: - NSTableViewDataSource
-    
-    func numberOfRows(in tableView: NSTableView) -> Int {
-        return filteredBranches.count
-    }
-    
-    // MARK: - NSTableViewDelegate
-    
-    func tableViewSelectionDidChange(_ notification: Notification) {
-        let row = tableView.selectedRow
-        checkoutButton.isEnabled = row >= 0 && row < filteredBranches.count
-    }
-    
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        let branch = filteredBranches[row]
-        let cellId = NSUserInterfaceItemIdentifier("BranchCell")
-        var cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSTableCellView
-        
-        if cell == nil {
-            cell = NSTableCellView()
-            cell?.identifier = cellId
-            
-            let icon = NSImageView()
-            icon.translatesAutoresizingMaskIntoConstraints = false
-            if #available(macOS 11.0, *) {
-                let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-                icon.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: nil)?.withSymbolConfiguration(config)
-            }
-            icon.contentTintColor = NSColor.secondaryLabelColor
-            cell?.addSubview(icon)
-            cell?.imageView = icon
-            
-            let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 13)
-            label.lineBreakMode = .byTruncatingTail
-            label.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(label)
-            cell?.textField = label
-            
-            let check = NSTextField(labelWithString: "")
-            check.identifier = NSUserInterfaceItemIdentifier("checkmark")
-            check.font = NSFont.systemFont(ofSize: 13, weight: .bold)
-            check.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(check)
-            
-            NSLayoutConstraint.activate([
-                icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 12),
-                icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                icon.widthAnchor.constraint(equalToConstant: 18),
-                
-                label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
-                label.trailingAnchor.constraint(equalTo: check.leadingAnchor, constant: -4),
-                label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                
-                check.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -12),
-                check.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                check.widthAnchor.constraint(equalToConstant: 20)
-            ])
-        }
-        
-        cell?.textField?.stringValue = branch.name
-        
-        if branch.isCurrent {
-            cell?.textField?.font = NSFont.systemFont(ofSize: 13, weight: .bold)
-            cell?.textField?.textColor = NSColor.controlAccentColor
-            cell?.imageView?.contentTintColor = NSColor.controlAccentColor
-            if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
-                check.stringValue = "✓"
-                check.textColor = NSColor.controlAccentColor
-            }
-        } else {
-            cell?.textField?.font = NSFont.systemFont(ofSize: 13)
-            cell?.textField?.textColor = NSColor.labelColor
-            cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor
-            if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
-                check.stringValue = ""
-            }
-        }
-        
-        return cell
-    }
+    func toolbarDidClickSettings() {}
 }
+

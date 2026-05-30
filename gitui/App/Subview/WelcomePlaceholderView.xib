@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="WelcomePlaceholderView" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="imageView" destination="img-view" id="out-img"/>
+                <outlet property="subtitleLabel" destination="subtitle-lbl" id="out-subtitle"/>
+                <outlet property="titleLabel" destination="title-lbl" id="out-title"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="600" height="400"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="container-view">
+                    <rect key="frame" x="40" y="102" width="520" height="196"/>
+                    <subviews>
+                        <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="img-view">
+                            <rect key="frame" x="228" y="111" width="64" height="74"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="64" id="img-h"/>
+                                <constraint firstAttribute="width" constant="64" id="img-w"/>
+                            </constraints>
+                            <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyUpOrDown" image="NSActionTemplate" id="img-cell"/>
+                        </imageView>
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="title-lbl">
+                            <rect key="frame" x="-2" y="74" width="524" height="26"/>
+                            <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Welcome to GitFlow" id="title-cell">
+                                <font key="font" metaFont="systemBold" size="22"/>
+                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                        <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="subtitle-lbl">
+                            <rect key="frame" x="-2" y="50" width="524" height="16"/>
+                            <textFieldCell key="cell" alignment="center" title="Open, clone, or initialize a Git repository from the sidebar to get started." id="sub-cell">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="img-view" firstAttribute="centerX" secondItem="container-view" secondAttribute="centerX" id="c-img-cx"/>
+                        <constraint firstItem="img-view" firstAttribute="top" secondItem="container-view" secondAttribute="top" constant="16" id="c-img-top"/>
+                        <constraint firstAttribute="bottom" secondItem="subtitle-lbl" secondAttribute="bottom" constant="50" id="c-sub-b"/>
+                        <constraint firstItem="subtitle-lbl" firstAttribute="leading" secondItem="container-view" secondAttribute="leading" id="c-sub-l"/>
+                        <constraint firstItem="subtitle-lbl" firstAttribute="trailing" secondItem="container-view" secondAttribute="trailing" id="c-sub-r"/>
+                        <constraint firstItem="subtitle-lbl" firstAttribute="top" secondItem="title-lbl" secondAttribute="bottom" constant="8" id="c-sub-top"/>
+                        <constraint firstItem="title-lbl" firstAttribute="leading" secondItem="container-view" secondAttribute="leading" id="c-title-l"/>
+                        <constraint firstItem="title-lbl" firstAttribute="trailing" secondItem="container-view" secondAttribute="trailing" id="c-title-r"/>
+                        <constraint firstItem="title-lbl" firstAttribute="top" secondItem="img-view" secondAttribute="bottom" constant="16" id="c-title-top"/>
+                    </constraints>
+                </customView>
+            </subviews>
+            <constraints>
+                <constraint firstItem="container-view" firstAttribute="centerX" secondItem="c22-O7-iKe" secondAttribute="centerX" id="cc-cx"/>
+                <constraint firstItem="container-view" firstAttribute="centerY" secondItem="c22-O7-iKe" secondAttribute="centerY" id="cc-cy"/>
+                <constraint firstItem="container-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="40" id="cc-l"/>
+                <constraint firstItem="container-view" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-40" id="cc-r"/>
+            </constraints>
+            <point key="canvasLocation" x="282" y="159"/>
+        </customView>
+    </objects>
+    <resources>
+        <image name="NSActionTemplate" width="19" height="19"/>
+    </resources>
+</document>

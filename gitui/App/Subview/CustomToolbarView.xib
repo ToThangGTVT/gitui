@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
+        <capability name="System colors introduced in macOS 10.14" minToolsVersion="10.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="CustomToolbarView" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="borderView" destination="border-line" id="out-border"/>
+                <outlet property="branchButton" destination="btn-branch" id="out-branch"/>
+                <outlet property="commitButton" destination="btn-commit" id="out-commit"/>
+                <outlet property="contentView" destination="c22-O7-iKe" id="out-content"/>
+                <outlet property="fetchButton" destination="btn-fetch" id="out-fetch"/>
+                <outlet property="finderButton" destination="btn-finder" id="out-finder"/>
+                <outlet property="mergeButton" destination="btn-merge" id="out-merge"/>
+                <outlet property="pullButton" destination="btn-pull" id="out-pull"/>
+                <outlet property="pushButton" destination="btn-push" id="out-push"/>
+                <outlet property="remoteButton" destination="btn-remote" id="out-remote"/>
+                <outlet property="settingsButton" destination="btn-settings" id="out-settings"/>
+                <outlet property="stashButton" destination="btn-stash" id="out-stash"/>
+                <outlet property="terminalButton" destination="btn-terminal" id="out-terminal"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="800" height="60"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="15" translatesAutoresizingMaskIntoConstraints="NO" id="left-stack">
+                    <rect key="frame" x="20" y="23" width="336" height="14"/>
+                    <subviews>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-commit">
+                            <rect key="frame" x="0.0" y="0.0" width="45" height="14"/>
+                            <buttonCell key="cell" type="square" title="Commit" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-commit">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="commitClicked:" target="-2" id="act-commit"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-pull">
+                            <rect key="frame" x="60" y="0.0" width="24" height="14"/>
+                            <buttonCell key="cell" type="square" title="Pull" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-pull">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="pullClicked:" target="-2" id="act-pull"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-push">
+                            <rect key="frame" x="99" y="0.0" width="30" height="14"/>
+                            <buttonCell key="cell" type="square" title="Push" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-push">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="pushClicked:" target="-2" id="act-push"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-fetch">
+                            <rect key="frame" x="144" y="0.0" width="34" height="14"/>
+                            <buttonCell key="cell" type="square" title="Fetch" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-fetch">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="fetchClicked:" target="-2" id="act-fetch"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-branch">
+                            <rect key="frame" x="193" y="0.0" width="41" height="14"/>
+                            <buttonCell key="cell" type="square" title="Branch" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-branch">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="branchClicked:" target="-2" id="act-branch"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-merge">
+                            <rect key="frame" x="249" y="0.0" width="38" height="14"/>
+                            <buttonCell key="cell" type="square" title="Merge" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-merge">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="mergeClicked:" target="-2" id="act-merge"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-stash">
+                            <rect key="frame" x="302" y="0.0" width="34" height="14"/>
+                            <buttonCell key="cell" type="square" title="Stash" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-stash">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="stashClicked:" target="-2" id="act-stash"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <visibilityPriorities>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                    </visibilityPriorities>
+                    <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                    </customSpacing>
+                </stackView>
+                <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="15" translatesAutoresizingMaskIntoConstraints="NO" id="right-stack">
+                    <rect key="frame" x="483" y="23" width="297" height="14"/>
+                    <subviews>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-remote">
+                            <rect key="frame" x="0.0" y="0.0" width="73" height="14"/>
+                            <buttonCell key="cell" type="square" title="View Remote" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-remote">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="viewRemoteClicked:" target="-2" id="act-remote"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-finder">
+                            <rect key="frame" x="88" y="0.0" width="82" height="14"/>
+                            <buttonCell key="cell" type="square" title="Show in Finder" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-finder">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="showInFinderClicked:" target="-2" id="act-finder"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-terminal">
+                            <rect key="frame" x="185" y="0.0" width="49" height="14"/>
+                            <buttonCell key="cell" type="square" title="Terminal" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-terminal">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="terminalClicked:" target="-2" id="act-terminal"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-settings">
+                            <rect key="frame" x="249" y="0.0" width="48" height="14"/>
+                            <buttonCell key="cell" type="square" title="Settings" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-settings">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="smallSystem"/>
+                            </buttonCell>
+                            <color key="contentTintColor" name="controlAccentColor" catalog="System" colorSpace="catalog"/>
+                            <connections>
+                                <action selector="settingsClicked:" target="-2" id="act-settings"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <visibilityPriorities>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                    </visibilityPriorities>
+                    <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                    </customSpacing>
+                </stackView>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="border-line">
+                    <rect key="frame" x="0.0" y="0.0" width="800" height="1"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="1" id="border-h"/>
+                    </constraints>
+                </customView>
+            </subviews>
+            <constraints>
+                <constraint firstItem="border-line" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" id="bdr-b"/>
+                <constraint firstItem="border-line" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="bdr-l"/>
+                <constraint firstItem="border-line" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="bdr-r"/>
+                <constraint firstItem="left-stack" firstAttribute="centerY" secondItem="c22-O7-iKe" secondAttribute="centerY" id="lstk-cy"/>
+                <constraint firstItem="left-stack" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="lstk-l"/>
+                <constraint firstItem="right-stack" firstAttribute="centerY" secondItem="c22-O7-iKe" secondAttribute="centerY" id="rstk-cy"/>
+                <constraint firstItem="right-stack" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-20" id="rstk-r"/>
+            </constraints>
+            <point key="canvasLocation" x="74" y="154"/>
+        </customView>
+    </objects>
+</document>
