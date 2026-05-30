@@ -9,6 +9,7 @@ protocol BranchesInteractorInputProtocol: AnyObject {
     func deleteBranch(repoPath: String, branchName: String, force: Bool)
     func renameBranch(repoPath: String, oldName: String, newName: String)
     func pushBranch(repoPath: String, branchName: String)
+    func createBranch(repoPath: String, branchName: String, sourceBranch: String, checkout: Bool)
 }
 
 protocol BranchesInteractorOutputProtocol: AnyObject {
@@ -108,6 +109,23 @@ class BranchesInteractor: BranchesInteractorInputProtocol {
                 _ = try await GitService.shared.runGit(["push", "origin", branchName], in: repoPath)
                 await MainActor.run {
                     self.presenter?.didOperationSuccess(message: "Successfully pushed branch \(branchName) to origin.")
+                }
+                self.loadBranchesAndTags(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+    
+    func createBranch(repoPath: String, branchName: String, sourceBranch: String, checkout: Bool) {
+        Task {
+            do {
+                try await GitService.shared.createBranch(name: branchName, startPoint: sourceBranch, checkout: checkout, in: repoPath)
+                await MainActor.run {
+                    self.presenter?.didOperationSuccess(message: "Successfully created branch '\(branchName)' from '\(sourceBranch)'.")
+                    NotificationCenter.default.post(name: .repositoryFilesChanged, object: nil)
                 }
                 self.loadBranchesAndTags(repoPath: repoPath)
             } catch {

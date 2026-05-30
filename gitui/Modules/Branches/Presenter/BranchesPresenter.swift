@@ -10,6 +10,7 @@ protocol BranchesPresenterProtocol: AnyObject {
     func didClickDelete(_ node: BranchNode)
     func didClickRename(_ node: BranchNode, to newName: String)
     func didRequestRename(_ node: BranchNode)
+    func didRequestCreateBranch(_ node: BranchNode)
     func didClickPush(_ node: BranchNode)
 }
 
@@ -83,6 +84,19 @@ class BranchesPresenter: BranchesPresenterProtocol, BranchesInteractorOutputProt
             if let val = newName, !val.isEmpty {
                 self?.didClickRename(node, to: val)
             }
+        }
+    }
+    
+    func didRequestCreateBranch(_ node: BranchNode) {
+        guard !node.isHeader else { return }
+        let sourceBranch = node.name
+        
+        router.showCreateBranchDialog(sourceBranch: sourceBranch) { [weak self] branchName, shouldCheckout in
+            guard let self = self, let name = branchName, !name.isEmpty else { return }
+            guard let path = self.activePath else { return }
+            
+            self.view?.showLoading(true)
+            self.interactor.createBranch(repoPath: path, branchName: name, sourceBranch: sourceBranch, checkout: shouldCheckout)
         }
     }
     

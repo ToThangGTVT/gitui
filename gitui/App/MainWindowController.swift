@@ -400,6 +400,91 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
     }
     
+    @objc private func toolbarBranchClicked() {
+        guard let path = activeRepoPath else {
+            showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
+            return
+        }
+        
+        Task {
+            let currentBranch = await detectCurrentBranch(in: path)
+            guard let activeBranch = currentBranch else {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Error", message: "Unable to detect the current branch.", isError: true)
+                }
+                return
+            }
+            
+            await MainActor.run {
+                self.showCreateBranchDialog(sourceBranch: activeBranch) { name, checkout in
+                    self.performCreateBranch(name: name, source: activeBranch, checkout: checkout, repoPath: path)
+                }
+            }
+        }
+    }
+    
+    private func showCreateBranchDialog(sourceBranch: String, completion: @escaping (String, Bool) -> Void) {
+        guard let window = self.window else { return }
+        
+        let alert = NSAlert()
+        alert.messageText = "Create Branch"
+        alert.informativeText = "Create a new branch starting from '\(sourceBranch)'."
+        alert.addButton(withTitle: "Create")
+        alert.addButton(withTitle: "Cancel")
+        
+        let accessoryView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 60))
+        
+        let nameLabel = NSTextField(labelWithString: "Branch Name:")
+        nameLabel.frame = NSRect(x: 0, y: 34, width: 90, height: 22)
+        nameLabel.font = NSFont.systemFont(ofSize: 12)
+        accessoryView.addSubview(nameLabel)
+        
+        let nameField = NSTextField()
+        nameField.frame = NSRect(x: 95, y: 34, width: 200, height: 22)
+        nameField.font = NSFont.systemFont(ofSize: 12)
+        nameField.placeholderString = "e.g. feature-login"
+        accessoryView.addSubview(nameField)
+        
+        let checkoutCheckbox = NSButton(checkboxWithTitle: "Checkout new branch immediately", target: nil, action: nil)
+        checkoutCheckbox.frame = NSRect(x: 95, y: 4, width: 200, height: 22)
+        checkoutCheckbox.state = .on
+        checkoutCheckbox.font = NSFont.systemFont(ofSize: 11)
+        accessoryView.addSubview(checkoutCheckbox)
+        
+        alert.accessoryView = accessoryView
+        
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn {
+                let name = nameField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                let shouldCheckout = checkoutCheckbox.state == .on
+                
+                guard !name.isEmpty else {
+                    self.showToolbarAlert(title: "Invalid Input", message: "Branch name is required.", isError: true)
+                    return
+                }
+                completion(name, shouldCheckout)
+            }
+        }
+    }
+    
+    private func performCreateBranch(name: String, source: String, checkout: Bool, repoPath: String) {
+        Task {
+            do {
+                try await GitService.shared.createBranch(name: name, startPoint: source, checkout: checkout, in: repoPath)
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Branch Created", message: "Successfully created branch '\(name)' from '\(source)'.", isError: false)
+                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                    self.updateBranchLabel(for: repoPath, repoName: repoName)
+                    self.refreshCurrentTab()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Create Branch Failed", message: error.localizedDescription, isError: true)
+                }
+            }
+        }
+    }
+    
     // MARK: - Pull/Push/Fetch Helpers
     
     private func detectCurrentBranch(in repoPath: String) async -> String? {
@@ -521,7 +606,9 @@ extension MainWindowController: CustomToolbarViewDelegate {
         toolbarFetchClicked()
     }
     
-    func toolbarDidClickBranch() {}
+    func toolbarDidClickBranch() {
+        toolbarBranchClicked()
+    }
     
     func toolbarDidClickMerge() {}
     

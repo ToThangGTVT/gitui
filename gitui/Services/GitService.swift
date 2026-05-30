@@ -345,6 +345,14 @@ class GitService {
         }
     }
     
+    func createBranch(name: String, startPoint: String, checkout: Bool, in repoPath: String) async throws {
+        if checkout {
+            _ = try await runGit(["checkout", "-b", name, startPoint], in: repoPath)
+        } else {
+            _ = try await runGit(["branch", name, startPoint], in: repoPath)
+        }
+    }
+    
     /// Returns (ahead, behind) commit counts relative to upstream.
     /// ahead = commits to push, behind = commits to pull.
     func getAheadBehind(in repoPath: String) async -> (ahead: Int, behind: Int) {

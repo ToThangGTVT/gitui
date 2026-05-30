@@ -52,6 +52,7 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
         
         // Setup Right-Click Menu
         let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Create branch from this branch...", action: #selector(contextCreateBranchClicked(_:)), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Merge into current", action: #selector(contextMergeClicked(_:)), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Rename branch...", action: #selector(contextRenameClicked(_:)), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Delete branch", action: #selector(contextDeleteClicked(_:)), keyEquivalent: ""))
@@ -83,6 +84,14 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
         guard row >= 0 else { return }
         if let node = sender.item(atRow: row) as? BranchNode {
             presenter?.didDoubleClickNode(node)
+        }
+    }
+    
+    @objc private func contextCreateBranchClicked(_ sender: NSMenuItem) {
+        let row = outlineView.clickedRow
+        guard row >= 0 else { return }
+        if let node = outlineView.item(atRow: row) as? BranchNode {
+            presenter?.didRequestCreateBranch(node)
         }
     }
     
