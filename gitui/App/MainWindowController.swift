@@ -20,6 +20,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     private var segmentedControl: NSSegmentedControl!
     private var repoTitleLabel: NSTextField!
     private var branchButton: NSButton!
+    private var syncStatusLabel: NSTextField!
     private var tabContentContainer: NSView!
     private var placeholderView: NSView!
     
@@ -112,6 +113,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         branchButton.imagePosition = .imageLeading
         branchContainer.addSubview(branchButton)
         
+        // Sync Status Label (↑N ↓M)
+        syncStatusLabel = NSTextField(labelWithString: "")
+        syncStatusLabel.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+        syncStatusLabel.translatesAutoresizingMaskIntoConstraints = false
+        syncStatusLabel.isHidden = true
+        headerContainer.addSubview(syncStatusLabel)
+        
         // Segmented Control
         segmentedControl = NSSegmentedControl()
         segmentedControl.segmentStyle = .texturedRounded
@@ -158,6 +166,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             branchButton.leadingAnchor.constraint(equalTo: branchContainer.leadingAnchor, constant: 8),
             branchButton.trailingAnchor.constraint(equalTo: branchContainer.trailingAnchor, constant: -8),
             branchButton.centerYAnchor.constraint(equalTo: branchContainer.centerYAnchor),
+            
+            syncStatusLabel.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            syncStatusLabel.leadingAnchor.constraint(equalTo: branchContainer.trailingAnchor, constant: 8),
             
             segmentedControl.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
             segmentedControl.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -20),
@@ -526,6 +537,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     private func updateBranchLabel(for repoPath: String, repoName: String) {
         Task {
             let branch = await detectCurrentBranch(in: repoPath)
+            let aheadBehind = await GitService.shared.getAheadBehind(in: repoPath)
             await MainActor.run {
                 guard self.activeRepoPath == repoPath else { return }
                 if let branch = branch {
@@ -533,11 +545,45 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                     self.repoTitleLabel.font = NSFont.systemFont(ofSize: 15, weight: .bold)
                     self.branchButton.title = " \(branch) ▾"
                     self.branchButton.superview?.isHidden = false
+                    
+                    // Update sync status
+                    self.updateSyncStatus(ahead: aheadBehind.ahead, behind: aheadBehind.behind)
                 } else {
                     self.branchButton.superview?.isHidden = true
+                    self.syncStatusLabel.isHidden = true
                 }
             }
         }
+    }
+    
+    private func updateSyncStatus(ahead: Int, behind: Int) {
+        guard ahead > 0 || behind > 0 else {
+            syncStatusLabel.isHidden = true
+            return
+        }
+        
+        let result = NSMutableAttributedString()
+        
+        if ahead > 0 {
+            result.append(NSAttributedString(string: "↑\(ahead)", attributes: [
+                .foregroundColor: NSColor.systemGreen,
+                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
+            ]))
+        }
+        if ahead > 0 && behind > 0 {
+            result.append(NSAttributedString(string: "  ", attributes: [
+                .font: NSFont.systemFont(ofSize: 11)
+            ]))
+        }
+        if behind > 0 {
+            result.append(NSAttributedString(string: "↓\(behind)", attributes: [
+                .foregroundColor: NSColor.systemOrange,
+                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
+            ]))
+        }
+        
+        syncStatusLabel.attributedStringValue = result
+        syncStatusLabel.isHidden = false
     }
     
     @objc private func branchButtonClicked(_ sender: NSButton) {

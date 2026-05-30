@@ -356,8 +356,21 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         commitTextView.textColor = NSColor.labelColor
         commitTextView.delegate = self
         commitTextView.insertionPointColor = NSColor.labelColor
-        commitTextView.string = "Commit message..."
+        commitTextView.string = ""
         scroll.documentView = commitTextView
+        
+        // Placeholder label overlay
+        let placeholder = NSTextField(labelWithString: "Commit message...")
+        placeholder.font = NSFont.systemFont(ofSize: 12)
+        placeholder.textColor = NSColor.placeholderTextColor
+        placeholder.identifier = NSUserInterfaceItemIdentifier("commitPlaceholder")
+        placeholder.translatesAutoresizingMaskIntoConstraints = false
+        placeholder.isSelectable = false
+        scroll.addSubview(placeholder)
+        NSLayoutConstraint.activate([
+            placeholder.topAnchor.constraint(equalTo: scroll.topAnchor, constant: 1),
+            placeholder.leadingAnchor.constraint(equalTo: scroll.leadingAnchor, constant: 5)
+        ])
         
         stageAllButton = NSButton(title: "Stage All", target: self, action: #selector(stageAllClicked(_:)))
         stageAllButton.bezelStyle = .push
@@ -477,10 +490,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     }
     
     @objc private func commitClicked(_ sender: NSButton) {
-        let message = commitTextView.string == "Commit message..." ? "" : commitTextView.string
+        let message = commitTextView.string
         presenter?.didClickCommit(message: message)
-        commitTextView.string = "Commit message..."
-        commitTextView.textColor = NSColor.placeholderTextColor
+        commitTextView.string = ""
+        updateCommitPlaceholder()
     }
     // MARK: - Context Menu (NSMenuDelegate)
     
@@ -743,19 +756,16 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
     }
     
-    // MARK: - NSTextViewDelegate placeholder simulation
+    // MARK: - NSTextViewDelegate
     
-    func textViewDidBeginEditing(_ notification: Notification) {
-        if commitTextView.string == "Commit message..." {
-            commitTextView.string = ""
-            commitTextView.textColor = NSColor.labelColor
-        }
+    func textDidChange(_ notification: Notification) {
+        updateCommitPlaceholder()
     }
     
-    func textViewDidEndEditing(_ notification: Notification) {
-        if commitTextView.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            commitTextView.string = "Commit message..."
-            commitTextView.textColor = NSColor.placeholderTextColor
+    private func updateCommitPlaceholder() {
+        let isEmpty = commitTextView.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if let placeholder = commitTextView.enclosingScrollView?.subviews.first(where: { $0.identifier?.rawValue == "commitPlaceholder" }) {
+            placeholder.isHidden = !isEmpty
         }
     }
     

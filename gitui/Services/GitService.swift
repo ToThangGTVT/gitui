@@ -275,6 +275,24 @@ class GitService {
         }
     }
     
+    /// Returns (ahead, behind) commit counts relative to upstream.
+    /// ahead = commits to push, behind = commits to pull.
+    func getAheadBehind(in repoPath: String) async -> (ahead: Int, behind: Int) {
+        do {
+            let output = try await runGit(["rev-list", "--count", "--left-right", "HEAD...@{upstream}"], in: repoPath)
+            let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\t")
+            guard parts.count == 2,
+                  let ahead = Int(parts[0]),
+                  let behind = Int(parts[1]) else {
+                return (0, 0)
+            }
+            return (ahead, behind)
+        } catch {
+            // No upstream configured or other error
+            return (0, 0)
+        }
+    }
+    
     func discardFile(_ filePath: String, in repoPath: String) async throws {
         _ = try await runGit(["checkout", "--", filePath], in: repoPath)
     }
