@@ -163,29 +163,29 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         rightStack.translatesAutoresizingMaskIntoConstraints = false
         toolbarContainer.addSubview(rightStack)
         
-        let leftButtons = [
-            ("Commit", "plus.circle"),
-            ("Pull", "arrow.down.circle"),
-            ("Push", "arrow.up.circle"),
-            ("Fetch", "arrow.clockwise.circle"),
-            ("Branch", "arrow.triangle.branch"),
-            ("Merge", "arrow.triangle.merge"),
-            ("Stash", "archivebox")
+        let leftButtons: [(String, String, Selector?)] = [
+            ("Commit", "plus.circle", nil),
+            ("Pull", "arrow.down.circle", #selector(toolbarPullClicked)),
+            ("Push", "arrow.up.circle", #selector(toolbarPushClicked)),
+            ("Fetch", "arrow.clockwise.circle", #selector(toolbarFetchClicked)),
+            ("Branch", "arrow.triangle.branch", nil),
+            ("Merge", "arrow.triangle.merge", nil),
+            ("Stash", "archivebox", nil)
         ]
         
         for b in leftButtons {
-            leftStack.addArrangedSubview(createToolbarButton(title: b.0, symbolName: b.1, action: nil))
+            leftStack.addArrangedSubview(createToolbarButton(title: b.0, symbolName: b.1, action: b.2))
         }
         
-        let rightButtons = [
-            ("View Remote", "globe"),
-            ("Show in Finder", "folder"),
-            ("Terminal", "terminal"),
-            ("Settings", "gearshape")
+        let rightButtons: [(String, String, Selector?)] = [
+            ("View Remote", "globe", nil),
+            ("Show in Finder", "folder", #selector(toolbarShowInFinderClicked)),
+            ("Terminal", "terminal", #selector(toolbarTerminalClicked)),
+            ("Settings", "gearshape", nil)
         ]
         
         for b in rightButtons {
-            rightStack.addArrangedSubview(createToolbarButton(title: b.0, symbolName: b.1, action: nil))
+            rightStack.addArrangedSubview(createToolbarButton(title: b.0, symbolName: b.1, action: b.2))
         }
         
         // Bottom border
@@ -384,5 +384,194 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         NSApp.terminate(self)
         return true
+    }
+    
+    // MARK: - Toolbar Actions
+    
+    @objc private func toolbarFetchClicked() {
+        guard let path = activeRepoPath else {
+            showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
+            return
+        }
+        
+        Task {
+            do {
+                let remotes = try await GitService.shared.getRemotes(in: path)
+                guard !remotes.isEmpty else {
+                    await MainActor.run {
+                        self.showToolbarAlert(title: "No Remotes", message: "This repository has no remotes configured. Add a remote in the Remotes tab first.", isError: true)
+                    }
+                    return
+                }
+                // Fetch all remotes
+                for remote in remotes {
+                    try await GitService.shared.fetch(remote: remote.name, in: path)
+                }
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Fetch Complete", message: "Successfully fetched from all remotes.", isError: false)
+                    self.refreshCurrentTab()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Fetch Failed", message: error.localizedDescription, isError: true)
+                }
+            }
+        }
+    }
+    
+    @objc private func toolbarPullClicked() {
+        guard let path = activeRepoPath else {
+            showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
+            return
+        }
+        
+        // Detect the current branch to pre-fill the dialog
+        Task {
+            let currentBranch = await detectCurrentBranch(in: path)
+            await MainActor.run {
+                self.showPullPushDialog(title: "Pull from Remote", defaultBranch: currentBranch ?? "main", confirmTitle: "Pull") { remote, branch in
+                    self.performPull(remote: remote, branch: branch, repoPath: path)
+                }
+            }
+        }
+    }
+    
+    @objc private func toolbarPushClicked() {
+        guard let path = activeRepoPath else {
+            showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
+            return
+        }
+        
+        Task {
+            let currentBranch = await detectCurrentBranch(in: path)
+            await MainActor.run {
+                self.showPullPushDialog(title: "Push to Remote", defaultBranch: currentBranch ?? "main", confirmTitle: "Push") { remote, branch in
+                    self.performPush(remote: remote, branch: branch, repoPath: path)
+                }
+            }
+        }
+    }
+    
+    @objc private func toolbarShowInFinderClicked() {
+        guard let path = activeRepoPath else { return }
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+    
+    @objc private func toolbarTerminalClicked() {
+        guard let path = activeRepoPath else { return }
+        let escapedPath = path.replacingOccurrences(of: "\"", with: "\\\"")
+        let script = "tell application \"Terminal\"\nactivate\ndo script \"cd \\\"\(escapedPath)\\\"\"\nend tell"
+        if let appleScript = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
+        }
+    }
+    
+    // MARK: - Pull/Push/Fetch Helpers
+    
+    private func detectCurrentBranch(in repoPath: String) async -> String? {
+        do {
+            let branches = try await GitService.shared.getBranches(in: repoPath)
+            return branches.first(where: { $0.isCurrent })?.name
+        } catch {
+            return nil
+        }
+    }
+    
+    private func performPull(remote: String, branch: String, repoPath: String) {
+        Task {
+            do {
+                try await GitService.shared.pull(remote: remote, branch: branch, in: repoPath)
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
+                    self.refreshCurrentTab()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Pull Failed", message: error.localizedDescription, isError: true)
+                }
+            }
+        }
+    }
+    
+    private func performPush(remote: String, branch: String, repoPath: String) {
+        Task {
+            do {
+                try await GitService.shared.push(remote: remote, branch: branch, in: repoPath)
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Push Complete", message: "Successfully pushed \(branch) to '\(remote)'.", isError: false)
+                    self.refreshCurrentTab()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Push Failed", message: error.localizedDescription, isError: true)
+                }
+            }
+        }
+    }
+    
+    private func showPullPushDialog(title: String, defaultBranch: String, confirmTitle: String, completion: @escaping (String, String) -> Void) {
+        guard let window = self.window else { return }
+        
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = "Specify the remote and branch name."
+        alert.addButton(withTitle: confirmTitle)
+        alert.addButton(withTitle: "Cancel")
+        
+        let accessoryView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 58))
+        
+        let remoteLabel = NSTextField(labelWithString: "Remote:")
+        remoteLabel.frame = NSRect(x: 0, y: 32, width: 60, height: 22)
+        remoteLabel.font = NSFont.systemFont(ofSize: 12)
+        accessoryView.addSubview(remoteLabel)
+        
+        let remoteField = NSTextField()
+        remoteField.frame = NSRect(x: 65, y: 32, width: 230, height: 22)
+        remoteField.stringValue = "origin"
+        remoteField.font = NSFont.systemFont(ofSize: 12)
+        remoteField.placeholderString = "e.g. origin"
+        accessoryView.addSubview(remoteField)
+        
+        let branchLabel = NSTextField(labelWithString: "Branch:")
+        branchLabel.frame = NSRect(x: 0, y: 4, width: 60, height: 22)
+        branchLabel.font = NSFont.systemFont(ofSize: 12)
+        accessoryView.addSubview(branchLabel)
+        
+        let branchField = NSTextField()
+        branchField.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
+        branchField.stringValue = defaultBranch
+        branchField.font = NSFont.systemFont(ofSize: 12)
+        branchField.placeholderString = "e.g. main"
+        accessoryView.addSubview(branchField)
+        
+        alert.accessoryView = accessoryView
+        
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn {
+                let remote = remoteField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                let branch = branchField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                
+                guard !remote.isEmpty && !branch.isEmpty else {
+                    self.showToolbarAlert(title: "Invalid Input", message: "Both remote and branch name are required.", isError: true)
+                    return
+                }
+                completion(remote, branch)
+            }
+        }
+    }
+    
+    private func showToolbarAlert(title: String, message: String, isError: Bool) {
+        guard let window = self.window else { return }
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = isError ? .warning : .informational
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window, completionHandler: nil)
+    }
+    
+    private func refreshCurrentTab() {
+        selectTab(index: segmentedControl.selectedSegment)
     }
 }
