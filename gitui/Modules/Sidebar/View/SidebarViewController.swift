@@ -194,9 +194,18 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     
     @objc private func plusClicked(_ sender: NSButton) {
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Clone Repository...", action: #selector(menuCloneClicked(_:)), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Open Existing Repository...", action: #selector(menuOpenClicked(_:)), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Initialize New Repository...", action: #selector(menuInitClicked(_:)), keyEquivalent: ""))
+        
+        let cloneItem = NSMenuItem(title: "Clone Repository...", action: #selector(menuCloneClicked(_:)), keyEquivalent: "")
+        cloneItem.target = self
+        menu.addItem(cloneItem)
+        
+        let openItem = NSMenuItem(title: "Open Existing Repository...", action: #selector(menuOpenClicked(_:)), keyEquivalent: "")
+        openItem.target = self
+        menu.addItem(openItem)
+        
+        let initItem = NSMenuItem(title: "Initialize New Repository...", action: #selector(menuInitClicked(_:)), keyEquivalent: "")
+        initItem.target = self
+        menu.addItem(initItem)
         
         let point = NSPoint(x: sender.frame.minX, y: sender.frame.maxY + 5)
         menu.popUp(positioning: nil, at: point, in: sender.superview)
