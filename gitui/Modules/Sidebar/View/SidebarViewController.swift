@@ -10,11 +10,41 @@ protocol SidebarViewProtocol: AnyObject {
 // Wrapper classes to preserve pointer identity for NSOutlineView
 class RepositoryItem: NSObject {
     var bookmark: RepositoryBookmark
+    var groups: [BranchGroupItem]
+    
+    init(bookmark: RepositoryBookmark, groups: [BranchGroupItem] = []) {
+        self.bookmark = bookmark
+        self.groups = groups
+    }
+}
+
+class BranchGroupItem: NSObject {
+    let title: String
     var branches: [BranchItem]
     
-    init(bookmark: RepositoryBookmark, branches: [BranchItem] = []) {
-        self.bookmark = bookmark
+    init(title: String, branches: [BranchItem]) {
+        self.title = title
         self.branches = branches
+    }
+}
+
+class CustomSelectionRowView: NSTableRowView {
+    override func drawSelection(in dirtyRect: NSRect) {
+        if self.selectionHighlightStyle != .none {
+            let selectionRect = self.bounds.insetBy(dx: 8, dy: 0) // Margin from edges
+            
+            // Light blue background
+            let bgColor = NSColor.systemBlue.withAlphaComponent(0.15)
+            bgColor.setFill()
+            let path = NSBezierPath(roundedRect: selectionRect, xRadius: 6, yRadius: 6)
+            path.fill()
+            
+            // Blue border
+            let borderColor = NSColor.systemBlue.withAlphaComponent(0.5)
+            borderColor.setStroke()
+            path.lineWidth = 1.0
+            path.stroke()
+        }
     }
 }
 
@@ -243,6 +273,12 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 } else {
                     sender.animator().expandItem(repoItem)
                 }
+            } else if let groupItem = clickedItem as? BranchGroupItem {
+                if sender.isItemExpanded(groupItem) {
+                    sender.animator().collapseItem(groupItem)
+                } else {
+                    sender.animator().expandItem(groupItem)
+                }
             } else if let branchItem = clickedItem as? BranchItem {
                 presenter?.didSelectBranch(branchItem.branch, in: branchItem.repoPath)
             }
@@ -255,7 +291,9 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         if item == nil {
             return repositoryItems.count
         } else if let repoItem = item as? RepositoryItem {
-            return repoItem.branches.count
+            return repoItem.groups.count
+        } else if let groupItem = item as? BranchGroupItem {
+            return groupItem.branches.count
         }
         return 0
     }
@@ -264,14 +302,17 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         if item == nil {
             return repositoryItems[index]
         } else if let repoItem = item as? RepositoryItem {
-            return repoItem.branches[index]
+            return repoItem.groups[index]
+        } else if let groupItem = item as? BranchGroupItem {
+            return groupItem.branches[index]
         }
         fatalError("Requested child out of bounds")
     }
     
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-        if let repoItem = item as? RepositoryItem {
-            // Repositories are always expandable to fetch/show branches
+        if item is RepositoryItem {
+            return true
+        } else if item is BranchGroupItem {
             return true
         }
         return false
@@ -279,9 +320,28 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     
     // MARK: - NSOutlineViewDelegate
     
+    func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
+        if item is BranchGroupItem {
+            return false
+        }
+        return true
+    }
+    
+    func outlineView(_ outlineView: NSOutlineView, rowViewForItem item: Any) -> NSTableRowView? {
+        let identifier = NSUserInterfaceItemIdentifier("CustomRowView")
+        var rowView = outlineView.makeView(withIdentifier: identifier, owner: self) as? CustomSelectionRowView
+        if rowView == nil {
+            rowView = CustomSelectionRowView()
+            rowView?.identifier = identifier
+        }
+        return rowView
+    }
+    
     func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
         if item is RepositoryItem {
             return 46
+        } else if item is BranchGroupItem {
+            return 24
         } else {
             return 28
         }
@@ -385,6 +445,25 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 }
             }
             
+            return cell
+        } else if let groupItem = item as? BranchGroupItem {
+            let cellIdentifier = NSUserInterfaceItemIdentifier("GroupCell")
+            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+            if cell == nil {
+                cell = NSTableCellView()
+                cell?.identifier = cellIdentifier
+                let label = NSTextField(labelWithString: "")
+                label.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+                label.textColor = NSColor.tertiaryLabelColor
+                label.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(label)
+                cell?.textField = label
+                NSLayoutConstraint.activate([
+                    label.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
+                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
+                ])
+            }
+            cell?.textField?.stringValue = groupItem.title.uppercased()
             return cell
         } else if let branchItem = item as? BranchItem {
             let branch = branchItem.branch
@@ -553,8 +632,42 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                     let branches = try await GitService.shared.getBranches(in: path)
                     await MainActor.run {
                         if let targetItem = self.repositoryItems.first(where: { $0.bookmark.path == path }) {
-                            targetItem.branches = branches.map { BranchItem(branch: $0, repoPath: path) }
+                            let localBranches = branches.filter { !$0.isRemote }.map { BranchItem(branch: $0, repoPath: path) }
+                            let remoteBranches = branches.filter { $0.isRemote }.map { BranchItem(branch: $0, repoPath: path) }
+                            
+                            // Preserve expansion state by updating existing groups
+                            var newGroups: [BranchGroupItem] = []
+                            
+                            if !localBranches.isEmpty {
+                                if let existingLocal = targetItem.groups.first(where: { $0.title == "Local Branches" }) {
+                                    existingLocal.branches = localBranches
+                                    newGroups.append(existingLocal)
+                                } else {
+                                    newGroups.append(BranchGroupItem(title: "Local Branches", branches: localBranches))
+                                }
+                            }
+                            
+                            if !remoteBranches.isEmpty {
+                                if let existingRemote = targetItem.groups.first(where: { $0.title == "Remote Branches" }) {
+                                    existingRemote.branches = remoteBranches
+                                    newGroups.append(existingRemote)
+                                } else {
+                                    newGroups.append(BranchGroupItem(title: "Remote Branches", branches: remoteBranches))
+                                }
+                            }
+                            
+                            // Save expansion states of the groups before reloading
+                            let expandedGroups = targetItem.groups.filter { self.outlineView.isItemExpanded($0) }.map { $0.title }
+                            
+                            targetItem.groups = newGroups
                             self.outlineView.reloadItem(targetItem, reloadChildren: true)
+                            
+                            // Re-expand groups
+                            for group in newGroups {
+                                if expandedGroups.contains(group.title) {
+                                    self.outlineView.expandItem(group)
+                                }
+                            }
                         }
                     }
                 } catch {

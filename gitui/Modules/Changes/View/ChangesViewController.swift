@@ -568,6 +568,26 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             presenter?.didRequestLastCommitMessage()
         }
     }
+    
+    @objc private func fileCheckboxToggled(_ sender: NSButton) {
+        guard let cell = sender.superview as? NSTableCellView else { return }
+        
+        let rowStaged = stagedTableView.row(for: cell)
+        if rowStaged != -1, rowStaged < stagedFiles.count {
+            let file = stagedFiles[rowStaged]
+            presenter?.didDoubleClickFile(file)
+            sender.state = .on // Revert visually until model updates
+            return
+        }
+        
+        let rowUnstaged = unstagedTableView.row(for: cell)
+        if rowUnstaged != -1, rowUnstaged < unstagedFiles.count {
+            let file = unstagedFiles[rowUnstaged]
+            presenter?.didDoubleClickFile(file)
+            sender.state = .off // Revert visually until model updates
+            return
+        }
+    }
     // MARK: - Context Menu (NSMenuDelegate)
     
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -780,8 +800,14 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             cell = NSTableCellView()
             cell?.identifier = identifier
 
+            let checkbox = NSButton(checkboxWithTitle: "", target: self, action: #selector(fileCheckboxToggled(_:)))
+            checkbox.identifier = NSUserInterfaceItemIdentifier("fileCheckbox")
+            checkbox.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(checkbox)
+
             // Badge container — provides padding around the text
             let badgeContainer = NSView()
+            badgeContainer.identifier = NSUserInterfaceItemIdentifier("badgeContainer")
             badgeContainer.wantsLayer = true
             badgeContainer.layer?.cornerRadius = 4
             badgeContainer.translatesAutoresizingMaskIntoConstraints = false
@@ -806,7 +832,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             cell?.textField = label
 
             NSLayoutConstraint.activate([
-                badgeContainer.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
+                checkbox.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
+                checkbox.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+
+                badgeContainer.leadingAnchor.constraint(equalTo: checkbox.trailingAnchor, constant: 4),
                 badgeContainer.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
                 badgeContainer.widthAnchor.constraint(equalToConstant: 24),
                 badgeContainer.heightAnchor.constraint(equalToConstant: 18),
@@ -817,12 +846,16 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             ])
         }
 
+        if let checkbox = cell?.subviews.compactMap({ $0 as? NSButton }).first(where: { $0.identifier?.rawValue == "fileCheckbox" }) {
+            checkbox.state = (tableView === stagedTableView) ? .on : .off
+        }
+
         if let textField = cell?.textField {
             textField.stringValue = file.path
         }
 
-        // Locate the badge container (first NSView that is NOT the cell's textField)
-        if let container = cell?.subviews.first(where: { !($0 is NSTextField) }),
+        // Locate the badge container
+        if let container = cell?.subviews.first(where: { $0.identifier?.rawValue == "badgeContainer" }),
            let badge = container.subviews.first as? NSTextField {
             badge.stringValue = file.status == "U" ? "!" : file.status
             switch file.status {
