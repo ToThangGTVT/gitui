@@ -272,6 +272,10 @@ class GitService {
         _ = try await runGit(args, in: repoPath)
     }
 
+    func getCommitFileDiff(hash: String, file: String, in repoPath: String) async throws -> String {
+        return try await runGit(["show", hash, "--", file], in: repoPath)
+    }
+
     func getLastCommitMessage(in repoPath: String) async throws -> String {
         return try await runGit(["log", "-1", "--pretty=format:%B"], in: repoPath)
     }

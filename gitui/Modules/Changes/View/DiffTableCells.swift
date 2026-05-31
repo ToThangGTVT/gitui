@@ -77,12 +77,17 @@ class HunkHeaderCellView: NSView {
         ])
     }
 
-    func configure(headerText: String, isUnstagedDiff: Bool) {
+    func configure(headerText: String, isUnstagedDiff: Bool, isReadOnly: Bool = false) {
         hunkLabel.stringValue = headerText
-        // NSStackView collapses hidden items — no constraint conflicts
-        stageButton.isHidden   = !isUnstagedDiff
-        discardButton.isHidden = !isUnstagedDiff
-        unstageButton.isHidden = isUnstagedDiff
+        if isReadOnly {
+            stageButton.isHidden   = true
+            discardButton.isHidden = true
+            unstageButton.isHidden = true
+        } else {
+            stageButton.isHidden   = !isUnstagedDiff
+            discardButton.isHidden = !isUnstagedDiff
+            unstageButton.isHidden = isUnstagedDiff
+        }
     }
 
     override func updateLayer() {

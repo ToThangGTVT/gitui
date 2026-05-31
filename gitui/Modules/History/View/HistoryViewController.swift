@@ -23,12 +23,20 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     private var scrollView: NSScrollView!
     private var tableView: NSTableView!
     private var progressIndicator: NSProgressIndicator!
-    
+
+    // Commit info panel (bottom of left pane)
+    private var infoPanel: NSView!
+    private var infoAvatarView: AvatarView!
+    private var infoAuthorLabel: NSTextField!
+    private var infoDateLabel: NSTextField!
+    private var infoHashLabel: NSTextField!
+    private var infoMessageView: NSTextView!
+
     // Split view persistence
     private var splitPersistence: SplitViewPersistence?
-    
+
     // Child View Controller
-    private let detailVC = CommitDetailViewController(nibName: "CommitDetailViewController", bundle: nil)
+    private let detailVC = CommitDetailViewController()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -90,7 +98,11 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
             splitView.setPosition(680, ofDividerAt: 0)
         }
         
-        // 2. Left Pane UI: NSScrollView + NSTableView
+        // 2. Left Pane UI: NSScrollView + NSTableView + Info Panel
+        infoPanel = buildInfoPanel()
+        infoPanel.translatesAutoresizingMaskIntoConstraints = false
+        leftContainer.addSubview(infoPanel)
+
         scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = false
@@ -98,12 +110,19 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         scrollView.borderType = .noBorder
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         leftContainer.addSubview(scrollView)
-        
+
         NSLayoutConstraint.activate([
+            // Info panel pinned to bottom
+            infoPanel.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
+            infoPanel.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
+            infoPanel.bottomAnchor.constraint(equalTo: leftContainer.bottomAnchor),
+            infoPanel.heightAnchor.constraint(equalToConstant: 130),
+
+            // Graph fills the rest above info panel
             scrollView.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
             scrollView.topAnchor.constraint(equalTo: leftContainer.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: leftContainer.bottomAnchor)
+            scrollView.bottomAnchor.constraint(equalTo: infoPanel.topAnchor),
         ])
         
         tableView = NSTableView()
@@ -165,6 +184,91 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         ])
     }
     
+    private func buildInfoPanel() -> NSView {
+        let panel = NSView()
+        panel.wantsLayer = true
+        panel.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+
+        let topBorder = NSView()
+        topBorder.wantsLayer = true
+        topBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        topBorder.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(topBorder)
+
+        infoAvatarView = AvatarView()
+        infoAvatarView.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(infoAvatarView)
+
+        infoHashLabel = NSTextField(labelWithString: "")
+        infoHashLabel.font = NSFont(name: "Menlo", size: 10) ?? NSFont.userFixedPitchFont(ofSize: 10)
+        infoHashLabel.textColor = .secondaryLabelColor
+        infoHashLabel.wantsLayer = true
+        infoHashLabel.layer?.cornerRadius = 3
+        infoHashLabel.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        infoHashLabel.alignment = .center
+        infoHashLabel.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(infoHashLabel)
+
+        infoAuthorLabel = NSTextField(labelWithString: "")
+        infoAuthorLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        infoAuthorLabel.textColor = .labelColor
+        infoAuthorLabel.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(infoAuthorLabel)
+
+        infoDateLabel = NSTextField(labelWithString: "")
+        infoDateLabel.font = NSFont.systemFont(ofSize: 11)
+        infoDateLabel.textColor = .secondaryLabelColor
+        infoDateLabel.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(infoDateLabel)
+
+        let msgScroll = NSScrollView()
+        msgScroll.hasVerticalScroller = false
+        msgScroll.borderType = .noBorder
+        msgScroll.drawsBackground = false
+        msgScroll.translatesAutoresizingMaskIntoConstraints = false
+        panel.addSubview(msgScroll)
+
+        infoMessageView = NSTextView()
+        infoMessageView.isRichText = false
+        infoMessageView.isEditable = false
+        infoMessageView.font = NSFont.systemFont(ofSize: 11)
+        infoMessageView.textColor = .labelColor
+        infoMessageView.backgroundColor = .clear
+        msgScroll.documentView = infoMessageView
+
+        NSLayoutConstraint.activate([
+            topBorder.topAnchor.constraint(equalTo: panel.topAnchor),
+            topBorder.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
+            topBorder.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
+            topBorder.heightAnchor.constraint(equalToConstant: 1),
+
+            infoAvatarView.topAnchor.constraint(equalTo: topBorder.bottomAnchor, constant: 10),
+            infoAvatarView.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 12),
+            infoAvatarView.widthAnchor.constraint(equalToConstant: 30),
+            infoAvatarView.heightAnchor.constraint(equalToConstant: 30),
+
+            infoAuthorLabel.topAnchor.constraint(equalTo: infoAvatarView.topAnchor),
+            infoAuthorLabel.leadingAnchor.constraint(equalTo: infoAvatarView.trailingAnchor, constant: 8),
+
+            infoHashLabel.centerYAnchor.constraint(equalTo: infoAuthorLabel.centerYAnchor),
+            infoHashLabel.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -12),
+            infoHashLabel.widthAnchor.constraint(equalToConstant: 70),
+            infoHashLabel.heightAnchor.constraint(equalToConstant: 16),
+            infoAuthorLabel.trailingAnchor.constraint(lessThanOrEqualTo: infoHashLabel.leadingAnchor, constant: -8),
+
+            infoDateLabel.topAnchor.constraint(equalTo: infoAuthorLabel.bottomAnchor, constant: 2),
+            infoDateLabel.leadingAnchor.constraint(equalTo: infoAvatarView.trailingAnchor, constant: 8),
+            infoDateLabel.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -12),
+
+            msgScroll.topAnchor.constraint(equalTo: infoAvatarView.bottomAnchor, constant: 8),
+            msgScroll.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 12),
+            msgScroll.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -12),
+            msgScroll.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -8),
+        ])
+
+        return panel
+    }
+
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
@@ -270,6 +374,18 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     }
     
     func updateCommitDetails(_ commit: CommitNode) {
+        // Update left-pane info panel
+        infoAvatarView.name = commit.author
+        infoAuthorLabel.stringValue = commit.author
+        infoHashLabel.stringValue = " \(commit.shortHash.uppercased()) "
+
+        let fmt = DateFormatter()
+        fmt.dateStyle = .medium
+        fmt.timeStyle = .short
+        infoDateLabel.stringValue = fmt.string(from: commit.date)
+        infoMessageView.string = commit.message
+
+        // Update right-pane files+diff
         detailVC.configure(with: commit)
     }
     
