@@ -933,8 +933,9 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     }
 
     func showConflictBanner(_ hasConflicts: Bool) {
+        guard conflictBannerHeight.constant != (hasConflicts ? 36 : 0) else { return }
         NSAnimationContext.runAnimationGroup { ctx in
-            ctx.duration = 0.2
+            ctx.duration = 0.15
             conflictBannerHeight.animator().constant = hasConflicts ? 36 : 0
         }
     }
@@ -942,6 +943,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private func buildConflictBanner() -> NSView {
         let banner = NSView()
         banner.wantsLayer = true
+        banner.layer?.masksToBounds = true   // clip subviews when height = 0
         banner.layer?.backgroundColor = NSColor.gitFlowConflict.cgColor
 
         let icon = NSTextField(labelWithString: "⚠")
