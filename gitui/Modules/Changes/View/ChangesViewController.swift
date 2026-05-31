@@ -731,13 +731,24 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             cell = NSTableCellView()
             cell?.identifier = identifier
 
+            // Badge container — provides padding around the text
+            let badgeContainer = NSView()
+            badgeContainer.wantsLayer = true
+            badgeContainer.layer?.cornerRadius = 4
+            badgeContainer.translatesAutoresizingMaskIntoConstraints = false
+            cell?.addSubview(badgeContainer)
+
             let statusBadge = NSTextField(labelWithString: "")
             statusBadge.font = NSFont.systemFont(ofSize: 10, weight: .bold)
             statusBadge.alignment = .center
-            statusBadge.wantsLayer = true
-            statusBadge.layer?.cornerRadius = 3
             statusBadge.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(statusBadge)
+            badgeContainer.addSubview(statusBadge)
+
+            NSLayoutConstraint.activate([
+                statusBadge.leadingAnchor.constraint(equalTo: badgeContainer.leadingAnchor, constant: 4),
+                statusBadge.trailingAnchor.constraint(equalTo: badgeContainer.trailingAnchor, constant: -4),
+                statusBadge.centerYAnchor.constraint(equalTo: badgeContainer.centerYAnchor),
+            ])
 
             let label = NSTextField(labelWithString: "")
             label.font = NSFont.systemFont(ofSize: 12)
@@ -746,12 +757,12 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             cell?.textField = label
 
             NSLayoutConstraint.activate([
-                statusBadge.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
-                statusBadge.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                statusBadge.widthAnchor.constraint(equalToConstant: 18),
-                statusBadge.heightAnchor.constraint(equalToConstant: 16),
+                badgeContainer.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
+                badgeContainer.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                badgeContainer.widthAnchor.constraint(equalToConstant: 24),
+                badgeContainer.heightAnchor.constraint(equalToConstant: 18),
 
-                label.leadingAnchor.constraint(equalTo: statusBadge.trailingAnchor, constant: 8),
+                label.leadingAnchor.constraint(equalTo: badgeContainer.trailingAnchor, constant: 8),
                 label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -6),
                 label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
             ])
@@ -761,17 +772,22 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             textField.stringValue = file.path
         }
 
-        if let badge = cell?.subviews.first(where: { $0 is NSTextField && $0 !== cell?.textField }) as? NSTextField {
+        // Locate the badge container (first NSView that is NOT the cell's textField)
+        if let container = cell?.subviews.first(where: { !($0 is NSTextField) }),
+           let badge = container.subviews.first as? NSTextField {
             badge.stringValue = file.status
             if file.status == "A" || file.status == "?" {
                 badge.textColor = NSColor.gitFlowStagedAddText
-                badge.layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
+                container.layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
             } else if file.status == "D" {
                 badge.textColor = NSColor.gitFlowStagedDeleteText
-                badge.layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
+                container.layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
+            } else if file.status == "M" {
+                badge.textColor = NSColor.gitFlowModifiedText
+                container.layer?.backgroundColor = NSColor.gitFlowModified.cgColor
             } else {
                 badge.textColor = NSColor.gitFlowAccent
-                badge.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
+                container.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
             }
         }
 

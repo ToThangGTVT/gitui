@@ -231,6 +231,22 @@ class GitService {
         args.append(file)
         return try await runGit(args, in: repoPath)
     }
+
+    func getUntrackedFileDiff(path: String, in repoPath: String) -> String {
+        let fullPath = (repoPath as NSString).appendingPathComponent(path)
+        guard let content = try? String(contentsOfFile: fullPath, encoding: .utf8) else {
+            return ""
+        }
+        let lines = content.components(separatedBy: "\n")
+        guard lines.count <= 10_000 else { return "" }
+
+        var result = "diff --git a/\(path) b/\(path)\nnew file mode 100644\n--- /dev/null\n+++ b/\(path)\n"
+        result += "@@ -0,0 +1,\(lines.count) @@\n"
+        for line in lines {
+            result += "+\(line)\n"
+        }
+        return result
+    }
     
     func stageFile(_ path: String, in repoPath: String) async throws {
         _ = try await runGit(["add", path], in: repoPath)

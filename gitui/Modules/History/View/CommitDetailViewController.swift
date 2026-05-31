@@ -62,12 +62,12 @@ class CommitDetailViewController: NSViewController, NSTableViewDataSource, NSTab
     private var changedFiles: [GitFileStatus] = []
     
     // UI Elements
-    private var hashPill: NSTextField!
-    private var avatarView: AvatarView!
-    private var authorLabel: NSTextField!
-    private var dateLabel: NSTextField!
-    private var messageTextView: NSTextView!
-    private var changedFilesTableView: NSTableView!
+    @IBOutlet private weak var hashPill: NSTextField!
+    @IBOutlet private weak var avatarView: AvatarView!
+    @IBOutlet private weak var authorLabel: NSTextField!
+    @IBOutlet private weak var dateLabel: NSTextField!
+    @IBOutlet private weak var messageTextView: NSTextView!
+    @IBOutlet private weak var changedFilesTableView: NSTableView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -78,114 +78,42 @@ class CommitDetailViewController: NSViewController, NSTableViewDataSource, NSTab
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         
-        // 1. Hash Pill
-        hashPill = NSTextField(labelWithString: "COMMIT HASH")
+        // 1. Hash Pill Style
+        hashPill.stringValue = "COMMIT HASH"
         hashPill.font = NSFont(name: "Menlo", size: 10) ?? NSFont.userFixedPitchFont(ofSize: 10)
         hashPill.textColor = NSColor.secondaryLabelColor
         hashPill.alignment = .center
         hashPill.wantsLayer = true
         hashPill.layer?.cornerRadius = 4
         hashPill.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        hashPill.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(hashPill)
         
-        // 2. Avatar Circle View
-        avatarView = AvatarView(frame: NSRect(x: 0, y: 0, width: 36, height: 36))
-        avatarView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(avatarView)
-        
-        // 3. Author Name
-        authorLabel = NSTextField(labelWithString: "")
+        // 2. Author Name Style
         authorLabel.font = NSFont.systemFont(ofSize: 13, weight: .bold)
         authorLabel.textColor = NSColor.labelColor
-        authorLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(authorLabel)
         
-        // 4. Date Label
-        dateLabel = NSTextField(labelWithString: "")
+        // 3. Date Label Style
         dateLabel.font = NSFont.systemFont(ofSize: 11)
         dateLabel.textColor = NSColor.secondaryLabelColor
-        dateLabel.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(dateLabel)
         
-        // 5. Message Text View
-        let messageScroll = NSScrollView()
-        messageScroll.hasVerticalScroller = true
-        messageScroll.borderType = .noBorder
-        messageScroll.drawsBackground = false
-        messageScroll.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(messageScroll)
-        
-        messageTextView = NSTextView()
+        // 4. Message Text View Style
         messageTextView.isRichText = false
         messageTextView.isEditable = false
         messageTextView.font = NSFont.systemFont(ofSize: 12)
         messageTextView.textColor = NSColor.labelColor
         messageTextView.backgroundColor = NSColor.clear
-        messageScroll.documentView = messageTextView
         
-        // 6. Changed Files Label
-        let filesTitle = NSTextField(labelWithString: "CHANGED FILES")
-        filesTitle.font = NSFont.systemFont(ofSize: 10, weight: .bold)
-        filesTitle.textColor = NSColor.secondaryLabelColor
-        filesTitle.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(filesTitle)
-        
-        // 7. Changed Files Table
-        let filesScroll = NSScrollView()
-        filesScroll.hasVerticalScroller = true
-        filesScroll.borderType = .lineBorder
-        filesScroll.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(filesScroll)
-        
-        changedFilesTableView = NSTableView()
+        // 5. Changed Files Table Setup
         changedFilesTableView.headerView = nil
         changedFilesTableView.backgroundColor = NSColor.controlBackgroundColor
         changedFilesTableView.gridColor = NSColor.separatorColor
         changedFilesTableView.gridStyleMask = .solidHorizontalGridLineMask
         changedFilesTableView.allowsMultipleSelection = false
         
-        let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("fileCol"))
-        col.width = 250
-        changedFilesTableView.addTableColumn(col)
+        let nib = NSNib(nibNamed: "FileDetailCell", bundle: nil)
+        changedFilesTableView.register(nib, forIdentifier: NSUserInterfaceItemIdentifier("fileDetailCell"))
         
         changedFilesTableView.dataSource = self
         changedFilesTableView.delegate = self
-        filesScroll.documentView = changedFilesTableView
-        
-        // Constraints
-        NSLayoutConstraint.activate([
-            hashPill.topAnchor.constraint(equalTo: view.topAnchor, constant: 12),
-            hashPill.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            hashPill.widthAnchor.constraint(equalToConstant: 95),
-            hashPill.heightAnchor.constraint(equalToConstant: 18),
-            
-            avatarView.topAnchor.constraint(equalTo: hashPill.bottomAnchor, constant: 12),
-            avatarView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            avatarView.widthAnchor.constraint(equalToConstant: 36),
-            avatarView.heightAnchor.constraint(equalToConstant: 36),
-            
-            authorLabel.topAnchor.constraint(equalTo: avatarView.topAnchor, constant: 1),
-            authorLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 10),
-            authorLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            dateLabel.topAnchor.constraint(equalTo: authorLabel.bottomAnchor, constant: 2),
-            dateLabel.leadingAnchor.constraint(equalTo: avatarView.trailingAnchor, constant: 10),
-            dateLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            
-            messageScroll.topAnchor.constraint(equalTo: avatarView.bottomAnchor, constant: 12),
-            messageScroll.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            messageScroll.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            messageScroll.heightAnchor.constraint(equalToConstant: 80),
-            
-            filesTitle.topAnchor.constraint(equalTo: messageScroll.bottomAnchor, constant: 16),
-            filesTitle.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            
-            filesScroll.topAnchor.constraint(equalTo: filesTitle.bottomAnchor, constant: 8),
-            filesScroll.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-            filesScroll.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            filesScroll.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -12)
-        ])
     }
     
     func configure(with commit: CommitNode) {
@@ -250,55 +178,25 @@ class CommitDetailViewController: NSViewController, NSTableViewDataSource, NSTab
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let file = changedFiles[row]
         let cellId = NSUserInterfaceItemIdentifier("fileDetailCell")
-        var cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSTableCellView
-        
-        if cell == nil {
-            cell = NSTableCellView()
-            cell?.identifier = cellId
-            
-            let statusBadge = NSTextField(labelWithString: "")
-            statusBadge.font = NSFont.systemFont(ofSize: 10, weight: .bold)
-            statusBadge.alignment = .center
-            statusBadge.wantsLayer = true
-            statusBadge.layer?.cornerRadius = 3
-            statusBadge.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(statusBadge)
-            
-            let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 11)
-            label.lineBreakMode = .byTruncatingTail
-            label.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(label)
-            cell?.textField = label
-            
-            NSLayoutConstraint.activate([
-                statusBadge.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
-                statusBadge.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                statusBadge.widthAnchor.constraint(equalToConstant: 18),
-                statusBadge.heightAnchor.constraint(equalToConstant: 16),
-                
-                label.leadingAnchor.constraint(equalTo: statusBadge.trailingAnchor, constant: 8),
-                label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -6),
-                label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
-            ])
+        guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? FileDetailCell else {
+            return nil
         }
         
-        if let textField = cell?.textField {
-            textField.stringValue = file.path
-        }
+        cell.textField?.stringValue = file.path
+        cell.statusBadge.stringValue = file.status
         
-        if let badge = cell?.subviews.first(where: { $0 is NSTextField && $0 !== cell?.textField }) as? NSTextField {
-            badge.stringValue = file.status
-            if file.status == "A" || file.status == "M" {
-                badge.textColor = NSColor.gitFlowStagedAddText
-                badge.layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
-            } else if file.status == "D" {
-                badge.textColor = NSColor.gitFlowStagedDeleteText
-                badge.layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
-            } else {
-                badge.textColor = NSColor.gitFlowAccent
-                badge.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
-            }
+        cell.statusBadge.wantsLayer = true
+        cell.statusBadge.layer?.cornerRadius = 3
+        
+        if file.status == "A" || file.status == "M" {
+            cell.statusBadge.textColor = NSColor.gitFlowStagedAddText
+            cell.statusBadge.layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
+        } else if file.status == "D" {
+            cell.statusBadge.textColor = NSColor.gitFlowStagedDeleteText
+            cell.statusBadge.layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
+        } else {
+            cell.statusBadge.textColor = NSColor.gitFlowAccent
+            cell.statusBadge.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
         }
         
         return cell

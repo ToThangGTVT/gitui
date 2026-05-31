@@ -50,7 +50,12 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
     func loadDiff(repoPath: String, file: GitFileStatus) {
         Task {
             do {
-                let diff = try await GitService.shared.getDiff(in: repoPath, file: file.path, staged: file.isStaged)
+                let diff: String
+                if file.status == "?" {
+                    diff = GitService.shared.getUntrackedFileDiff(path: file.path, in: repoPath)
+                } else {
+                    diff = try await GitService.shared.getDiff(in: repoPath, file: file.path, staged: file.isStaged)
+                }
                 await MainActor.run {
                     self.presenter?.didLoadDiff(text: diff, filePath: file.path, isStaged: file.isStaged)
                 }
