@@ -28,7 +28,7 @@ class HistoryInteractor: HistoryInteractorInputProtocol {
                 do {
                     // Fetch git log in format: hash|parents|authorName|authorEmail|authorDate|refs|subject
                     let format = "%H|%P|%an|%ae|%ai|%D|%s"
-                    let output = try await GitService.shared.runGit(["log", "--all", "--pretty=format:\(format)", "-n", "\(limit)"], in: repoPath)
+                    let output = try await GitService.shared.runGit(["log", "--all", "--topo-order", "--pretty=format:\(format)", "-n", "\(limit)"], in: repoPath)
                     
                     var commits: [CommitNode] = []
                     let lines = output.components(separatedBy: .newlines)
@@ -66,7 +66,8 @@ class HistoryInteractor: HistoryInteractorInputProtocol {
                             parents: parents,
                             refs: refs,
                             laneIndex: 0,
-                            edges: []
+                            incomingEdges: [],
+                            outgoingEdges: []
                         ))
                     }
                     

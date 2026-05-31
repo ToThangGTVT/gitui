@@ -92,11 +92,11 @@ class CommitRowView: NSTableCellView {
         ])
     }
     
-    func configure(with commit: CommitNode, maxLaneCount: Int, hasIncomingLine: Bool) {
+    func configure(with commit: CommitNode, maxLaneCount: Int) {
         graphView.laneCount = maxLaneCount
         graphView.laneIndex = commit.laneIndex
-        graphView.edges = commit.edges
-        graphView.hasIncomingLine = hasIncomingLine
+        graphView.incomingEdges = commit.incomingEdges
+        graphView.outgoingEdges = commit.outgoingEdges
         graphView.needsDisplay = true
         
         messageLabel.stringValue = commit.message

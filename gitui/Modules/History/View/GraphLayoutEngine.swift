@@ -11,26 +11,26 @@ class GraphLayoutEngine {
     func layout(commits: [CommitNode]) -> [CommitNode] {
         var processedCommits: [CommitNode] = []
         
-        // Maps parentHash -> laneIndex
-        var laneMap: [String: Int] = [:]
+        // Maps parentHash -> [laneIndex] (all lanes that lead into this parent)
+        var laneMap: [String: [Int]] = [:]
         
-        // Set of active lane indices
+        // Active lanes from previous row
         var activeLanes = Set<Int>()
-        
-        // High water mark for free lanes
         var nextFreeLane = 0
         
         for var commit in commits {
             let commitHash = commit.hash
             
-            // 1. Assign or reuse lane
+            // The lanes coming INTO this commit from the commits above
+            let incomingFromAbove = laneMap[commitHash] ?? []
+            laneMap.removeValue(forKey: commitHash)
+            
+            // 1. Assign laneIndex
             let currentLane: Int
-            if let assignedLane = laneMap[commitHash] {
-                currentLane = assignedLane
-                // Remove from laneMap as we've reached this commit
-                laneMap.removeValue(forKey: commitHash)
+            if !incomingFromAbove.isEmpty {
+                // Take the lowest lane index as the main lane for this commit
+                currentLane = incomingFromAbove.min()!
             } else {
-                // Find first free lane or use nextFreeLane
                 var foundLane = nextFreeLane
                 for l in 0..<nextFreeLane {
                     if !activeLanes.contains(l) {
@@ -47,78 +47,89 @@ class GraphLayoutEngine {
             commit.laneIndex = currentLane
             activeLanes.insert(currentLane)
             
-            // 2. Map parents to lanes
-            var parentLanes: [Int] = []
+            // 2. Build incoming edges (from topY to midY)
+            var incomingEdges: [GraphEdge] = []
             
-            if !commit.parents.isEmpty {
-                // First parent continues on the current lane if no other commit is waiting on it
-                let firstParent = commit.parents[0]
-                if laneMap[firstParent] == nil {
-                    laneMap[firstParent] = currentLane
-                    parentLanes.append(currentLane)
-                } else if let existing = laneMap[firstParent] {
-                    parentLanes.append(existing)
+            // For passing lanes (must not be converging into currentLane)
+            for activeLane in activeLanes {
+                if activeLane != currentLane && !incomingFromAbove.contains(activeLane) {
+                    incomingEdges.append(GraphEdge(fromLane: activeLane, toLane: activeLane, type: .straight))
+                }
+            }
+            // For lanes converging into this commit
+            for incLane in incomingFromAbove {
+                let type: EdgeType = (incLane == currentLane) ? .straight : (incLane < currentLane ? .mergeIn : .mergeOut)
+                incomingEdges.append(GraphEdge(fromLane: incLane, toLane: currentLane, type: type))
+                // Free the other lanes that merged into currentLane
+                if incLane != currentLane {
+                    activeLanes.remove(incLane)
+                }
+            }
+            
+            // Snapshot active lanes before adding new ones for parents
+            let oldActiveLanes = activeLanes
+            
+            // 3. Map parents and build outgoing edges
+            var outgoingEdges: [GraphEdge] = []
+            var usedCurrentLane = false
+            
+            for i in 0..<commit.parents.count {
+                let parentHash = commit.parents[i]
+                
+                let targetLane: Int
+                if let existingLanes = laneMap[parentHash], let firstExisting = existingLanes.min() {
+                    // Reuse the lowest existing lane for this parent
+                    targetLane = firstExisting
+                } else if !usedCurrentLane {
+                    // First unmapped parent gets the current lane
+                    targetLane = currentLane
+                    usedCurrentLane = true
+                } else {
+                    // Subsequent unmapped parents get a new lane
+                    var foundLane = nextFreeLane
+                    for l in 0..<nextFreeLane {
+                        if !activeLanes.contains(l) && l != currentLane {
+                            foundLane = l
+                            break
+                        }
+                    }
+                    targetLane = foundLane
+                    if targetLane == nextFreeLane {
+                        nextFreeLane += 1
+                    }
                 }
                 
-                // Other parents get new free lanes (merges)
-                for i in 1..<commit.parents.count {
-                    let otherParent = commit.parents[i]
-                    if let existing = laneMap[otherParent] {
-                        parentLanes.append(existing)
-                    } else {
-                        var foundLane = nextFreeLane
-                        for l in 0..<nextFreeLane {
-                            if !activeLanes.contains(l) && l != currentLane {
-                                foundLane = l
-                                break
-                            }
-                        }
-                        let newLane = foundLane
-                        if newLane == nextFreeLane {
-                            nextFreeLane += 1
-                        }
-                        laneMap[otherParent] = newLane
-                        parentLanes.append(newLane)
-                        activeLanes.insert(newLane)
-                    }
+                var plMap = laneMap[parentHash] ?? []
+                if !plMap.contains(targetLane) {
+                    plMap.append(targetLane)
+                }
+                laneMap[parentHash] = plMap
+                activeLanes.insert(targetLane)
+                
+                let type: EdgeType = (targetLane == currentLane) ? .straight : (targetLane < currentLane ? .mergeIn : .mergeOut)
+                let newEdge = GraphEdge(fromLane: currentLane, toLane: targetLane, type: type)
+                if !outgoingEdges.contains(newEdge) {
+                    outgoingEdges.append(newEdge)
                 }
             }
             
-            // 3. Build edges for this row
-            var edges: [GraphEdge] = []
-            
-            // Draw lines for current commit to its parents
-            for pLane in parentLanes {
-                let type: EdgeType
-                if pLane == currentLane {
-                    type = .straight
-                } else if pLane < currentLane {
-                    type = .mergeIn
-                } else {
-                    type = .mergeOut
-                }
-                edges.append(GraphEdge(fromLane: currentLane, toLane: pLane, type: type))
-            }
-            
-            // Draw continuation lines for all other active lanes that are not this commit
-            for activeLane in activeLanes {
+            // For passing lanes (from midY to botY)
+            // Only draw passing straight lines for lanes that were ALREADY active
+            for activeLane in oldActiveLanes {
                 if activeLane != currentLane {
-                    // Only continue if there are parents registered in laneMap on this lane
-                    if laneMap.values.contains(activeLane) {
-                        edges.append(GraphEdge(fromLane: activeLane, toLane: activeLane, type: .straight))
-                    }
+                    outgoingEdges.append(GraphEdge(fromLane: activeLane, toLane: activeLane, type: .straight))
                 }
             }
             
-            // 4. Free lanes that have no active references waiting for them
+            // Clean up dangling active lanes that have no parents waiting for them
             var lanesStillWaiting = Set<Int>()
-            for assignedLane in laneMap.values {
-                lanesStillWaiting.insert(assignedLane)
+            for assignedLanes in laneMap.values {
+                lanesStillWaiting.formUnion(assignedLanes)
             }
-            
             activeLanes = activeLanes.intersection(lanesStillWaiting)
             
-            commit.edges = edges
+            commit.incomingEdges = incomingEdges
+            commit.outgoingEdges = outgoingEdges
             processedCommits.append(commit)
         }
         

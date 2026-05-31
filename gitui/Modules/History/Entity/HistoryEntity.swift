@@ -11,7 +11,8 @@ struct CommitNode: Equatable {
     let parents: [String]     // parent hashes (merge = 2)
     let refs: [GitRef]        // branch/tag labels on this commit
     var laneIndex: Int        // which column this dot sits on
-    var edges: [GraphEdge]    // lines to draw from this row
+    var incomingEdges: [GraphEdge] // lines from topY to midY
+    var outgoingEdges: [GraphEdge] // lines from midY to botY
 }
 
 struct BranchLane: Equatable {

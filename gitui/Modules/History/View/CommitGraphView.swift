@@ -29,8 +29,8 @@ class CommitGraphView: NSView {
     ]
     
     var laneIndex: Int = -1
-    var edges: [GraphEdge] = []
-    var hasIncomingLine: Bool = false
+    var incomingEdges: [GraphEdge] = []
+    var outgoingEdges: [GraphEdge] = []
     
     var laneCount: Int = 1 {
         didSet {
@@ -68,12 +68,12 @@ class CommitGraphView: NSView {
         context.setLineWidth(GraphMetrics.lineWidth)
         context.setLineCap(.round)
         
-        let midY = GraphMetrics.rowHeight / 2 // 14
+        let midY = GraphMetrics.rowHeight / 2
         let topY: CGFloat = 0
-        let botY = GraphMetrics.rowHeight // 28
+        let botY = GraphMetrics.rowHeight
         
-        // Step 1 — draw all GraphEdge lines for this row
-        for edge in edges {
+        // Draw all incoming edges (from topY to midY)
+        for edge in incomingEdges {
             let fromLane = edge.fromLane
             let toLane = edge.toLane
             let color = CommitGraphView.laneColors[fromLane % CommitGraphView.laneColors.count]
@@ -82,36 +82,26 @@ class CommitGraphView: NSView {
             let fromX = GraphMetrics.laneX(fromLane)
             let toX = GraphMetrics.laneX(toLane)
             
-            if edge.type == .straight {
-                // If it is a continuing lane (not the dot lane), draw from top to bottom
-                let startY = (fromLane == laneIndex) ? midY : topY
-                
-                context.beginPath()
-                context.move(to: CGPoint(x: snap(fromX), y: snap(startY)))
-                context.addLine(to: CGPoint(x: snap(toX), y: snap(botY)))
-                context.strokePath()
-            } else {
-                // Curved edge for merges and forks
-                context.beginPath()
-                let cp1 = CGPoint(x: fromX, y: midY + (botY - midY) * 0.6)
-                let cp2 = CGPoint(x: toX, y: botY - (botY - midY) * 0.6)
-                
-                context.move(to: CGPoint(x: snap(fromX), y: snap(midY)))
-                context.addCurve(to: CGPoint(x: snap(toX), y: snap(botY)),
-                                 control1: CGPoint(x: snap(cp1.x), y: snap(cp1.y)),
-                                 control2: CGPoint(x: snap(cp2.x), y: snap(cp2.y)))
-                context.strokePath()
-            }
+            context.beginPath()
+            context.move(to: CGPoint(x: snap(fromX), y: snap(topY)))
+            context.addLine(to: CGPoint(x: snap(toX), y: snap(midY)))
+            context.strokePath()
         }
         
-        // Draw incoming line from top to dot center
-        if hasIncomingLine && laneIndex >= 0 {
-            let color = CommitGraphView.laneColors[laneIndex % CommitGraphView.laneColors.count]
+        // Draw all outgoing edges (from midY to botY)
+        for edge in outgoingEdges {
+            let fromLane = edge.fromLane
+            let toLane = edge.toLane
+            // Use fromLane color for outgoing branches so branch color originates from parent
+            let color = CommitGraphView.laneColors[toLane % CommitGraphView.laneColors.count]
             context.setStrokeColor(color.cgColor)
-            let x = GraphMetrics.laneX(laneIndex)
+            
+            let fromX = GraphMetrics.laneX(fromLane)
+            let toX = GraphMetrics.laneX(toLane)
+            
             context.beginPath()
-            context.move(to: CGPoint(x: snap(x), y: snap(topY)))
-            context.addLine(to: CGPoint(x: snap(x), y: snap(midY)))
+            context.move(to: CGPoint(x: snap(fromX), y: snap(midY)))
+            context.addLine(to: CGPoint(x: snap(toX), y: snap(botY)))
             context.strokePath()
         }
         
@@ -127,8 +117,8 @@ class CommitGraphView: NSView {
         let cy = snap(GraphMetrics.rowHeight / 2)
         let r  = GraphMetrics.dotRadius
 
-        // White knockout ring (hides lines behind dot)
-        NSColor.white.setFill()
+        // Knockout ring (hides lines behind dot) using background color instead of hardcoded white
+        NSColor.controlBackgroundColor.setFill()
         let knockoutRect = NSRect(x: cx-r-1.5, y: cy-r-1.5, width: (r+1.5)*2, height: (r+1.5)*2)
         let knockoutPath = NSBezierPath(ovalIn: knockoutRect)
         knockoutPath.fill()
@@ -138,12 +128,5 @@ class CommitGraphView: NSView {
         let fillRect = NSRect(x: cx-r, y: cy-r, width: r*2, height: r*2)
         let fillPath = NSBezierPath(ovalIn: fillRect)
         fillPath.fill()
-        
-        // White inner ring
-        NSColor.white.setStroke()
-        let innerRect = NSRect(x: cx-r+1.5, y: cy-r+1.5, width: (r-1.5)*2, height: (r-1.5)*2)
-        let innerPath = NSBezierPath(ovalIn: innerRect)
-        innerPath.lineWidth = 1.5
-        innerPath.stroke()
     }
 }

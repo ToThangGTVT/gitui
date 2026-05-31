@@ -129,8 +129,9 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         tableView.headerView = nil
         tableView.backgroundColor = NSColor.controlBackgroundColor
         tableView.gridColor = NSColor.separatorColor
-        tableView.gridStyleMask = .solidHorizontalGridLineMask
+        tableView.gridStyleMask = []
         tableView.rowHeight = 28 // GraphMetrics.rowHeight
+        tableView.intercellSpacing = NSSize(width: 0, height: 0)
         tableView.allowsMultipleSelection = false
         
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("commitColumn"))
@@ -320,8 +321,7 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
             cellView?.identifier = cellIdentifier
         }
         
-        let hasIncomingLine = parentHashes.contains(commit.hash)
-        cellView?.configure(with: commit, maxLaneCount: maxLaneCount, hasIncomingLine: hasIncomingLine)
+        cellView?.configure(with: commit, maxLaneCount: maxLaneCount)
         return cellView
     }
     
