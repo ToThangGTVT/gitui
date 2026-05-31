@@ -248,8 +248,52 @@ class GitService {
         _ = try await runGit(["reset", "HEAD"], in: repoPath)
     }
     
-    func commit(message: String, in repoPath: String) async throws {
-        _ = try await runGit(["commit", "-m", message], in: repoPath)
+    func commit(message: String, amend: Bool = false, in repoPath: String) async throws {
+        var args = ["commit"]
+        if amend { args.append("--amend") }
+        args.append("-m")
+        args.append(message)
+        _ = try await runGit(args, in: repoPath)
+    }
+
+    func getLastCommitMessage(in repoPath: String) async throws -> String {
+        return try await runGit(["log", "-1", "--pretty=format:%B"], in: repoPath)
+    }
+
+    func applyPatch(_ patch: String, cached: Bool, reverse: Bool = false, in repoPath: String) async throws {
+        try await Task.detached(priority: .userInitiated) {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: self.resolveGitPath())
+            var args = ["apply", "--whitespace=nowarn"]
+            if cached { args.append("--cached") }
+            if reverse { args.append("--reverse") }
+            process.arguments = args
+            process.currentDirectoryURL = URL(fileURLWithPath: repoPath)
+
+            let inPipe = Pipe()
+            let errPipe = Pipe()
+            process.standardInput = inPipe
+            process.standardError = errPipe
+
+            try process.run()
+
+            if let data = patch.data(using: .utf8) {
+                inPipe.fileHandleForWriting.write(data)
+            }
+            inPipe.fileHandleForWriting.closeFile()
+
+            process.waitUntilExit()
+
+            if process.terminationStatus != 0 {
+                let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+                let errMsg = String(data: errData, encoding: .utf8) ?? "Unknown error"
+                throw NSError(
+                    domain: "GitErrorDomain",
+                    code: Int(process.terminationStatus),
+                    userInfo: [NSLocalizedDescriptionKey: errMsg.trimmingCharacters(in: .whitespacesAndNewlines)]
+                )
+            }
+        }.value
     }
     
     func getHistory(in repoPath: String, limit: Int = 150) async throws -> [GitCommit] {

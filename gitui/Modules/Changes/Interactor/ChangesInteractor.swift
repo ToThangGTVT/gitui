@@ -9,7 +9,11 @@ protocol ChangesInteractorInputProtocol: AnyObject {
     func unstageFile(repoPath: String, file: GitFileStatus)
     func stageAll(repoPath: String)
     func unstageAll(repoPath: String)
-    func commit(repoPath: String, message: String)
+    func commit(repoPath: String, message: String, amend: Bool)
+    func loadLastCommitMessage(repoPath: String)
+    func stageHunk(repoPath: String, patch: String)
+    func discardHunk(repoPath: String, patch: String)
+    func unstageHunk(repoPath: String, patch: String)
     func discardFile(repoPath: String, file: GitFileStatus)
     func removeFile(repoPath: String, file: GitFileStatus)
     func ignoreFile(repoPath: String, file: GitFileStatus)
@@ -17,15 +21,17 @@ protocol ChangesInteractorInputProtocol: AnyObject {
 
 protocol ChangesInteractorOutputProtocol: AnyObject {
     func didLoadStatus(staged: [GitFileStatus], unstaged: [GitFileStatus])
-    func didLoadDiff(text: String, file: String)
+    func didLoadDiff(text: String, filePath: String, isStaged: Bool)
+    func didLoadLastCommitMessage(_ message: String)
+    func didHunkOperationSuccess()
     func didOperationError(_ error: Error)
     func didCommitSuccessfully()
 }
 
 class ChangesInteractor: ChangesInteractorInputProtocol {
-    
+
     weak var presenter: ChangesInteractorOutputProtocol?
-    
+
     func loadStatus(repoPath: String) {
         Task {
             do {
@@ -40,13 +46,13 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
     func loadDiff(repoPath: String, file: GitFileStatus) {
         Task {
             do {
                 let diff = try await GitService.shared.getDiff(in: repoPath, file: file.path, staged: file.isStaged)
                 await MainActor.run {
-                    self.presenter?.didLoadDiff(text: diff, file: file.path)
+                    self.presenter?.didLoadDiff(text: diff, filePath: file.path, isStaged: file.isStaged)
                 }
             } catch {
                 await MainActor.run {
@@ -55,7 +61,7 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
     func stageFile(repoPath: String, file: GitFileStatus) {
         Task {
             do {
@@ -68,7 +74,7 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
     func unstageFile(repoPath: String, file: GitFileStatus) {
         Task {
             do {
@@ -81,7 +87,7 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
     func stageAll(repoPath: String) {
         Task {
             do {
@@ -94,7 +100,7 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
     func unstageAll(repoPath: String) {
         Task {
             do {
@@ -107,11 +113,11 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
-    func commit(repoPath: String, message: String) {
+
+    func commit(repoPath: String, message: String, amend: Bool) {
         Task {
             do {
-                try await GitService.shared.commit(message: message, in: repoPath)
+                try await GitService.shared.commit(message: message, amend: amend, in: repoPath)
                 await MainActor.run {
                     self.presenter?.didCommitSuccessfully()
                 }
@@ -123,15 +129,76 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
+    func loadLastCommitMessage(repoPath: String) {
+        Task {
+            do {
+                let message = try await GitService.shared.getLastCommitMessage(in: repoPath)
+                await MainActor.run {
+                    self.presenter?.didLoadLastCommitMessage(message.trimmingCharacters(in: .whitespacesAndNewlines))
+                }
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+
+    func stageHunk(repoPath: String, patch: String) {
+        Task {
+            do {
+                try await GitService.shared.applyPatch(patch, cached: true, reverse: false, in: repoPath)
+                await MainActor.run {
+                    self.presenter?.didHunkOperationSuccess()
+                }
+                self.loadStatus(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+
+    func discardHunk(repoPath: String, patch: String) {
+        Task {
+            do {
+                try await GitService.shared.applyPatch(patch, cached: false, reverse: true, in: repoPath)
+                await MainActor.run {
+                    self.presenter?.didHunkOperationSuccess()
+                }
+                self.loadStatus(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+
+    func unstageHunk(repoPath: String, patch: String) {
+        Task {
+            do {
+                try await GitService.shared.applyPatch(patch, cached: true, reverse: true, in: repoPath)
+                await MainActor.run {
+                    self.presenter?.didHunkOperationSuccess()
+                }
+                self.loadStatus(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+
     func discardFile(repoPath: String, file: GitFileStatus) {
         Task {
             do {
                 if file.status == "?" {
-                    // Untracked file: delete it
                     try GitService.shared.discardUntrackedFile(file.path, in: repoPath)
                 } else {
-                    // Tracked file: restore from HEAD
                     try await GitService.shared.discardFile(file.path, in: repoPath)
                 }
                 self.loadStatus(repoPath: repoPath)
@@ -142,7 +209,7 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
     func removeFile(repoPath: String, file: GitFileStatus) {
         Task {
             do {
@@ -155,7 +222,7 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
             }
         }
     }
-    
+
     func ignoreFile(repoPath: String, file: GitFileStatus) {
         Task {
             do {

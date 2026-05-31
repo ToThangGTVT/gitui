@@ -54,7 +54,7 @@
                                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="header-view">
                                         <rect key="frame" x="0.0" y="585" width="779" height="55"/>
                                         <subviews>
-                                            <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-title">
+                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-title">
                                                 <rect key="frame" x="14" y="18" width="151" height="19"/>
                                                 <textFieldCell key="cell" lineBreakMode="clipping" title="No Repository Open" id="repo-title-cell">
                                                     <font key="font" metaFont="systemBold" size="15"/>
@@ -81,7 +81,7 @@
                                                     <constraint firstItem="branch-btn" firstAttribute="top" secondItem="branch-container" secondAttribute="top" constant="3" id="hFY-mc-4Sf"/>
                                                 </constraints>
                                             </customView>
-                                            <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="sync-status">
+                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="sync-status">
                                                 <rect key="frame" x="209" y="21" width="4" height="14"/>
                                                 <textFieldCell key="cell" lineBreakMode="clipping" id="sync-status-cell">
                                                     <font key="font" metaFont="systemMedium" size="11"/>

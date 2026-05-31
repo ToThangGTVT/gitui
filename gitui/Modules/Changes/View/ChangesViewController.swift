@@ -5,9 +5,10 @@ import Cocoa
 protocol ChangesViewProtocol: AnyObject {
     func showStagedFiles(_ files: [GitFileStatus])
     func showUnstagedFiles(_ files: [GitFileStatus])
-    func showDiffText(_ text: String, for file: String)
+    func showDiffText(_ text: String, for file: String, isStaged: Bool)
     func clearDiff()
     func showLoading(_ loading: Bool)
+    func showLastCommitMessage(_ message: String)
 }
 
 // MARK: - Pane minimum heights & UserDefaults keys
@@ -15,7 +16,7 @@ protocol ChangesViewProtocol: AnyObject {
 private enum FilesSplitMin {
     static let staged:   CGFloat = 80
     static let unstaged: CGFloat = 80
-    static let commit:   CGFloat = 100
+    static let commit:   CGFloat = 130
     static var total:    CGFloat { staged + unstaged + commit }
 }
 
@@ -25,31 +26,34 @@ private enum FilesSplitKey {
 }
 
 class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate, NSMenuDelegate {
-    
+
     var presenter: ChangesPresenterProtocol?
-    
+
     private var stagedFiles: [GitFileStatus] = []
     private var unstagedFiles: [GitFileStatus] = []
-    
+
     // UI Split View Components
     private var mainSplitView: NSSplitView!
     private var leftSplitView: NSSplitView!
-    
+
     // Main split persistence (left | right)
     private var mainSplitPersistence: SplitViewPersistence?
-    
+
     // Table Views
     private var stagedTableView: NSTableView!
     private var unstagedTableView: NSTableView!
-    
+
     // Diff View Components
-    private var diffTextView: NSTextView!
+    private var diffTableView: NSTableView!
     private var diffScrollView: NSScrollView!
     private var diffTitleLabel: NSTextField!
-    
+    private var diffLines: [DiffLine] = []
+    private var isShowingUnstagedDiff: Bool = true
+
     // Commit Box Components
     private var commitTextView: NSTextView!
     private var commitButton: NSButton!
+    private var amendCheckbox: NSButton!
     private var stageAllButton: NSButton!
     private var unstageAllButton: NSButton!
     private var progressIndicator: NSProgressIndicator!
@@ -372,40 +376,47 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             placeholder.leadingAnchor.constraint(equalTo: scroll.leadingAnchor, constant: 5)
         ])
         
+        amendCheckbox = NSButton(checkboxWithTitle: "Amend last commit", target: self, action: #selector(amendCheckboxChanged(_:)))
+        amendCheckbox.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(amendCheckbox)
+
         stageAllButton = NSButton(title: "Stage All", target: self, action: #selector(stageAllClicked(_:)))
         stageAllButton.bezelStyle = .push
         stageAllButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stageAllButton)
-        
+
         unstageAllButton = NSButton(title: "Unstage All", target: self, action: #selector(unstageAllClicked(_:)))
         unstageAllButton.bezelStyle = .push
         unstageAllButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(unstageAllButton)
-        
+
         commitButton = NSButton(title: "Commit", target: self, action: #selector(commitClicked(_:)))
         commitButton.bezelStyle = .push
         commitButton.keyEquivalent = "\r"
         commitButton.keyEquivalentModifierMask = .command
         commitButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(commitButton)
-        
+
         NSLayoutConstraint.activate([
             border.topAnchor.constraint(equalTo: container.topAnchor),
             border.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             border.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             border.heightAnchor.constraint(equalToConstant: 1),
-            
+
             scroll.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
             scroll.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
             scroll.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
-            scroll.bottomAnchor.constraint(equalTo: commitButton.topAnchor, constant: -10),
-            
+            scroll.bottomAnchor.constraint(equalTo: amendCheckbox.topAnchor, constant: -8),
+
+            amendCheckbox.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
+            amendCheckbox.bottomAnchor.constraint(equalTo: stageAllButton.topAnchor, constant: -6),
+
             stageAllButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
             stageAllButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
-            
+
             unstageAllButton.leadingAnchor.constraint(equalTo: stageAllButton.trailingAnchor, constant: 8),
             unstageAllButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
-            
+
             commitButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
             commitButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
             commitButton.widthAnchor.constraint(equalToConstant: 85)
@@ -417,49 +428,55 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private func setupDiffContainer(in container: NSView) {
         container.wantsLayer = true
         container.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-        
+
         diffTitleLabel = NSTextField(labelWithString: "No file selected")
         diffTitleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
         diffTitleLabel.textColor = NSColor.labelColor
         diffTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(diffTitleLabel)
-        
+
         let border = NSView()
         border.wantsLayer = true
         border.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
         border.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(border)
-        
+
         diffScrollView = NSScrollView()
         diffScrollView.hasVerticalScroller = true
         diffScrollView.hasHorizontalScroller = true
+        diffScrollView.autohidesScrollers = true
         diffScrollView.borderType = .noBorder
         diffScrollView.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(diffScrollView)
-        
-        diffTextView = NSTextView()
-        diffTextView.isRichText = false
-        diffTextView.isEditable = false
-        diffTextView.font = NSFont(name: "Menlo", size: 12) ?? NSFont.userFixedPitchFont(ofSize: 12)
-        diffTextView.textColor = NSColor.labelColor
-        diffTextView.backgroundColor = NSColor.controlBackgroundColor
-        diffTextView.isHorizontallyResizable = true
-        diffTextView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        diffTextView.textContainer?.widthTracksTextView = false
-        diffTextView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-        
-        diffScrollView.documentView = diffTextView
-        
+
+        diffTableView = NSTableView()
+        diffTableView.headerView = nil
+        diffTableView.backgroundColor = NSColor.controlBackgroundColor
+        diffTableView.rowHeight = 18
+        diffTableView.gridStyleMask = []
+        diffTableView.intercellSpacing = NSSize(width: 0, height: 0)
+        diffTableView.selectionHighlightStyle = .none
+        diffTableView.usesAlternatingRowBackgroundColors = false
+
+        let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("diffCol"))
+        col.resizingMask = .autoresizingMask
+        diffTableView.addTableColumn(col)
+        diffTableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        diffTableView.dataSource = self
+        diffTableView.delegate = self
+
+        diffScrollView.documentView = diffTableView
+
         NSLayoutConstraint.activate([
             diffTitleLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
             diffTitleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
             diffTitleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-            
+
             border.topAnchor.constraint(equalTo: diffTitleLabel.bottomAnchor, constant: 12),
             border.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             border.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             border.heightAnchor.constraint(equalToConstant: 1),
-            
+
             diffScrollView.topAnchor.constraint(equalTo: border.bottomAnchor),
             diffScrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             diffScrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
@@ -491,9 +508,17 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     
     @objc private func commitClicked(_ sender: NSButton) {
         let message = commitTextView.string
-        presenter?.didClickCommit(message: message)
+        let amend = amendCheckbox.state == .on
+        presenter?.didClickCommit(message: message, amend: amend)
         commitTextView.string = ""
+        amendCheckbox.state = .off
         updateCommitPlaceholder()
+    }
+
+    @objc private func amendCheckboxChanged(_ sender: NSButton) {
+        if sender.state == .on {
+            presenter?.didRequestLastCommitMessage()
+        }
     }
     // MARK: - Context Menu (NSMenuDelegate)
     
@@ -675,25 +700,37 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     }
     
     // MARK: - NSTableViewDataSource & Delegate
-    
+
     func numberOfRows(in tableView: NSTableView) -> Int {
-        if tableView === stagedTableView {
-            return stagedFiles.count
-        } else {
-            return unstagedFiles.count
-        }
+        if tableView === stagedTableView   { return stagedFiles.count }
+        if tableView === unstagedTableView { return unstagedFiles.count }
+        if tableView === diffTableView     { return diffLines.count }
+        return 0
     }
-    
+
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        if tableView === diffTableView {
+            guard row < diffLines.count else { return 18 }
+            if case .hunkHeader = diffLines[row].kind { return 26 }
+            return 18
+        }
+        return tableView.rowHeight
+    }
+
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        if tableView === diffTableView {
+            return diffCellView(for: row)
+        }
+
         let file = tableView === stagedTableView ? stagedFiles[row] : unstagedFiles[row]
-        
+
         let identifier = NSUserInterfaceItemIdentifier("fileCell")
         var cell = tableView.makeView(withIdentifier: identifier, owner: self) as? NSTableCellView
-        
+
         if cell == nil {
             cell = NSTableCellView()
             cell?.identifier = identifier
-            
+
             let statusBadge = NSTextField(labelWithString: "")
             statusBadge.font = NSFont.systemFont(ofSize: 10, weight: .bold)
             statusBadge.alignment = .center
@@ -701,30 +738,29 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             statusBadge.layer?.cornerRadius = 3
             statusBadge.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(statusBadge)
-            
+
             let label = NSTextField(labelWithString: "")
             label.font = NSFont.systemFont(ofSize: 12)
             label.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(label)
             cell?.textField = label
-            
+
             NSLayoutConstraint.activate([
                 statusBadge.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
                 statusBadge.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
                 statusBadge.widthAnchor.constraint(equalToConstant: 18),
                 statusBadge.heightAnchor.constraint(equalToConstant: 16),
-                
+
                 label.leadingAnchor.constraint(equalTo: statusBadge.trailingAnchor, constant: 8),
                 label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -6),
                 label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
             ])
         }
-        
-        // Configure cell elements
+
         if let textField = cell?.textField {
             textField.stringValue = file.path
         }
-        
+
         if let badge = cell?.subviews.first(where: { $0 is NSTextField && $0 !== cell?.textField }) as? NSTextField {
             badge.stringValue = file.status
             if file.status == "A" || file.status == "?" {
@@ -738,22 +774,65 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
                 badge.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
             }
         }
-        
+
         return cell
     }
-    
+
+    private func diffCellView(for row: Int) -> NSView? {
+        guard row < diffLines.count else { return nil }
+        let line = diffLines[row]
+
+        if case .hunkHeader(let hunk) = line.kind {
+            let id = NSUserInterfaceItemIdentifier("HunkHeaderCell")
+            var cell = diffTableView.makeView(withIdentifier: id, owner: self) as? HunkHeaderCellView
+            if cell == nil {
+                cell = HunkHeaderCellView()
+                cell?.identifier = id
+            }
+            cell?.configure(headerText: line.rawText, isUnstagedDiff: isShowingUnstagedDiff)
+            cell?.onStageHunk = { [weak self] in
+                self?.presenter?.didClickStageHunk(patch: hunk.patch)
+            }
+            cell?.onDiscardHunk = { [weak self] in
+                guard let self = self else { return }
+                let alert = NSAlert()
+                alert.messageText = "Discard Hunk?"
+                alert.informativeText = "Are you sure? This cannot be undone."
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: "Discard")
+                alert.addButton(withTitle: "Cancel")
+                guard alert.runModal() == .alertFirstButtonReturn else { return }
+                self.presenter?.didClickDiscardHunk(patch: hunk.patch)
+            }
+            cell?.onUnstageHunk = { [weak self] in
+                self?.presenter?.didClickUnstageHunk(patch: hunk.patch)
+            }
+            return cell
+        }
+
+        let id = NSUserInterfaceItemIdentifier("DiffLineCell")
+        var cell = diffTableView.makeView(withIdentifier: id, owner: self) as? DiffLineCellView
+        if cell == nil {
+            cell = DiffLineCellView()
+            cell?.identifier = id
+        }
+        cell?.configure(with: line)
+        return cell
+    }
+
     func tableViewSelectionDidChange(_ notification: Notification) {
         guard let table = notification.object as? NSTableView else { return }
         let row = table.selectedRow
         guard row >= 0 else { return }
-        
+
         if table === stagedTableView {
             unstagedTableView.deselectAll(nil)
             presenter?.didSelectFile(stagedFiles[row])
-        } else {
+        } else if table === unstagedTableView {
             stagedTableView.deselectAll(nil)
             presenter?.didSelectFile(unstagedFiles[row])
         }
+        // diffTableView selection: intentionally ignored
     }
     
     // MARK: - NSTextViewDelegate
@@ -793,17 +872,26 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
     }
     
-    func showDiffText(_ text: String, for file: String) {
+    func showDiffText(_ text: String, for file: String, isStaged: Bool) {
         diffTitleLabel.stringValue = file
-        
-        // Generate premium visual HSL highlighting for the diff code!
-        let highlighted = highlightDiffText(text)
-        diffTextView.textStorage?.setAttributedString(highlighted)
+        isShowingUnstagedDiff = !isStaged
+        let hunks = parseDiffHunks(from: text)
+        diffLines = buildDiffLines(from: text, hunks: hunks)
+        diffTableView.reloadData()
+        if !diffLines.isEmpty {
+            diffTableView.scrollRowToVisible(0)
+        }
     }
-    
+
+    func showLastCommitMessage(_ message: String) {
+        commitTextView.string = message
+        updateCommitPlaceholder()
+    }
+
     func clearDiff() {
         diffTitleLabel.stringValue = "No file selected"
-        diffTextView.string = ""
+        diffLines = []
+        diffTableView.reloadData()
     }
     
     func showLoading(_ loading: Bool) {
@@ -814,99 +902,4 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
     }
     
-    private func highlightDiffText(_ text: String) -> NSAttributedString {
-        let font = NSFont(name: "SF Mono", size: 11) ?? NSFont(name: "Menlo", size: 11) ?? NSFont.userFixedPitchFont(ofSize: 11)!
-        let gutterFont = NSFont(name: "SF Mono", size: 10) ?? NSFont(name: "Menlo", size: 10) ?? NSFont.userFixedPitchFont(ofSize: 10)!
-        let gutterColor = NSColor.secondaryLabelColor
-        let gutterSepColor = NSColor.separatorColor
-        
-        let lines = text.components(separatedBy: "\n")
-        let result = NSMutableAttributedString()
-        
-        var oldLine: Int = 0
-        var newLine: Int = 0
-        
-        for (index, line) in lines.enumerated() {
-            // Parse @@ hunk header to extract line numbers
-            // Format: @@ -oldStart,oldCount +newStart,newCount @@
-            if line.hasPrefix("@@") {
-                if let range = line.range(of: #"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@"#, options: .regularExpression) {
-                    let matched = String(line[range])
-                    let nums = matched.components(separatedBy: CharacterSet.decimalDigits.inverted).filter { !$0.isEmpty }
-                    if nums.count >= 2 {
-                        oldLine = Int(nums[0]) ?? 0
-                        newLine = Int(nums[1]) ?? 0
-                    }
-                }
-                // Gutter for hunk header: blank line numbers
-                let gutter = NSAttributedString(string: "      │       │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor])
-                result.append(gutter)
-                let lineStr = NSAttributedString(string: line, attributes: [.font: font, .foregroundColor: NSColor.secondaryLabelColor])
-                result.append(lineStr)
-            } else if line.hasPrefix("+") {
-                // Added line: show only new line number
-                let gutter = NSMutableAttributedString()
-                gutter.append(NSAttributedString(string: "      ", attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
-                gutter.append(NSAttributedString(string: "│ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
-                let numStr = String(format: "%5d", newLine)
-                gutter.append(NSAttributedString(string: numStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
-                gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
-                result.append(gutter)
-                let lineStr = NSAttributedString(string: line, attributes: [
-                    .font: font,
-                    .foregroundColor: NSColor.gitFlowStagedAddText,
-                    .backgroundColor: NSColor.gitFlowStagedAdd
-                ])
-                result.append(lineStr)
-                newLine += 1
-            } else if line.hasPrefix("-") {
-                // Removed line: show only old line number
-                let gutter = NSMutableAttributedString()
-                let numStr = String(format: "%5d", oldLine)
-                gutter.append(NSAttributedString(string: numStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
-                gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
-                gutter.append(NSAttributedString(string: "      ", attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
-                gutter.append(NSAttributedString(string: "│ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
-                result.append(gutter)
-                let lineStr = NSAttributedString(string: line, attributes: [
-                    .font: font,
-                    .foregroundColor: NSColor.gitFlowStagedDeleteText,
-                    .backgroundColor: NSColor.gitFlowStagedDelete
-                ])
-                result.append(lineStr)
-                oldLine += 1
-            } else if line.hasPrefix("diff") || line.hasPrefix("index") || line.hasPrefix("---") || line.hasPrefix("+++") {
-                // Meta header lines: blank gutter
-                let gutter = NSAttributedString(string: "      │       │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor])
-                result.append(gutter)
-                let lineStr = NSAttributedString(string: line, attributes: [.font: font, .foregroundColor: NSColor.gitFlowAccent])
-                result.append(lineStr)
-            } else {
-                // Context line: show both old and new line numbers
-                let gutter = NSMutableAttributedString()
-                if oldLine > 0 && newLine > 0 {
-                    let oldStr = String(format: "%5d", oldLine)
-                    let newStr = String(format: "%5d", newLine)
-                    gutter.append(NSAttributedString(string: oldStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
-                    gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
-                    gutter.append(NSAttributedString(string: newStr, attributes: [.font: gutterFont, .foregroundColor: gutterColor]))
-                    gutter.append(NSAttributedString(string: " │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
-                } else {
-                    gutter.append(NSAttributedString(string: "      │       │ ", attributes: [.font: gutterFont, .foregroundColor: gutterSepColor]))
-                }
-                result.append(gutter)
-                let lineStr = NSAttributedString(string: line, attributes: [.font: font, .foregroundColor: NSColor.labelColor])
-                result.append(lineStr)
-                oldLine += 1
-                newLine += 1
-            }
-            
-            // Add newline except for the last line
-            if index < lines.count - 1 {
-                result.append(NSAttributedString(string: "\n"))
-            }
-        }
-        
-        return result
-    }
 }
