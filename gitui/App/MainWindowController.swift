@@ -25,6 +25,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     @IBOutlet weak var tabContentContainer: NSView!
     @IBOutlet weak var headerBorder: NSView!
     @IBOutlet weak var customToolbar: CustomToolbarView!
+    @IBOutlet weak var fileSearchField: NSSearchField!
     private var placeholderView: NSView!
     private var cloneWelcomeButton: NSButton!
     
@@ -37,6 +38,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         window?.titlebarAppearsTransparent = true
         window?.titleVisibility = .hidden
+        window?.styleMask.insert(.fullSizeContentView)
+        window?.isMovableByWindowBackground = true
         window?.center()
         
         // Wire split view persistence + delegate
@@ -46,6 +49,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
         
         customToolbar.delegate = self
+        if fileSearchField != nil {
+            fileSearchField.delegate = self
+        }
         setupWorkspaceUI()
         loadSidebar()
         
@@ -69,18 +75,30 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     }
     
     private func setupWorkspaceUI() {
+        if let window = self.window {
+            window.isOpaque = false
+            window.backgroundColor = .clear
+            
+            let visualEffect = NSVisualEffectView(frame: window.contentView?.bounds ?? .zero)
+            visualEffect.autoresizingMask = [.width, .height]
+            visualEffect.blendingMode = .behindWindow
+            visualEffect.material = .underWindowBackground
+            visualEffect.state = .active
+            window.contentView?.addSubview(visualEffect, positioned: .below, relativeTo: nil)
+        }
+        
         mainContainer.wantsLayer = true
-        mainContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        mainContainer.layer?.backgroundColor = NSColor.clear.cgColor
         
         headerContainer.wantsLayer = true
-        headerContainer.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        headerContainer.layer?.backgroundColor = NSColor.clear.cgColor
         
         headerBorder.wantsLayer = true
-        headerBorder.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
+        headerBorder.layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.2).cgColor
         
         branchContainer.wantsLayer = true
-        branchContainer.layer?.cornerRadius = 6
-        branchContainer.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
+        branchContainer.layer?.cornerRadius = 8
+        branchContainer.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15).cgColor
         
         branchButton.isBordered = false
         branchButton.contentTintColor = NSColor.controlAccentColor
@@ -696,6 +714,16 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     
     private func refreshCurrentTab() {
         selectTab(index: segmentedControl.selectedSegment)
+    }
+}
+
+// MARK: - NSSearchFieldDelegate
+
+extension MainWindowController: NSSearchFieldDelegate {
+    func controlTextDidChange(_ obj: Notification) {
+        guard let field = obj.object as? NSSearchField, field === fileSearchField else { return }
+        let query = field.stringValue
+        NotificationCenter.default.post(name: .fileSearchQueryChanged, object: nil, userInfo: ["query": query])
     }
 }
 

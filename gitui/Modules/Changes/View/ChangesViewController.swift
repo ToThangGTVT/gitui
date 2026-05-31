@@ -30,8 +30,11 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
 
     var presenter: ChangesPresenterProtocol?
 
+    private var allStagedFiles: [GitFileStatus] = []
+    private var allUnstagedFiles: [GitFileStatus] = []
     private var stagedFiles: [GitFileStatus] = []
     private var unstagedFiles: [GitFileStatus] = []
+    private var searchQuery: String = ""
 
     // UI Split View Components
     private var mainSplitView: NSSplitView!
@@ -72,6 +75,9 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         
         // Listen for file-system changes to auto-refresh data (no view rebuild)
         NotificationCenter.default.addObserver(self, selector: #selector(handleContentRefresh), name: .repositoryContentShouldRefresh, object: nil)
+        
+        // Listen for search query changes
+        NotificationCenter.default.addObserver(self, selector: #selector(handleSearchQueryChanged(_:)), name: .fileSearchQueryChanged, object: nil)
     }
     
     deinit {
@@ -80,6 +86,25 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     
     @objc private func handleContentRefresh() {
         presenter?.refresh()
+    }
+    
+    @objc private func handleSearchQueryChanged(_ notification: Notification) {
+        if let query = notification.userInfo?["query"] as? String {
+            self.searchQuery = query.lowercased()
+            applyFilter()
+        }
+    }
+    
+    private func applyFilter() {
+        if searchQuery.isEmpty {
+            stagedFiles = allStagedFiles
+            unstagedFiles = allUnstagedFiles
+        } else {
+            stagedFiles = allStagedFiles.filter { $0.path.lowercased().contains(searchQuery) }
+            unstagedFiles = allUnstagedFiles.filter { $0.path.lowercased().contains(searchQuery) }
+        }
+        stagedTableView.reloadData()
+        unstagedTableView.reloadData()
     }
     
     override func viewDidAppear() {
@@ -897,10 +922,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     func showStagedFiles(_ files: [GitFileStatus]) {
         let previousSelection = stagedTableView.selectedRow >= 0 && stagedTableView.selectedRow < stagedFiles.count
             ? stagedFiles[stagedTableView.selectedRow].path : nil
-        stagedFiles = files
-        stagedTableView.reloadData()
+        allStagedFiles = files
+        applyFilter()
         if let selected = previousSelection,
-           let newIdx = files.firstIndex(where: { $0.path == selected }) {
+           let newIdx = stagedFiles.firstIndex(where: { $0.path == selected }) {
             stagedTableView.selectRowIndexes(IndexSet(integer: newIdx), byExtendingSelection: false)
         }
     }
@@ -908,10 +933,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     func showUnstagedFiles(_ files: [GitFileStatus]) {
         let previousSelection = unstagedTableView.selectedRow >= 0 && unstagedTableView.selectedRow < unstagedFiles.count
             ? unstagedFiles[unstagedTableView.selectedRow].path : nil
-        unstagedFiles = files
-        unstagedTableView.reloadData()
+        allUnstagedFiles = files
+        applyFilter()
         if let selected = previousSelection,
-           let newIdx = files.firstIndex(where: { $0.path == selected }) {
+           let newIdx = unstagedFiles.firstIndex(where: { $0.path == selected }) {
             unstagedTableView.selectRowIndexes(IndexSet(integer: newIdx), byExtendingSelection: false)
         }
     }

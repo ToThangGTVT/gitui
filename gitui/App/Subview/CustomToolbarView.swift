@@ -60,12 +60,12 @@ class CustomToolbarView: NSView {
                 self.addSubview(view)
                 self.contentView = view
                 
-                // Styling
+                // Styling (macOS 26 glassmorphism)
                 self.wantsLayer = true
-                self.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+                self.layer?.backgroundColor = NSColor.clear.cgColor
                 
                 borderView.wantsLayer = true
-                borderView.layer?.backgroundColor = NSColor.gridColor.cgColor
+                borderView.layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.2).cgColor
                 
                 configureButtonIcons()
             }

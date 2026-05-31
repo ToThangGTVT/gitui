@@ -1,165 +1,166 @@
-<?xml version="1.0" encoding="UTF-8"?>
+<?xml version='1.0' encoding='UTF-8'?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
-        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765" />
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0" />
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="MainWindowController" customModule="gitui" customModuleProvider="target">
             <connections>
-                <outlet property="branchButton" destination="branch-btn" id="out-branchbutton"/>
-                <outlet property="branchContainer" destination="branch-container" id="out-branchcontainer"/>
-                <outlet property="customToolbar" destination="toolbar-view" id="out-customtoolbar"/>
-                <outlet property="headerBorder" destination="header-border" id="out-headerborder"/>
-                <outlet property="headerContainer" destination="header-view" id="out-header"/>
-                <outlet property="mainContainer" destination="content-pane" id="out-main"/>
-                <outlet property="mainSplitView" destination="split-view" id="out-splitview"/>
-                <outlet property="repoTitleLabel" destination="repo-title" id="out-title"/>
-                <outlet property="segmentedControl" destination="seg-control" id="out-segmented"/>
-                <outlet property="sidebarContainer" destination="sidebar-pane" id="out-sidebar"/>
-                <outlet property="syncStatusLabel" destination="sync-status" id="out-sync"/>
-                <outlet property="tabContentContainer" destination="tab-content" id="out-tabcontent"/>
-                <outlet property="window" destination="F0z-JX-Cv5" id="gIp-Ho-8D9"/>
-            </connections>
+                <outlet property="branchButton" destination="branch-btn" id="out-branchbutton" />
+                <outlet property="branchContainer" destination="branch-container" id="out-branchcontainer" />
+                <outlet property="customToolbar" destination="toolbar-view" id="out-customtoolbar" />
+                <outlet property="headerBorder" destination="header-border" id="out-headerborder" />
+                <outlet property="headerContainer" destination="header-view" id="out-header" />
+                <outlet property="mainContainer" destination="content-pane" id="out-main" />
+                <outlet property="mainSplitView" destination="split-view" id="out-splitview" />
+                <outlet property="repoTitleLabel" destination="repo-title" id="out-title" />
+                <outlet property="segmentedControl" destination="seg-control" id="out-segmented" />
+                <outlet property="sidebarContainer" destination="sidebar-pane" id="out-sidebar" />
+                <outlet property="syncStatusLabel" destination="sync-status" id="out-sync" />
+                <outlet property="tabContentContainer" destination="tab-content" id="out-tabcontent" />
+                <outlet property="window" destination="F0z-JX-Cv5" id="gIp-Ho-8D9" />
+            <outlet property="fileSearchField" destination="file-search" id="out-filesearch" /></connections>
         </customObject>
-        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
-        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder" />
+        <customObject id="-3" userLabel="Application" customClass="NSObject" />
         <window title="GitFlow" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" animationBehavior="default" id="F0z-JX-Cv5">
-            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
-            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="196" y="240" width="1000" height="700"/>
-            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1049"/>
-            <value key="minSize" type="size" width="800" height="600"/>
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES" />
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES" />
+            <rect key="contentRect" x="196" y="240" width="1000" height="700" />
+            <rect key="screenRect" x="0.0" y="0.0" width="1920" height="1049" />
+            <value key="minSize" type="size" width="800" height="600" />
             <view key="contentView" id="se5-gp-TjO">
-                <rect key="frame" x="0.0" y="0.0" width="1000" height="700"/>
-                <autoresizingMask key="autoresizingMask"/>
+                <rect key="frame" x="0.0" y="0.0" width="1000" height="700" />
+                <autoresizingMask key="autoresizingMask" />
                 <subviews>
-                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="toolbar-view" customClass="CustomToolbarView" customModule="gitui" customModuleProvider="target">
-                        <rect key="frame" x="0.0" y="640" width="1000" height="60"/>
-                        <constraints>
-                            <constraint firstAttribute="height" constant="60" id="tb-h"/>
-                        </constraints>
-                    </customView>
-                    <splitView arrangesAllSubviews="NO" dividerStyle="thin" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="split-view">
-                        <rect key="frame" x="0.0" y="0.0" width="1000" height="640"/>
-                        <subviews>
-                            <customView fixedFrame="YES" id="sidebar-pane">
-                                <rect key="frame" x="0.0" y="0.0" width="220" height="640"/>
-                                <autoresizingMask key="autoresizingMask"/>
-                            </customView>
-                            <customView id="content-pane">
-                                <rect key="frame" x="221" y="0.0" width="779" height="640"/>
-                                <autoresizingMask key="autoresizingMask"/>
-                                <subviews>
-                                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="header-view">
-                                        <rect key="frame" x="0.0" y="585" width="779" height="55"/>
-                                        <subviews>
-                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-title">
-                                                <rect key="frame" x="14" y="18" width="151" height="19"/>
+                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="titlebar-view"><rect key="frame" x="0.0" y="662" width="1000" height="38" /><subviews><textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-title">
+                                                <rect key="frame" x="14" y="18" width="151" height="19" />
                                                 <textFieldCell key="cell" lineBreakMode="clipping" title="No Repository Open" id="repo-title-cell">
-                                                    <font key="font" metaFont="systemBold" size="15"/>
-                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                    <font key="font" metaFont="systemBold" size="15" />
+                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog" />
+                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog" />
                                                 </textFieldCell>
                                             </textField>
                                             <customView translatesAutoresizingMaskIntoConstraints="NO" id="branch-container">
-                                                <rect key="frame" x="179" y="15" width="16" height="26"/>
+                                                <rect key="frame" x="179" y="15" width="16" height="26" />
                                                 <subviews>
                                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="branch-btn">
-                                                        <rect key="frame" x="8" y="3" width="0.0" height="20"/>
+                                                        <rect key="frame" x="8" y="3" width="0.0" height="20" />
                                                         <buttonCell key="cell" type="square" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="branch-btn-cell">
-                                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                                                            <font key="font" metaFont="systemMedium" size="12"/>
+                                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES" />
+                                                            <font key="font" metaFont="systemMedium" size="12" />
                                                         </buttonCell>
                                                     </button>
                                                 </subviews>
                                                 <constraints>
-                                                    <constraint firstAttribute="trailing" secondItem="branch-btn" secondAttribute="trailing" constant="8" id="FRM-rk-kqd"/>
-                                                    <constraint firstAttribute="bottom" secondItem="branch-btn" secondAttribute="bottom" constant="3" id="XbG-xF-ChN"/>
-                                                    <constraint firstAttribute="height" constant="26" id="branch-c-h"/>
-                                                    <constraint firstItem="branch-btn" firstAttribute="leading" secondItem="branch-container" secondAttribute="leading" constant="8" id="dcl-Ph-a66"/>
-                                                    <constraint firstItem="branch-btn" firstAttribute="top" secondItem="branch-container" secondAttribute="top" constant="3" id="hFY-mc-4Sf"/>
+                                                    <constraint firstAttribute="trailing" secondItem="branch-btn" secondAttribute="trailing" constant="8" id="FRM-rk-kqd" />
+                                                    <constraint firstAttribute="bottom" secondItem="branch-btn" secondAttribute="bottom" constant="3" id="XbG-xF-ChN" />
+                                                    <constraint firstAttribute="height" constant="26" id="branch-c-h" />
+                                                    <constraint firstItem="branch-btn" firstAttribute="leading" secondItem="branch-container" secondAttribute="leading" constant="8" id="dcl-Ph-a66" />
+                                                    <constraint firstItem="branch-btn" firstAttribute="top" secondItem="branch-container" secondAttribute="top" constant="3" id="hFY-mc-4Sf" />
                                                 </constraints>
                                             </customView>
                                             <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="sync-status">
-                                                <rect key="frame" x="209" y="21" width="4" height="14"/>
+                                                <rect key="frame" x="209" y="21" width="4" height="14" />
                                                 <textFieldCell key="cell" lineBreakMode="clipping" id="sync-status-cell">
-                                                    <font key="font" metaFont="systemMedium" size="11"/>
-                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                    <font key="font" metaFont="systemMedium" size="11" />
+                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog" />
+                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog" />
                                                 </textFieldCell>
                                             </textField>
-                                            <segmentedControl verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="seg-control">
-                                                <rect key="frame" x="351" y="16" width="412" height="24"/>
+                                            </subviews><constraints><constraint firstAttribute="height" constant="38" id="tb-title-h" /><constraint firstItem="repo-title" firstAttribute="centerY" secondItem="titlebar-view" secondAttribute="centerY" id="ttv-c1" /><constraint firstItem="repo-title" firstAttribute="leading" secondItem="titlebar-view" secondAttribute="leading" constant="80" id="ttv-c2" /><constraint firstItem="branch-container" firstAttribute="centerY" secondItem="titlebar-view" secondAttribute="centerY" id="ttv-c3" /><constraint firstItem="branch-container" firstAttribute="leading" secondItem="repo-title" secondAttribute="trailing" constant="16" id="ttv-c4" /><constraint firstItem="sync-status" firstAttribute="centerY" secondItem="titlebar-view" secondAttribute="centerY" id="ttv-c5" /><constraint firstItem="sync-status" firstAttribute="leading" secondItem="branch-container" secondAttribute="trailing" constant="16" id="ttv-c6" /></constraints></customView><customView translatesAutoresizingMaskIntoConstraints="NO" id="toolbar-view" customClass="CustomToolbarView" customModule="gitui" customModuleProvider="target">
+                        <rect key="frame" x="0.0" y="640" width="1000" height="60" />
+                        <constraints>
+                            <constraint firstAttribute="height" constant="60" id="tb-h" />
+                        </constraints>
+                    </customView>
+                    <splitView arrangesAllSubviews="NO" dividerStyle="thin" vertical="YES" translatesAutoresizingMaskIntoConstraints="NO" id="split-view">
+                        <rect key="frame" x="0.0" y="0.0" width="1000" height="640" />
+                        <subviews>
+                            <customView fixedFrame="YES" id="sidebar-pane">
+                                <rect key="frame" x="0.0" y="0.0" width="220" height="640" />
+                                <autoresizingMask key="autoresizingMask" />
+                            </customView>
+                            <customView id="content-pane">
+                                <rect key="frame" x="221" y="0.0" width="779" height="640" />
+                                <autoresizingMask key="autoresizingMask" />
+                                <subviews>
+                                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="header-view">
+                                        <rect key="frame" x="0.0" y="585" width="779" height="55" />
+                                        <subviews>
+                                            <searchField wantsLayer="YES" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="file-search">
+    <rect key="frame" x="16" y="8" width="200" height="22" />
+    <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Filter files..." usesSingleLineMode="YES" bezelStyle="round" id="file-search-cell">
+        <font key="font" metaFont="system" />
+        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog" />
+        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog" />
+    </searchFieldCell>
+</searchField><segmentedControl verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="seg-control">
+                                                <rect key="frame" x="351" y="16" width="412" height="24" />
                                                 <segmentedCell key="cell" borderStyle="border" alignment="left" style="texturedRounded" trackingMode="selectOne" id="seg-cell">
-                                                    <font key="font" metaFont="system"/>
+                                                    <font key="font" metaFont="system" />
                                                     <segments>
-                                                        <segment label="Changes" selected="YES"/>
-                                                        <segment label="History" tag="1"/>
-                                                        <segment label="Branches"/>
-                                                        <segment label="Stashes"/>
-                                                        <segment label="Remotes"/>
-                                                        <segment label="Tags"/>
+                                                        <segment label="Changes" selected="YES" />
+                                                        <segment label="History" tag="1" />
+                                                        <segment label="Branches" />
+                                                        <segment label="Stashes" />
+                                                        <segment label="Remotes" />
+                                                        <segment label="Tags" />
                                                     </segments>
                                                 </segmentedCell>
                                             </segmentedControl>
                                         </subviews>
                                         <constraints>
-                                            <constraint firstItem="repo-title" firstAttribute="centerY" secondItem="header-view" secondAttribute="centerY" id="C4U-7R-DK9"/>
-                                            <constraint firstItem="branch-container" firstAttribute="leading" secondItem="repo-title" secondAttribute="trailing" constant="16" id="NUz-S7-bpj"/>
-                                            <constraint firstItem="repo-title" firstAttribute="leading" secondItem="header-view" secondAttribute="leading" constant="16" id="QlP-WK-Ohx"/>
-                                            <constraint firstItem="sync-status" firstAttribute="leading" secondItem="branch-container" secondAttribute="trailing" constant="16" id="W9u-1Z-43k"/>
-                                            <constraint firstItem="seg-control" firstAttribute="centerY" secondItem="header-view" secondAttribute="centerY" id="XuG-WR-Szp"/>
-                                            <constraint firstAttribute="height" constant="55" id="header-h"/>
-                                            <constraint firstAttribute="trailing" secondItem="seg-control" secondAttribute="trailing" constant="16" id="qEy-Dq-DQe"/>
-                                            <constraint firstItem="branch-container" firstAttribute="centerY" secondItem="header-view" secondAttribute="centerY" id="xWd-p2-sG6"/>
-                                            <constraint firstItem="sync-status" firstAttribute="centerY" secondItem="header-view" secondAttribute="centerY" id="xav-GT-rln"/>
-                                        </constraints>
+                                            <constraint firstItem="seg-control" firstAttribute="centerY" secondItem="header-view" secondAttribute="centerY" id="XuG-WR-Szp" />
+                                            <constraint firstAttribute="height" constant="38" id="header-h" />
+                                            <constraint firstAttribute="trailing" secondItem="seg-control" secondAttribute="trailing" constant="16" id="qEy-Dq-DQe" />
+                                            <constraint firstItem="file-search" firstAttribute="centerY" secondItem="header-view" secondAttribute="centerY" id="fs-cy" /><constraint firstItem="file-search" firstAttribute="leading" secondItem="header-view" secondAttribute="leading" constant="16" id="fs-l" /><constraint firstItem="file-search" firstAttribute="width" constant="200" id="fs-w" /></constraints>
                                     </customView>
                                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="header-border">
-                                        <rect key="frame" x="0.0" y="585" width="779" height="1"/>
+                                        <rect key="frame" x="0.0" y="585" width="779" height="1" />
                                         <constraints>
-                                            <constraint firstAttribute="height" constant="1" id="upz-yQ-uAq"/>
+                                            <constraint firstAttribute="height" constant="1" id="upz-yQ-uAq" />
                                         </constraints>
                                     </customView>
                                     <customView translatesAutoresizingMaskIntoConstraints="NO" id="tab-content">
-                                        <rect key="frame" x="0.0" y="0.0" width="779" height="585"/>
+                                        <rect key="frame" x="0.0" y="0.0" width="779" height="585" />
                                     </customView>
                                 </subviews>
                                 <constraints>
-                                    <constraint firstItem="tab-content" firstAttribute="top" secondItem="header-border" secondAttribute="bottom" id="Fcx-rZ-E5t"/>
-                                    <constraint firstItem="header-border" firstAttribute="leading" secondItem="content-pane" secondAttribute="leading" id="dpg-gg-v9Y"/>
-                                    <constraint firstItem="header-view" firstAttribute="leading" secondItem="content-pane" secondAttribute="leading" id="hv-l"/>
-                                    <constraint firstItem="header-view" firstAttribute="trailing" secondItem="content-pane" secondAttribute="trailing" id="hv-r"/>
-                                    <constraint firstItem="header-view" firstAttribute="top" secondItem="content-pane" secondAttribute="top" id="hv-t"/>
-                                    <constraint firstAttribute="trailing" secondItem="header-border" secondAttribute="trailing" id="iYv-l9-LWN"/>
-                                    <constraint firstItem="tab-content" firstAttribute="bottom" secondItem="content-pane" secondAttribute="bottom" id="tc-b"/>
-                                    <constraint firstItem="tab-content" firstAttribute="leading" secondItem="content-pane" secondAttribute="leading" id="tc-l"/>
-                                    <constraint firstItem="tab-content" firstAttribute="trailing" secondItem="content-pane" secondAttribute="trailing" id="tc-r"/>
-                                    <constraint firstItem="tab-content" firstAttribute="top" secondItem="header-view" secondAttribute="bottom" id="tc-t"/>
+                                    <constraint firstItem="tab-content" firstAttribute="top" secondItem="header-border" secondAttribute="bottom" id="Fcx-rZ-E5t" />
+                                    <constraint firstItem="header-border" firstAttribute="leading" secondItem="content-pane" secondAttribute="leading" id="dpg-gg-v9Y" />
+                                    <constraint firstItem="header-view" firstAttribute="leading" secondItem="content-pane" secondAttribute="leading" id="hv-l" />
+                                    <constraint firstItem="header-view" firstAttribute="trailing" secondItem="content-pane" secondAttribute="trailing" id="hv-r" />
+                                    <constraint firstItem="header-view" firstAttribute="top" secondItem="content-pane" secondAttribute="top" id="hv-t" />
+                                    <constraint firstAttribute="trailing" secondItem="header-border" secondAttribute="trailing" id="iYv-l9-LWN" />
+                                    <constraint firstItem="tab-content" firstAttribute="bottom" secondItem="content-pane" secondAttribute="bottom" id="tc-b" />
+                                    <constraint firstItem="tab-content" firstAttribute="leading" secondItem="content-pane" secondAttribute="leading" id="tc-l" />
+                                    <constraint firstItem="tab-content" firstAttribute="trailing" secondItem="content-pane" secondAttribute="trailing" id="tc-r" />
+                                    <constraint firstItem="tab-content" firstAttribute="top" secondItem="header-view" secondAttribute="bottom" id="tc-t" />
                                 </constraints>
                             </customView>
                         </subviews>
                         <holdingPriorities>
-                            <real value="250"/>
-                            <real value="250"/>
+                            <real value="250" />
+                            <real value="250" />
                         </holdingPriorities>
                     </splitView>
                 </subviews>
                 <constraints>
-                    <constraint firstItem="split-view" firstAttribute="bottom" secondItem="se5-gp-TjO" secondAttribute="bottom" id="c-bottom"/>
-                    <constraint firstItem="split-view" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="c-leading"/>
-                    <constraint firstItem="split-view" firstAttribute="trailing" secondItem="se5-gp-TjO" secondAttribute="trailing" id="c-trailing"/>
-                    <constraint firstItem="split-view" firstAttribute="top" secondItem="toolbar-view" secondAttribute="bottom" id="sp-t"/>
-                    <constraint firstItem="toolbar-view" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="tb-l"/>
-                    <constraint firstItem="toolbar-view" firstAttribute="trailing" secondItem="se5-gp-TjO" secondAttribute="trailing" id="tb-r"/>
-                    <constraint firstItem="toolbar-view" firstAttribute="top" secondItem="se5-gp-TjO" secondAttribute="top" id="tb-t"/>
-                </constraints>
+                    <constraint firstItem="split-view" firstAttribute="bottom" secondItem="se5-gp-TjO" secondAttribute="bottom" id="c-bottom" />
+                    <constraint firstItem="split-view" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="c-leading" />
+                    <constraint firstItem="split-view" firstAttribute="trailing" secondItem="se5-gp-TjO" secondAttribute="trailing" id="c-trailing" />
+                    <constraint firstItem="split-view" firstAttribute="top" secondItem="toolbar-view" secondAttribute="bottom" id="sp-t" />
+                    <constraint firstItem="toolbar-view" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="tb-l" />
+                    <constraint firstItem="toolbar-view" firstAttribute="trailing" secondItem="se5-gp-TjO" secondAttribute="trailing" id="tb-r" />
+                    <constraint firstItem="toolbar-view" firstAttribute="top" secondItem="titlebar-view" secondAttribute="bottom" id="tb-t" />
+                <constraint firstItem="titlebar-view" firstAttribute="leading" secondItem="se5-gp-TjO" secondAttribute="leading" id="tbv-l" /><constraint firstItem="titlebar-view" firstAttribute="trailing" secondItem="se5-gp-TjO" secondAttribute="trailing" id="tbv-r" /><constraint firstItem="titlebar-view" firstAttribute="top" secondItem="se5-gp-TjO" secondAttribute="top" id="tbv-t" /></constraints>
             </view>
             <connections>
-                <outlet property="delegate" destination="-2" id="0bl-1N-AYu"/>
+                <outlet property="delegate" destination="-2" id="0bl-1N-AYu" />
             </connections>
-            <point key="canvasLocation" x="-101" y="125"/>
+            <point key="canvasLocation" x="-101" y="125" />
         </window>
     </objects>
 </document>

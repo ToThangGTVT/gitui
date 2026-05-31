@@ -94,4 +94,5 @@ extension Notification.Name {
     static let activeRepositoryChanged = Notification.Name("activeRepositoryChanged")
     static let sidebarShouldRefreshStats = Notification.Name("sidebarShouldRefreshStats")
     static let repositoryContentShouldRefresh = Notification.Name("repositoryContentShouldRefresh")
+    static let fileSearchQueryChanged = Notification.Name("fileSearchQueryChanged")
 }
