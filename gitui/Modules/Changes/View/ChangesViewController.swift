@@ -6,6 +6,7 @@ protocol ChangesViewProtocol: AnyObject {
     func showStagedFiles(_ files: [GitFileStatus])
     func showUnstagedFiles(_ files: [GitFileStatus])
     func showDiffText(_ text: String, for file: String, isStaged: Bool)
+    func showConflictResolution(for filePath: String, repoPath: String)
     func clearDiff()
     func showLoading(_ loading: Bool)
     func showLastCommitMessage(_ message: String)
@@ -64,6 +65,8 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     
     private var conflictBanner: NSView!
     private var conflictBannerHeight: NSLayoutConstraint!
+    
+    private var conflictVC: ConflictResolutionViewController?
 
     private var hasRestoredMainSplit = false
     private var hasRestoredLeftSplit = false
@@ -827,9 +830,13 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
 
             let label = NSTextField(labelWithString: "")
             label.font = NSFont.systemFont(ofSize: 12)
+            label.lineBreakMode = .byTruncatingMiddle
+            label.setContentHuggingPriority(.defaultLow, for: .horizontal)
             label.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(label)
             cell?.textField = label
+            
+            checkbox.setContentHuggingPriority(.required, for: .horizontal)
 
             NSLayoutConstraint.activate([
                 checkbox.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
@@ -974,8 +981,39 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
     }
     
+    func showConflictResolution(for filePath: String, repoPath: String) {
+        removeConflictUI()
+        
+        let vc = ConflictResolutionViewController(filePath: filePath, repoPath: repoPath)
+        vc.delegate = self
+        self.addChild(vc)
+        
+        guard let container = diffScrollView.superview else { return }
+        container.addSubview(vc.view)
+        vc.view.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            vc.view.leadingAnchor.constraint(equalTo: diffScrollView.leadingAnchor),
+            vc.view.trailingAnchor.constraint(equalTo: diffScrollView.trailingAnchor),
+            vc.view.topAnchor.constraint(equalTo: diffScrollView.topAnchor),
+            vc.view.bottomAnchor.constraint(equalTo: diffScrollView.bottomAnchor)
+        ])
+        
+        self.conflictVC = vc
+        diffScrollView.isHidden = true
+    }
+    
+    private func removeConflictUI() {
+        if let vc = conflictVC {
+            vc.view.removeFromSuperview()
+            vc.removeFromParent()
+            self.conflictVC = nil
+        }
+        diffScrollView.isHidden = false
+    }
+
     func showDiffText(_ text: String, for file: String, isStaged: Bool) {
-        diffTitleLabel.stringValue = file
+        removeConflictUI()
+        self.isShowingUnstagedDiff = !isStaged
         isShowingUnstagedDiff = !isStaged
         let hunks = parseDiffHunks(from: text)
         diffLines = buildDiffLines(from: text, hunks: hunks)
@@ -1028,8 +1066,9 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     }
 
     func clearDiff() {
+        removeConflictUI()
         diffTitleLabel.stringValue = "No file selected"
-        diffLines = []
+        diffLines.removeAll()
         diffTableView.reloadData()
     }
     
@@ -1041,4 +1080,11 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
     }
     
+}
+
+// MARK: - ConflictResolutionDelegate
+extension ChangesViewController: ConflictResolutionDelegate {
+    func didResolveConflict(in filePath: String) {
+        presenter?.refresh()
+    }
 }

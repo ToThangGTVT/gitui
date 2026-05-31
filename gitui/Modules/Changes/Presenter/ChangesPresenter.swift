@@ -58,8 +58,12 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
     func didSelectFile(_ file: GitFileStatus) {
         guard let path = activePath else { return }
         currentSelectedFile = file
-        view?.showLoading(true)
-        interactor.loadDiff(repoPath: path, file: file)
+        if file.status == "U" {
+            view?.showConflictResolution(for: file.path, repoPath: path)
+        } else {
+            view?.showLoading(true)
+            interactor.loadDiff(repoPath: path, file: file)
+        }
     }
 
     func didDoubleClickFile(_ file: GitFileStatus) {
