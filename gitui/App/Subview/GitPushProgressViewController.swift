@@ -7,6 +7,7 @@ class GitPushProgressViewController: NSViewController {
     private let remote: String
     private let branch: String
     private let repoPath: String
+    private let force: Bool
     private let onComplete: (Bool) -> Void
     
     // UI Outlets
@@ -20,9 +21,10 @@ class GitPushProgressViewController: NSViewController {
     
     private var isSuccess = false
     
-    init(remote: String, branch: String, repoPath: String, onComplete: @escaping (Bool) -> Void) {
+    init(remote: String, branch: String, force: Bool = false, repoPath: String, onComplete: @escaping (Bool) -> Void) {
         self.remote = remote
         self.branch = branch
+        self.force = force
         self.repoPath = repoPath
         self.onComplete = onComplete
         super.init(nibName: nil, bundle: nil)
@@ -171,8 +173,14 @@ class GitPushProgressViewController: NSViewController {
         
         Task {
             do {
-                _ = try await GitService.shared.pushStreaming(remote: remote, branch: branch, in: repoPath) { [weak self] outputChunk in
-                    self?.appendLog(outputChunk)
+                if force {
+                    _ = try await GitService.shared.pushForceStreaming(remote: remote, branch: branch, in: repoPath) { [weak self] outputChunk in
+                        self?.appendLog(outputChunk)
+                    }
+                } else {
+                    _ = try await GitService.shared.pushStreaming(remote: remote, branch: branch, in: repoPath) { [weak self] outputChunk in
+                        self?.appendLog(outputChunk)
+                    }
                 }
                 
                 await MainActor.run {
@@ -232,8 +240,8 @@ class GitPushProgressViewController: NSViewController {
     }
     
     // Static show method for global convenience
-    static func show(remote: String, branch: String, repoPath: String, from window: NSWindow? = nil, onComplete: @escaping (Bool) -> Void) {
-        let progressVC = GitPushProgressViewController(remote: remote, branch: branch, repoPath: repoPath, onComplete: onComplete)
+    static func show(remote: String, branch: String, force: Bool = false, repoPath: String, from window: NSWindow? = nil, onComplete: @escaping (Bool) -> Void) {
+        let progressVC = GitPushProgressViewController(remote: remote, branch: branch, force: force, repoPath: repoPath, onComplete: onComplete)
         
         let progressWindow = NSWindow(contentViewController: progressVC)
         progressWindow.styleMask = [.titled, .closable]

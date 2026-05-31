@@ -155,6 +155,8 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
         view?.showLoading(false)
         view?.showStagedFiles(staged)
         view?.showUnstagedFiles(unstaged)
+        let hasConflicts = (staged + unstaged).contains { $0.status == "U" }
+        view?.showConflictBanner(hasConflicts)
 
         if needsAutoReloadDiff, let file = currentSelectedFile, let path = activePath {
             needsAutoReloadDiff = false

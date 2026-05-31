@@ -6,6 +6,7 @@ protocol BranchesInteractorInputProtocol: AnyObject {
     func loadBranchesAndTags(repoPath: String)
     func checkout(repoPath: String, branchName: String)
     func merge(repoPath: String, branchName: String)
+    func rebase(repoPath: String, branchName: String)
     func deleteBranch(repoPath: String, branchName: String, force: Bool)
     func renameBranch(repoPath: String, oldName: String, newName: String)
     func pushBranch(repoPath: String, branchName: String)
@@ -60,6 +61,22 @@ class BranchesInteractor: BranchesInteractorInputProtocol {
                 try await GitService.shared.merge(branch: branchName, in: repoPath)
                 await MainActor.run {
                     self.presenter?.didOperationSuccess(message: "Successfully merged \(branchName) into current branch.")
+                }
+                self.loadBranchesAndTags(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+
+    func rebase(repoPath: String, branchName: String) {
+        Task {
+            do {
+                try await GitService.shared.rebase(onto: branchName, in: repoPath)
+                await MainActor.run {
+                    self.presenter?.didOperationSuccess(message: "Successfully rebased onto '\(branchName)'.")
                 }
                 self.loadBranchesAndTags(repoPath: repoPath)
             } catch {

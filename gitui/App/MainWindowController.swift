@@ -26,6 +26,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     @IBOutlet weak var headerBorder: NSView!
     @IBOutlet weak var customToolbar: CustomToolbarView!
     private var placeholderView: NSView!
+    private var cloneWelcomeButton: NSButton!
     
     override var windowNibName: NSNib.Name? {
         return "MainWindowController"
@@ -97,6 +98,24 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         placeholderView = WelcomePlaceholderView()
         placeholderView.translatesAutoresizingMaskIntoConstraints = false
+
+        cloneWelcomeButton = NSButton(title: "Clone Repository…", target: self, action: #selector(cloneWelcomeClicked))
+        cloneWelcomeButton.bezelStyle = .push
+        cloneWelcomeButton.isHidden = true
+        cloneWelcomeButton.translatesAutoresizingMaskIntoConstraints = false
+        mainContainer.addSubview(cloneWelcomeButton)
+        NSLayoutConstraint.activate([
+            cloneWelcomeButton.centerXAnchor.constraint(equalTo: mainContainer.centerXAnchor),
+            cloneWelcomeButton.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor, constant: -40),
+            cloneWelcomeButton.widthAnchor.constraint(equalToConstant: 180),
+        ])
+    }
+
+    @objc private func cloneWelcomeClicked() {
+        guard let window = self.window else { return }
+        CloneViewController.show(from: window) { clonedPath in
+            RepositoryStore.shared.setActiveRepository(path: clonedPath)
+        }
     }
 
 
@@ -130,6 +149,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         if let path = path {
             placeholderView.removeFromSuperview()
+            cloneWelcomeButton.isHidden = true
             headerContainer.isHidden = false
             tabContentContainer.isHidden = false
             
@@ -147,7 +167,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         } else {
             headerContainer.isHidden = true
             tabContentContainer.isHidden = true
-            
+            cloneWelcomeButton.isHidden = false
+
             // Stop watching when no repo is active
             FileWatcherService.shared.stopWatching()
             
@@ -260,29 +281,118 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
             return
         }
-        
-        // Detect the current branch to pre-fill the dialog
         Task {
             let currentBranch = await detectCurrentBranch(in: path)
-            await MainActor.run {
-                self.showPullPushDialog(title: "Pull from Remote", defaultBranch: currentBranch ?? "main", confirmTitle: "Pull") { remote, branch in
-                    self.performPull(remote: remote, branch: branch, repoPath: path)
-                }
-            }
+            await MainActor.run { self.showPullDialog(defaultBranch: currentBranch ?? "main", repoPath: path) }
         }
     }
-    
+
     @objc private func toolbarPushClicked() {
         guard let path = activeRepoPath else {
             showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
             return
         }
-        
         Task {
             let currentBranch = await detectCurrentBranch(in: path)
-            await MainActor.run {
-                self.showPullPushDialog(title: "Push to Remote", defaultBranch: currentBranch ?? "main", confirmTitle: "Push") { remote, branch in
-                    self.performPush(remote: remote, branch: branch, repoPath: path)
+            await MainActor.run { self.showPushDialog(defaultBranch: currentBranch ?? "main", repoPath: path) }
+        }
+    }
+
+    private func showPullDialog(defaultBranch: String, repoPath: String) {
+        guard let window = self.window else { return }
+        let alert = NSAlert()
+        alert.messageText = "Pull from Remote"
+        alert.addButton(withTitle: "Pull")
+        alert.addButton(withTitle: "Cancel")
+
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 84))
+
+        let remoteField = labeledField("Remote:", value: "origin",    y: 58, in: container)
+        let branchField = labeledField("Branch:", value: defaultBranch, y: 32, in: container)
+
+        let rebaseBox = NSButton(checkboxWithTitle: "Pull with rebase (--rebase)", target: nil, action: nil)
+        rebaseBox.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
+        rebaseBox.font = NSFont.systemFont(ofSize: 11)
+        container.addSubview(rebaseBox)
+
+        alert.accessoryView = container
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self = self, response == .alertFirstButtonReturn else { return }
+            let remote = remoteField.stringValue.trimmingCharacters(in: .whitespaces)
+            let branch = branchField.stringValue.trimmingCharacters(in: .whitespaces)
+            guard !remote.isEmpty && !branch.isEmpty else { return }
+            if rebaseBox.state == .on {
+                self.performPullRebase(remote: remote, branch: branch, repoPath: repoPath)
+            } else {
+                self.performPull(remote: remote, branch: branch, repoPath: repoPath)
+            }
+        }
+    }
+
+    private func showPushDialog(defaultBranch: String, repoPath: String) {
+        guard let window = self.window else { return }
+        let alert = NSAlert()
+        alert.messageText = "Push to Remote"
+        alert.addButton(withTitle: "Push")
+        alert.addButton(withTitle: "Cancel")
+
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 84))
+
+        let remoteField = labeledField("Remote:", value: "origin",    y: 58, in: container)
+        let branchField = labeledField("Branch:", value: defaultBranch, y: 32, in: container)
+
+        let forceBox = NSButton(checkboxWithTitle: "Force push (--force-with-lease)", target: nil, action: nil)
+        forceBox.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
+        forceBox.font = NSFont.systemFont(ofSize: 11)
+        container.addSubview(forceBox)
+
+        alert.accessoryView = container
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self = self, response == .alertFirstButtonReturn else { return }
+            let remote = remoteField.stringValue.trimmingCharacters(in: .whitespaces)
+            let branch = branchField.stringValue.trimmingCharacters(in: .whitespaces)
+            guard !remote.isEmpty && !branch.isEmpty else { return }
+            GitPushProgressViewController.show(remote: remote, branch: branch,
+                                               force: forceBox.state == .on,
+                                               repoPath: repoPath, from: self.window) { [weak self] success in
+                guard let self = self else { return }
+                let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                self.updateBranchLabel(for: repoPath, repoName: repoName)
+                self.refreshCurrentTab()
+            }
+        }
+    }
+
+    // Helper: creates a label+field row at a given y offset
+    @discardableResult
+    private func labeledField(_ label: String, value: String, y: CGFloat, in parent: NSView) -> NSTextField {
+        let lbl = NSTextField(labelWithString: label)
+        lbl.frame = NSRect(x: 0, y: y, width: 60, height: 22)
+        lbl.font = NSFont.systemFont(ofSize: 12)
+        parent.addSubview(lbl)
+
+        let field = NSTextField()
+        field.frame = NSRect(x: 65, y: y, width: 230, height: 22)
+        field.stringValue = value
+        field.font = NSFont.systemFont(ofSize: 12)
+        parent.addSubview(field)
+        return field
+    }
+
+    private func performPullRebase(remote: String, branch: String, repoPath: String) {
+        Task {
+            do {
+                try await GitService.shared.pullWithRebase(remote: remote, branch: branch, in: repoPath)
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Pull (rebase) Complete",
+                                         message: "Rebased onto \(branch) from '\(remote)'.", isError: false)
+                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                    self.updateBranchLabel(for: repoPath, repoName: repoName)
+                    self.refreshCurrentTab()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Pull Failed", message: error.localizedDescription, isError: true)
                 }
             }
         }
@@ -592,38 +702,156 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
 // MARK: - CustomToolbarViewDelegate
 
 extension MainWindowController: CustomToolbarViewDelegate {
-    func toolbarDidClickCommit() {}
-    
+
+    func toolbarDidClickCommit() {
+        segmentedControl.selectedSegment = 0
+        selectTab(index: 0)
+    }
+
     func toolbarDidClickPull() {
         toolbarPullClicked()
     }
-    
+
     func toolbarDidClickPush() {
         toolbarPushClicked()
     }
-    
+
     func toolbarDidClickFetch() {
         toolbarFetchClicked()
     }
-    
+
     func toolbarDidClickBranch() {
         toolbarBranchClicked()
     }
-    
-    func toolbarDidClickMerge() {}
-    
-    func toolbarDidClickStash() {}
-    
-    func toolbarDidClickViewRemote() {}
-    
+
+    func toolbarDidClickMerge() {
+        guard let path = activeRepoPath else {
+            showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
+            return
+        }
+        Task {
+            do {
+                let branches = try await GitService.shared.getBranches(in: path)
+                let current  = branches.first(where: { $0.isCurrent })?.name ?? "HEAD"
+                let others   = branches.filter { !$0.isRemote && !$0.isCurrent }
+                guard !others.isEmpty else {
+                    await MainActor.run {
+                        self.showToolbarAlert(title: "No Branches", message: "No other local branches to merge.", isError: true)
+                    }
+                    return
+                }
+                await MainActor.run {
+                    self.showMergeDialog(currentBranch: current, branches: others) { branch in
+                        self.performMerge(branch: branch, into: current, repoPath: path)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Error", message: error.localizedDescription, isError: true)
+                }
+            }
+        }
+    }
+
+    func toolbarDidClickStash() {
+        guard let path = activeRepoPath else {
+            showToolbarAlert(title: "No Repository", message: "Please open a repository first.", isError: true)
+            return
+        }
+        guard let window = self.window else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Stash Changes"
+        alert.informativeText = "Save your working directory changes to the stash."
+        alert.addButton(withTitle: "Stash")
+        alert.addButton(withTitle: "Cancel")
+
+        let msgField = NSTextField()
+        msgField.frame = NSRect(x: 0, y: 0, width: 280, height: 22)
+        msgField.font = NSFont.systemFont(ofSize: 12)
+        msgField.placeholderString = "Stash message (optional)..."
+        alert.accessoryView = msgField
+
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard let self = self, response == .alertFirstButtonReturn else { return }
+            let msg = msgField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            Task {
+                do {
+                    try await GitService.shared.stashSave(message: msg.isEmpty ? nil : msg, in: path)
+                    await MainActor.run {
+                        self.segmentedControl.selectedSegment = 3
+                        self.selectTab(index: 3)
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.showToolbarAlert(title: "Stash Failed", message: error.localizedDescription, isError: true)
+                    }
+                }
+            }
+        }
+    }
+
+    func toolbarDidClickViewRemote() {
+        segmentedControl.selectedSegment = 4
+        selectTab(index: 4)
+    }
+
     func toolbarDidClickShowInFinder() {
         toolbarShowInFinderClicked()
     }
-    
+
     func toolbarDidClickTerminal() {
         toolbarTerminalClicked()
     }
-    
-    func toolbarDidClickSettings() {}
+
+    func toolbarDidClickSettings() {
+        guard let window = self.window else { return }
+        SettingsViewController.show(repoPath: activeRepoPath, from: window) { [weak self] in
+            self?.refreshCurrentTab()
+        }
+    }
+}
+
+// MARK: - Merge helpers
+
+extension MainWindowController {
+
+    private func showMergeDialog(currentBranch: String, branches: [GitBranch],
+                                 completion: @escaping (String) -> Void) {
+        guard let window = self.window else { return }
+        let alert = NSAlert()
+        alert.messageText = "Merge Branch"
+        alert.informativeText = "Select a branch to merge into '\(currentBranch)'."
+        alert.addButton(withTitle: "Merge")
+        alert.addButton(withTitle: "Cancel")
+
+        let popup = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 280, height: 26))
+        popup.addItems(withTitles: branches.map { $0.name })
+        alert.accessoryView = popup
+
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn,
+               let selected = popup.titleOfSelectedItem, !selected.isEmpty {
+                completion(selected)
+            }
+        }
+    }
+
+    private func performMerge(branch: String, into current: String, repoPath: String) {
+        Task {
+            do {
+                try await GitService.shared.merge(branch: branch, in: repoPath)
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Merge Complete",
+                                         message: "Merged '\(branch)' into '\(current)'.", isError: false)
+                    self.refreshCurrentTab()
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Merge Failed", message: error.localizedDescription, isError: true)
+                }
+            }
+        }
+    }
 }
 

@@ -276,6 +276,19 @@ class GitService {
         return try await runGit(["show", hash, "--", file], in: repoPath)
     }
 
+    func rebase(onto branch: String, in repoPath: String) async throws {
+        _ = try await runGit(["rebase", branch], in: repoPath)
+    }
+
+    func pullWithRebase(remote: String, branch: String, in repoPath: String) async throws {
+        _ = try await runGit(["pull", "--rebase", remote, branch], in: repoPath)
+    }
+
+    @discardableResult
+    func pushForceStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping (String) -> Void) async throws -> String {
+        return try await runGitStreaming(["push", "--force-with-lease", remote, branch], in: repoPath, onOutput: onOutput)
+    }
+
     func getLastCommitMessage(in repoPath: String) async throws -> String {
         return try await runGit(["log", "-1", "--pretty=format:%B"], in: repoPath)
     }

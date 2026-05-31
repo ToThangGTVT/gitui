@@ -7,6 +7,7 @@ protocol BranchesPresenterProtocol: AnyObject {
     func refresh()
     func didDoubleClickNode(_ node: BranchNode)
     func didClickMerge(_ node: BranchNode)
+    func didClickRebase(_ node: BranchNode)
     func didClickDelete(_ node: BranchNode)
     func didClickRename(_ node: BranchNode, to newName: String)
     func didRequestRename(_ node: BranchNode)
@@ -55,6 +56,20 @@ class BranchesPresenter: BranchesPresenterProtocol, BranchesInteractorOutputProt
         guard !node.isHeader else { return }
         view?.showLoading(true)
         interactor.merge(repoPath: path, branchName: node.name)
+    }
+
+    func didClickRebase(_ node: BranchNode) {
+        guard let path = activePath else { return }
+        guard !node.isHeader && !node.isTag && !node.isCurrent else { return }
+        router.showConfirmation(
+            title: "Rebase",
+            message: "Rebase current branch onto '\(node.name)'?\n\nThis rewrites history. Do not rebase published branches.",
+            confirmButton: "Rebase"
+        ) { [weak self] approved in
+            guard approved, let self = self else { return }
+            self.view?.showLoading(true)
+            self.interactor.rebase(repoPath: path, branchName: node.name)
+        }
     }
     
     func didClickDelete(_ node: BranchNode) {

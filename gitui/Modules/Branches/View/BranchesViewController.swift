@@ -54,6 +54,7 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "Create branch from this branch...", action: #selector(contextCreateBranchClicked(_:)), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Merge into current", action: #selector(contextMergeClicked(_:)), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: "Rebase current onto this", action: #selector(contextRebaseClicked(_:)), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Rename branch...", action: #selector(contextRenameClicked(_:)), keyEquivalent: ""))
         menu.addItem(NSMenuItem(title: "Delete branch", action: #selector(contextDeleteClicked(_:)), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
@@ -100,6 +101,14 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
         guard row >= 0 else { return }
         if let node = outlineView.item(atRow: row) as? BranchNode {
             presenter?.didClickMerge(node)
+        }
+    }
+
+    @objc private func contextRebaseClicked(_ sender: NSMenuItem) {
+        let row = outlineView.clickedRow
+        guard row >= 0 else { return }
+        if let node = outlineView.item(atRow: row) as? BranchNode {
+            presenter?.didClickRebase(node)
         }
     }
     

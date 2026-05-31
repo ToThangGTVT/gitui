@@ -72,6 +72,26 @@ extension NSColor {
         return NSColor.controlAccentColor
     }
 
+    static var gitFlowConflict: NSColor {
+        return NSColor(name: nil) { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor(red: 0.50, green: 0.20, blue: 0.00, alpha: 0.45)
+            } else {
+                return NSColor(red: 1.0, green: 0.88, blue: 0.75, alpha: 1.0)
+            }
+        }
+    }
+
+    static var gitFlowConflictText: NSColor {
+        return NSColor(name: nil) { appearance in
+            if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+                return NSColor(red: 1.0, green: 0.55, blue: 0.10, alpha: 1.0)
+            } else {
+                return NSColor(red: 0.75, green: 0.30, blue: 0.00, alpha: 1.0)
+            }
+        }
+    }
+
     static var gitFlowModified: NSColor {
         return NSColor(name: nil) { appearance in
             if appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {

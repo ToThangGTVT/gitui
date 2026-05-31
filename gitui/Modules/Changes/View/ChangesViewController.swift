@@ -9,6 +9,7 @@ protocol ChangesViewProtocol: AnyObject {
     func clearDiff()
     func showLoading(_ loading: Bool)
     func showLastCommitMessage(_ message: String)
+    func showConflictBanner(_ hasConflicts: Bool)
 }
 
 // MARK: - Pane minimum heights & UserDefaults keys
@@ -58,6 +59,9 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private var unstageAllButton: NSButton!
     private var progressIndicator: NSProgressIndicator!
     
+    private var conflictBanner: NSView!
+    private var conflictBannerHeight: NSLayoutConstraint!
+
     private var hasRestoredMainSplit = false
     private var hasRestoredLeftSplit = false
     
@@ -137,12 +141,31 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         mainSplitView.addArrangedSubview(leftContainer)
         mainSplitView.addArrangedSubview(rightContainer)
         
-        // 2. Setup Left Split View (Vertical: Staged, Unstaged, Commit Box)
+        // 2a. Conflict banner (hidden initially)
+        conflictBanner = buildConflictBanner()
+        conflictBanner.translatesAutoresizingMaskIntoConstraints = false
+        leftContainer.addSubview(conflictBanner)
+        conflictBannerHeight = conflictBanner.heightAnchor.constraint(equalToConstant: 0)
+        NSLayoutConstraint.activate([
+            conflictBanner.topAnchor.constraint(equalTo: leftContainer.topAnchor),
+            conflictBanner.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
+            conflictBanner.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
+            conflictBannerHeight,
+        ])
+
+        // 2b. Setup Left Split View (Vertical: Staged, Unstaged, Commit Box)
         leftSplitView = NSSplitView()
         leftSplitView.isVertical = false
         leftSplitView.dividerStyle = .thin
         leftSplitView.delegate = self
-        leftSplitView.pinToEdges(of: leftContainer)
+        leftSplitView.translatesAutoresizingMaskIntoConstraints = false
+        leftContainer.addSubview(leftSplitView)
+        NSLayoutConstraint.activate([
+            leftSplitView.topAnchor.constraint(equalTo: conflictBanner.bottomAnchor),
+            leftSplitView.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
+            leftSplitView.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
+            leftSplitView.bottomAnchor.constraint(equalTo: leftContainer.bottomAnchor),
+        ])
         
         let stagedResult = createListSection(title: "Staged Changes")
         let stagedBox = stagedResult.view
@@ -542,7 +565,8 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             unstageItem.representedObject = file
             menu.addItem(unstageItem)
         } else {
-            let stageItem = NSMenuItem(title: "Stage File", action: #selector(contextStageFile(_:)), keyEquivalent: "")
+            let stageTitle = file.status == "U" ? "Mark as Resolved (git add)" : "Stage File"
+            let stageItem = NSMenuItem(title: stageTitle, action: #selector(contextStageFile(_:)), keyEquivalent: "")
             stageItem.representedObject = file
             menu.addItem(stageItem)
             
@@ -775,17 +799,21 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         // Locate the badge container (first NSView that is NOT the cell's textField)
         if let container = cell?.subviews.first(where: { !($0 is NSTextField) }),
            let badge = container.subviews.first as? NSTextField {
-            badge.stringValue = file.status
-            if file.status == "A" || file.status == "?" {
+            badge.stringValue = file.status == "U" ? "!" : file.status
+            switch file.status {
+            case "A", "?":
                 badge.textColor = NSColor.gitFlowStagedAddText
                 container.layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
-            } else if file.status == "D" {
+            case "D":
                 badge.textColor = NSColor.gitFlowStagedDeleteText
                 container.layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
-            } else if file.status == "M" {
+            case "M":
                 badge.textColor = NSColor.gitFlowModifiedText
                 container.layer?.backgroundColor = NSColor.gitFlowModified.cgColor
-            } else {
+            case "U":
+                badge.textColor = NSColor.gitFlowConflictText
+                container.layer?.backgroundColor = NSColor.gitFlowConflict.cgColor
+            default:
                 badge.textColor = NSColor.gitFlowAccent
                 container.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
             }
@@ -902,6 +930,41 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     func showLastCommitMessage(_ message: String) {
         commitTextView.string = message
         updateCommitPlaceholder()
+    }
+
+    func showConflictBanner(_ hasConflicts: Bool) {
+        NSAnimationContext.runAnimationGroup { ctx in
+            ctx.duration = 0.2
+            conflictBannerHeight.animator().constant = hasConflicts ? 36 : 0
+        }
+    }
+
+    private func buildConflictBanner() -> NSView {
+        let banner = NSView()
+        banner.wantsLayer = true
+        banner.layer?.backgroundColor = NSColor.gitFlowConflict.cgColor
+
+        let icon = NSTextField(labelWithString: "⚠")
+        icon.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+        icon.textColor = NSColor.gitFlowConflictText
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        banner.addSubview(icon)
+
+        let label = NSTextField(labelWithString: "Merge conflict — resolve conflicts and mark files as resolved, then commit")
+        label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        label.textColor = NSColor.gitFlowConflictText
+        label.lineBreakMode = .byTruncatingTail
+        label.translatesAutoresizingMaskIntoConstraints = false
+        banner.addSubview(label)
+
+        NSLayoutConstraint.activate([
+            icon.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            icon.leadingAnchor.constraint(equalTo: banner.leadingAnchor, constant: 10),
+            label.centerYAnchor.constraint(equalTo: banner.centerYAnchor),
+            label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
+            label.trailingAnchor.constraint(equalTo: banner.trailingAnchor, constant: -10),
+        ])
+        return banner
     }
 
     func clearDiff() {
