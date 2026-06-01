@@ -61,6 +61,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         // Listen for file system changes in active repo
         NotificationCenter.default.addObserver(self, selector: #selector(handleFilesChanged), name: .repositoryFilesChanged, object: nil)
         
+        // Refresh when app becomes active
+        NotificationCenter.default.addObserver(self, selector: #selector(handleAppDidBecomeActive), name: NSApplication.didBecomeActiveNotification, object: nil)
+        
         // Load initial state
         updateWorkspaceState(path: RepositoryStore.shared.getActiveRepositoryPath())
     }
@@ -160,6 +163,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         NotificationCenter.default.post(name: .repositoryContentShouldRefresh, object: nil)
         // Notify sidebar to update line stats
         NotificationCenter.default.post(name: .sidebarShouldRefreshStats, object: nil)
+    }
+    
+    @objc private func handleAppDidBecomeActive() {
+        // Refresh the current active repo content and all repos in the sidebar
+        handleFilesChanged()
     }
     
     private func updateWorkspaceState(path: String?) {
@@ -834,7 +842,7 @@ extension MainWindowController: CustomToolbarViewDelegate {
 
     func toolbarDidClickSettings() {
         guard let window = self.window else { return }
-        SettingsViewController.show(repoPath: activeRepoPath, from: window) { [weak self] in
+        SettingsModule.show(from: window, repoPath: activeRepoPath) { [weak self] in
             self?.refreshCurrentTab()
         }
     }

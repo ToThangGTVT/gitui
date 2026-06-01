@@ -9,6 +9,7 @@ protocol StashesPresenterProtocol: AnyObject {
     func didClickApplyStash(_ stash: GitStash)
     func didClickPopStash(_ stash: GitStash)
     func didClickDropStash(_ stash: GitStash)
+    func didClickClearStashes()
 }
 
 class StashesPresenter: StashesPresenterProtocol, StashesInteractorOutputProtocol {
@@ -69,6 +70,21 @@ class StashesPresenter: StashesPresenterProtocol, StashesInteractorOutputProtoco
             if approved {
                 self?.view?.showLoading(true)
                 self?.interactor.dropStash(repoPath: path, index: stash.index)
+            }
+        }
+    }
+    
+    func didClickClearStashes() {
+        guard let path = activePath else { return }
+        
+        router.showConfirmation(
+            title: "Clear All Stashes",
+            message: "Are you sure you want to permanently delete all stashes? This action cannot be undone.",
+            confirmButton: "Clear All"
+        ) { [weak self] approved in
+            if approved {
+                self?.view?.showLoading(true)
+                self?.interactor.clearStashes(repoPath: path)
             }
         }
     }

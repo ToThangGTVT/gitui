@@ -543,6 +543,10 @@ class GitService {
         _ = try await runGit(["stash", "drop", "stash@{\(index)}"], in: repoPath)
     }
     
+    func stashClear(in repoPath: String) async throws {
+        _ = try await runGit(["stash", "clear"], in: repoPath)
+    }
+    
     func getRemotes(in repoPath: String) async throws -> [GitRemote] {
         let output = try await runGit(["remote", "-v"], in: repoPath)
         var remotes: [GitRemote] = []

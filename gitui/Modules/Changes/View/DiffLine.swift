@@ -44,8 +44,10 @@ func buildDiffLines(from diffText: String, hunks: [DiffHunk]) -> [DiffLine] {
         } else if raw.hasPrefix("diff --git") || raw.hasPrefix("index ")
                || raw.hasPrefix("--- ") || raw.hasPrefix("+++ ")
                || raw.hasPrefix("new file") || raw.hasPrefix("deleted file")
-               || raw.hasPrefix("old mode") || raw.hasPrefix("new mode") {
-            result.append(DiffLine(kind: .fileHeader, rawText: raw))
+               || raw.hasPrefix("old mode") || raw.hasPrefix("new mode")
+               || raw.hasPrefix("Similarity index") {
+            // Do not append file headers to make the UI cleaner for normal users
+            continue
 
         } else if raw.hasPrefix("+") {
             result.append(DiffLine(kind: .added(newLine: newLine), rawText: raw))

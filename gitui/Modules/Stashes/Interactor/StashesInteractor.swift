@@ -8,6 +8,7 @@ protocol StashesInteractorInputProtocol: AnyObject {
     func applyStash(repoPath: String, index: Int)
     func popStash(repoPath: String, index: Int)
     func dropStash(repoPath: String, index: Int)
+    func clearStashes(repoPath: String)
 }
 
 protocol StashesInteractorOutputProtocol: AnyObject {
@@ -89,6 +90,22 @@ class StashesInteractor: StashesInteractorInputProtocol {
                 try await GitService.shared.stashDrop(index: index, in: repoPath)
                 await MainActor.run {
                     self.presenter?.didOperationSuccess(message: "Stash dropped successfully.")
+                }
+                self.loadStashes(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+    
+    func clearStashes(repoPath: String) {
+        Task {
+            do {
+                try await GitService.shared.stashClear(in: repoPath)
+                await MainActor.run {
+                    self.presenter?.didOperationSuccess(message: "All stashes cleared successfully.")
                 }
                 self.loadStashes(repoPath: repoPath)
             } catch {

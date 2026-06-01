@@ -21,6 +21,7 @@ class StashesViewController: NSViewController, StashesViewProtocol, NSTableViewD
     private var applyButton: NSButton!
     private var popButton: NSButton!
     private var dropButton: NSButton!
+    private var clearButton: NSButton!
     
     private var progressIndicator: NSProgressIndicator!
     
@@ -117,6 +118,11 @@ class StashesViewController: NSViewController, StashesViewProtocol, NSTableViewD
         dropButton.translatesAutoresizingMaskIntoConstraints = false
         bottomView.addSubview(dropButton)
         
+        clearButton = NSButton(title: "Clear All Stashes", target: self, action: #selector(clearClicked(_:)))
+        clearButton.bezelStyle = .push
+        clearButton.translatesAutoresizingMaskIntoConstraints = false
+        bottomView.addSubview(clearButton)
+        
         progressIndicator = NSProgressIndicator()
         progressIndicator.style = .spinning
         progressIndicator.isDisplayedWhenStopped = false
@@ -165,7 +171,10 @@ class StashesViewController: NSViewController, StashesViewProtocol, NSTableViewD
             popButton.leadingAnchor.constraint(equalTo: applyButton.trailingAnchor, constant: 12),
             
             dropButton.centerYAnchor.constraint(equalTo: bottomView.centerYAnchor),
-            dropButton.trailingAnchor.constraint(equalTo: bottomView.trailingAnchor, constant: -16),
+            dropButton.leadingAnchor.constraint(equalTo: popButton.trailingAnchor, constant: 12),
+            
+            clearButton.centerYAnchor.constraint(equalTo: bottomView.centerYAnchor),
+            clearButton.trailingAnchor.constraint(equalTo: bottomView.trailingAnchor, constant: -16),
             
             progressIndicator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             progressIndicator.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
@@ -198,6 +207,10 @@ class StashesViewController: NSViewController, StashesViewProtocol, NSTableViewD
         let row = tableView.selectedRow
         guard row >= 0 && row < stashes.count else { return }
         presenter?.didClickDropStash(stashes[row])
+    }
+    
+    @objc private func clearClicked(_ sender: NSButton) {
+        presenter?.didClickClearStashes()
     }
     
     // MARK: - NSTableViewDataSource & Delegate
@@ -259,6 +272,7 @@ class StashesViewController: NSViewController, StashesViewProtocol, NSTableViewD
         applyButton.isEnabled = false
         popButton.isEnabled = false
         dropButton.isEnabled = false
+        clearButton.isEnabled = !stashes.isEmpty
     }
     
     func showLoading(_ loading: Bool) {

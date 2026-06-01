@@ -78,7 +78,17 @@ class HunkHeaderCellView: NSView {
     }
 
     func configure(headerText: String, isUnstagedDiff: Bool, isReadOnly: Bool = false) {
-        hunkLabel.stringValue = headerText
+        // Clean up the "@@ -53,5 +53,5 @@ text" to make it more user-friendly
+        var friendlyText = headerText
+        if let range = headerText.range(of: "@@") {
+            if let endRange = headerText.range(of: "@@", options: [], range: range.upperBound..<headerText.endIndex) {
+                let contextText = headerText[endRange.upperBound...].trimmingCharacters(in: .whitespaces)
+                friendlyText = contextText.isEmpty ? "Code block" : contextText
+            }
+        }
+        
+        hunkLabel.stringValue = friendlyText
+        
         if isReadOnly {
             stageButton.isHidden   = true
             discardButton.isHidden = true
