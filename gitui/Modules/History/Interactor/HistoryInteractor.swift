@@ -52,7 +52,7 @@ class HistoryInteractor: HistoryInteractorInputProtocol {
                         let date = dateFieldFormatter.date(from: dateString) ?? Date()
                         
                         let refString = fields[5].trimmingCharacters(in: .whitespaces)
-                        let refs = self.parseRefs(refString)
+                        let refs = await self.parseRefs(refString)
                         
                         // Handle potential multiple pipes inside subject line
                         let message = fields[6...].joined(separator: "|").trimmingCharacters(in: .whitespaces)
@@ -72,7 +72,7 @@ class HistoryInteractor: HistoryInteractorInputProtocol {
                     }
                     
                     // Apply graph layout calculations!
-                    let laidOutCommits = GraphLayoutEngine.shared.layout(commits: commits)
+                    let laidOutCommits = await GraphLayoutEngine.shared.layout(commits: commits)
                     
                     await MainActor.run {
                         self.presenter?.didLoadHistory(laidOutCommits)

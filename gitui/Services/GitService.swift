@@ -68,7 +68,7 @@ struct GitTag: Identifiable, Equatable {
 
 // MARK: - GitService
 
-class GitService {
+final class GitService: @unchecked Sendable {
     static let shared = GitService()
     
     private init() {}
@@ -89,7 +89,7 @@ class GitService {
     func runGit(_ args: [String], in repoPath: String) async throws -> String {
         return try await Task.detached(priority: .userInitiated) {
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: self.resolveGitPath())
+            process.executableURL = await URL(fileURLWithPath: self.resolveGitPath())
             process.arguments = args
             process.currentDirectoryURL = URL(fileURLWithPath: repoPath)
             
@@ -120,10 +120,10 @@ class GitService {
     }
     
     // Execute a git command and stream output in real-time
-    func runGitStreaming(_ args: [String], in repoPath: String, onOutput: @escaping (String) -> Void) async throws -> String {
+    func runGitStreaming(_ args: [String], in repoPath: String, onOutput: @escaping @Sendable (String) -> Void) async throws -> String {
         return try await Task.detached(priority: .userInitiated) {
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: self.resolveGitPath())
+            process.executableURL = await URL(fileURLWithPath: self.resolveGitPath())
             process.arguments = args
             process.currentDirectoryURL = URL(fileURLWithPath: repoPath)
             
@@ -132,8 +132,22 @@ class GitService {
             process.standardOutput = outPipe
             process.standardError = errPipe
             
-            var fullOutput = ""
-            let outputQueue = DispatchQueue(label: "git.stream.output")
+            final class OutputBuffer: @unchecked Sendable {
+                var text = ""
+                let lock = NSLock()
+                func append(_ str: String) {
+                    lock.lock()
+                    text += str
+                    lock.unlock()
+                }
+                func get() -> String {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    return text
+                }
+            }
+            let buffer = OutputBuffer()
+            
             let readQueue = DispatchQueue(label: "git.read.queue", attributes: .concurrent)
             
             readQueue.async {
@@ -142,11 +156,9 @@ class GitService {
                     let data = fileHandle.availableData
                     guard !data.isEmpty else { break }
                     if let str = String(data: data, encoding: .utf8) {
-                        outputQueue.async {
-                            fullOutput += str
-                            DispatchQueue.main.async {
-                                onOutput(str)
-                            }
+                        buffer.append(str)
+                        DispatchQueue.main.async {
+                            onOutput(str)
                         }
                     }
                 }
@@ -158,11 +170,9 @@ class GitService {
                     let data = fileHandle.availableData
                     guard !data.isEmpty else { break }
                     if let str = String(data: data, encoding: .utf8) {
-                        outputQueue.async {
-                            fullOutput += str
-                            DispatchQueue.main.async {
-                                onOutput(str)
-                            }
+                        buffer.append(str)
+                        DispatchQueue.main.async {
+                            onOutput(str)
                         }
                     }
                 }
@@ -172,12 +182,9 @@ class GitService {
             process.waitUntilExit()
             
             // Give readers a brief moment to complete writing any remaining buffered data
-            Thread.sleep(forTimeInterval: 0.05)
+            try await Task.sleep(for: .seconds(0.05))
             
-            var finalOutput = ""
-            outputQueue.sync {
-                finalOutput = fullOutput
-            }
+            let finalOutput = buffer.get()
             
             if process.terminationStatus != 0 {
                 let cleanErr = finalOutput.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -285,7 +292,7 @@ class GitService {
     }
 
     @discardableResult
-    func pushForceStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping (String) -> Void) async throws -> String {
+    func pushForceStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping @Sendable (String) -> Void) async throws -> String {
         return try await runGitStreaming(["push", "--force-with-lease", remote, branch], in: repoPath, onOutput: onOutput)
     }
 
@@ -296,7 +303,7 @@ class GitService {
     func applyPatch(_ patch: String, cached: Bool, reverse: Bool = false, in repoPath: String) async throws {
         try await Task.detached(priority: .userInitiated) {
             let process = Process()
-            process.executableURL = URL(fileURLWithPath: self.resolveGitPath())
+            process.executableURL = await URL(fileURLWithPath: self.resolveGitPath())
             var args = ["apply", "--whitespace=nowarn"]
             if cached { args.append("--cached") }
             if reverse { args.append("--reverse") }
@@ -613,7 +620,7 @@ class GitService {
     }
     
     @discardableResult
-    func pushStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping (String) -> Void) async throws -> String {
+    func pushStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping @Sendable (String) -> Void) async throws -> String {
         return try await runGitStreaming(["push", remote, branch], in: repoPath, onOutput: onOutput)
     }
     

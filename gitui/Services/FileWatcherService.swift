@@ -13,7 +13,7 @@ import Foundation
 ///   before delivering them, avoiding per-file callbacks.
 /// - Ignores `.git/objects` pack/loose-object churn to reduce noise.
 
-class FileWatcherService {
+final class FileWatcherService: @unchecked Sendable {
     static let shared = FileWatcherService()
     
     private var stream: FSEventStreamRef?
@@ -24,10 +24,6 @@ class FileWatcherService {
     private let debounceInterval: TimeInterval = 2.0  // seconds
     
     private init() {}
-    
-    deinit {
-        stopWatching()
-    }
     
     // MARK: - Public API
     
@@ -102,7 +98,7 @@ class FileWatcherService {
 // MARK: - FSEvents C callback
 
 /// Free function required by FSEventStreamCreate (cannot be a closure or method).
-private func fsEventsCallback(
+nonisolated private func fsEventsCallback(
     streamRef: ConstFSEventStreamRef,
     clientCallBackInfo: UnsafeMutableRawPointer?,
     numEvents: Int,
@@ -122,7 +118,9 @@ private func fsEventsCallback(
         guard hasWorkingTreeChange else { return }
     }
     
-    watcher.handleFSEvent()
+    Task {
+        await watcher.handleFSEvent()
+    }
 }
 
 // MARK: - Notification Name
