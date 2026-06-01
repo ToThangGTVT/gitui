@@ -3,10 +3,10 @@
 import Cocoa
 
 enum GraphMetrics {
-    static let rowHeight: CGFloat  = 28   // must equal NSTableView rowHeight
-    static let laneWidth: CGFloat  = 18   // horizontal spacing between lanes
+    static let rowHeight: CGFloat  = 38   // must equal NSTableView rowHeight
+    static let laneWidth: CGFloat  = 11   // horizontal spacing between lanes
     static let dotRadius: CGFloat  = 4    // filled circle radius
-    static let lineWidth: CGFloat  = 1.5  // stroke width
+    static let lineWidth: CGFloat  = 2.0  // stroke width
     static let leftPad: CGFloat    = 10   // padding before lane 0
 
     // X center of lane N
@@ -18,14 +18,14 @@ enum GraphMetrics {
 class CommitGraphView: NSView {
     
     static let laneColors: [NSColor] = [
-        NSColor(red: 0x37/255.0, green: 0x8A/255.0, blue: 0xDD/255.0, alpha: 1.0), // #378ADD blue
-        NSColor(red: 0x1D/255.0, green: 0x9E/255.0, blue: 0x75/255.0, alpha: 1.0), // #1D9E75 teal
-        NSColor(red: 0x7F/255.0, green: 0x77/255.0, blue: 0xDD/255.0, alpha: 1.0), // #7F77DD purple
-        NSColor(red: 0xD8/255.0, green: 0x5A/255.0, blue: 0x30/255.0, alpha: 1.0), // #D85A30 coral
-        NSColor(red: 0xD4/255.0, green: 0x53/255.0, blue: 0x7E/255.0, alpha: 1.0), // #D4537E pink
-        NSColor(red: 0x63/255.0, green: 0x99/255.0, blue: 0x22/255.0, alpha: 1.0), // #639922 green
-        NSColor(red: 0xBA/255.0, green: 0x75/255.0, blue: 0x17/255.0, alpha: 1.0), // #BA7517 amber
-        NSColor(red: 0x88/255.0, green: 0x87/255.0, blue: 0x80/255.0, alpha: 1.0)  // #888780 gray
+        NSColor(red: 0x1F/255.0, green: 0x75/255.0, blue: 0xCB/255.0, alpha: 1.0), // #1F75CB darker blue
+        NSColor(red: 0x14/255.0, green: 0x80/255.0, blue: 0x5E/255.0, alpha: 1.0), // #14805E darker teal
+        NSColor(red: 0x6A/255.0, green: 0x5A/255.0, blue: 0xCD/255.0, alpha: 1.0), // #6A5ACD darker purple
+        NSColor(red: 0xC8/255.0, green: 0x46/255.0, blue: 0x1B/255.0, alpha: 1.0), // #C8461B darker coral
+        NSColor(red: 0xC2/255.0, green: 0x33/255.0, blue: 0x64/255.0, alpha: 1.0), // #C23364 darker pink
+        NSColor(red: 0x4D/255.0, green: 0x7F/255.0, blue: 0x16/255.0, alpha: 1.0), // #4D7F16 darker green
+        NSColor(red: 0xA6/255.0, green: 0x65/255.0, blue: 0x0D/255.0, alpha: 1.0), // #A6650D darker amber
+        NSColor(red: 0x6A/255.0, green: 0x6A/255.0, blue: 0x6A/255.0, alpha: 1.0)  // #6A6A6A darker gray
     ]
     
     var laneIndex: Int = -1
@@ -68,9 +68,9 @@ class CommitGraphView: NSView {
         context.setLineWidth(GraphMetrics.lineWidth)
         context.setLineCap(.round)
         
-        let midY = GraphMetrics.rowHeight / 2
+        let midY = bounds.height / 2
         let topY: CGFloat = 0
-        let botY = GraphMetrics.rowHeight
+        let botY = bounds.height
         
         // Draw all incoming edges (from topY to midY)
         for edge in incomingEdges {
@@ -83,8 +83,17 @@ class CommitGraphView: NSView {
             let toX = GraphMetrics.laneX(toLane)
             
             context.beginPath()
-            context.move(to: CGPoint(x: snap(fromX), y: snap(topY)))
-            context.addLine(to: CGPoint(x: snap(toX), y: snap(midY)))
+            let start = CGPoint(x: snap(fromX), y: snap(topY))
+            let end = CGPoint(x: snap(toX), y: snap(midY))
+            context.move(to: start)
+            
+            if fromX == toX {
+                context.addLine(to: end)
+            } else {
+                let cp1 = CGPoint(x: start.x, y: start.y + (end.y - start.y) * 0.6)
+                let cp2 = CGPoint(x: end.x, y: end.y - (end.y - start.y) * 0.6)
+                context.addCurve(to: end, control1: cp1, control2: cp2)
+            }
             context.strokePath()
         }
         
@@ -100,8 +109,17 @@ class CommitGraphView: NSView {
             let toX = GraphMetrics.laneX(toLane)
             
             context.beginPath()
-            context.move(to: CGPoint(x: snap(fromX), y: snap(midY)))
-            context.addLine(to: CGPoint(x: snap(toX), y: snap(botY)))
+            let start = CGPoint(x: snap(fromX), y: snap(midY))
+            let end = CGPoint(x: snap(toX), y: snap(botY))
+            context.move(to: start)
+            
+            if fromX == toX {
+                context.addLine(to: end)
+            } else {
+                let cp1 = CGPoint(x: start.x, y: start.y + (end.y - start.y) * 0.6)
+                let cp2 = CGPoint(x: end.x, y: end.y - (end.y - start.y) * 0.6)
+                context.addCurve(to: end, control1: cp1, control2: cp2)
+            }
             context.strokePath()
         }
         
@@ -114,15 +132,9 @@ class CommitGraphView: NSView {
     
     private func drawDot(lane: Int, color: NSColor, ctx: CGContext, snap: (CGFloat) -> CGFloat) {
         let cx = snap(GraphMetrics.laneX(lane))
-        let cy = snap(GraphMetrics.rowHeight / 2)
+        let cy = snap(bounds.height / 2)
         let r  = GraphMetrics.dotRadius
 
-        // Knockout ring (hides lines behind dot) using background color instead of hardcoded white
-        NSColor.controlBackgroundColor.setFill()
-        let knockoutRect = NSRect(x: cx-r-1.5, y: cy-r-1.5, width: (r+1.5)*2, height: (r+1.5)*2)
-        let knockoutPath = NSBezierPath(ovalIn: knockoutRect)
-        knockoutPath.fill()
-        
         // Colored fill
         color.setFill()
         let fillRect = NSRect(x: cx-r, y: cy-r, width: r*2, height: r*2)

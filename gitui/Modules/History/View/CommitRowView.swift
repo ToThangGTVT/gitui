@@ -33,22 +33,30 @@ class CommitRowView: NSTableCellView {
         graphView.setContentHuggingPriority(.required, for: .horizontal)
         graphView.setContentCompressionResistancePriority(.required, for: .horizontal)
         
-        // 2. Message Label
+        // 2. Content Stack View (Vertical)
+        let contentStackView = NSStackView()
+        contentStackView.orientation = .vertical
+        contentStackView.alignment = .leading
+        contentStackView.spacing = 2
+        contentStackView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(contentStackView)
+        
+        // 3. Message Label
         messageLabel = NSTextField(labelWithString: "")
         messageLabel.font = NSFont.systemFont(ofSize: 13)
         messageLabel.lineBreakMode = .byTruncatingTail
         messageLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(messageLabel)
+        contentStackView.addArrangedSubview(messageLabel)
         
-        // 3. Badge Stack View
+        // 4. Badge Stack View
         badgeStackView = NSStackView()
         badgeStackView.orientation = .horizontal
-        badgeStackView.spacing = 4
+        badgeStackView.spacing = 8
         badgeStackView.alignment = .centerY
         badgeStackView.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(badgeStackView)
+        contentStackView.addArrangedSubview(badgeStackView)
         
-        // 4. Author Label
+        // 5. Author Label
         authorLabel = NSTextField(labelWithString: "")
         authorLabel.font = NSFont.systemFont(ofSize: 12)
         authorLabel.textColor = NSColor.secondaryLabelColor
@@ -57,7 +65,7 @@ class CommitRowView: NSTableCellView {
         authorLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(authorLabel)
         
-        // 5. Date Label
+        // 6. Date Label
         dateLabel = NSTextField(labelWithString: "")
         dateLabel.font = NSFont.systemFont(ofSize: 12)
         dateLabel.textColor = NSColor.secondaryLabelColor
@@ -69,19 +77,16 @@ class CommitRowView: NSTableCellView {
         authorLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         messageLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         
-        // 6. Constraints
+        // 7. Constraints
         NSLayoutConstraint.activate([
             graphView.leadingAnchor.constraint(equalTo: leadingAnchor),
             graphView.topAnchor.constraint(equalTo: topAnchor),
             graphView.bottomAnchor.constraint(equalTo: bottomAnchor),
             
-            messageLabel.leadingAnchor.constraint(equalTo: graphView.trailingAnchor, constant: 8),
-            messageLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            contentStackView.leadingAnchor.constraint(equalTo: graphView.trailingAnchor, constant: 8),
+            contentStackView.centerYAnchor.constraint(equalTo: centerYAnchor),
             
-            badgeStackView.leadingAnchor.constraint(equalTo: messageLabel.trailingAnchor, constant: 8),
-            badgeStackView.centerYAnchor.constraint(equalTo: centerYAnchor),
-            
-            authorLabel.leadingAnchor.constraint(equalTo: badgeStackView.trailingAnchor, constant: 12),
+            authorLabel.leadingAnchor.constraint(equalTo: contentStackView.trailingAnchor, constant: 12),
             authorLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             authorLabel.widthAnchor.constraint(equalToConstant: 80),
             
@@ -113,38 +118,40 @@ class CommitRowView: NSTableCellView {
             view.removeFromSuperview()
         }
         
+        badgeStackView.isHidden = refs.isEmpty
+        
         for ref in refs {
-            let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 10.5)
-            label.alignment = .center
-            label.wantsLayer = true
-            label.layer?.cornerRadius = 3.5
-            label.translatesAutoresizingMaskIntoConstraints = false
-            
-            // Set margins
-            label.heightAnchor.constraint(equalToConstant: 14).isActive = true
+            let badgeView: BadgeView
             
             switch ref {
             case .localBranch(let name):
-                label.stringValue = " " + name + " "
-                label.textColor = NSColor(red: 0.05, green: 0.27, blue: 0.49, alpha: 1.0) // #0C447C
-                label.layer?.backgroundColor = NSColor(red: 0.90, green: 0.94, blue: 0.98, alpha: 1.0).cgColor // #E6F1FB
+                badgeView = BadgeView(
+                    text: name,
+                    textColor: NSColor(red: 0.05, green: 0.27, blue: 0.49, alpha: 1.0),
+                    bgColor: NSColor(red: 0.90, green: 0.94, blue: 0.98, alpha: 1.0)
+                )
             case .remoteBranch(let name):
-                label.stringValue = " " + name + " "
-                label.textColor = NSColor(red: 0.15, green: 0.31, blue: 0.04, alpha: 1.0) // #27500A
-                label.layer?.backgroundColor = NSColor(red: 0.92, green: 0.95, blue: 0.87, alpha: 1.0).cgColor // #EAF3DE
+                badgeView = BadgeView(
+                    text: name,
+                    textColor: NSColor(red: 0.15, green: 0.31, blue: 0.04, alpha: 1.0),
+                    bgColor: NSColor(red: 0.92, green: 0.95, blue: 0.87, alpha: 1.0)
+                )
             case .tag(let name):
-                label.stringValue = " tag: " + name + " "
-                label.textColor = NSColor(red: 0.39, green: 0.22, blue: 0.02, alpha: 1.0) // #633806
-                label.layer?.backgroundColor = NSColor(red: 0.98, green: 0.93, blue: 0.85, alpha: 1.0).cgColor // #FAEEDA
+                badgeView = BadgeView(
+                    text: "tag: " + name,
+                    textColor: NSColor(red: 0.39, green: 0.22, blue: 0.02, alpha: 1.0),
+                    bgColor: NSColor(red: 0.98, green: 0.93, blue: 0.85, alpha: 1.0)
+                )
             case .head:
-                label.stringValue = " HEAD "
-                label.font = NSFont.systemFont(ofSize: 10.5, weight: .bold)
-                label.textColor = NSColor(red: 0.24, green: 0.20, blue: 0.54, alpha: 1.0) // #3C3489
-                label.layer?.backgroundColor = NSColor(red: 0.93, green: 0.93, blue: 0.99, alpha: 1.0).cgColor // #EEEDFE
+                badgeView = BadgeView(
+                    text: "HEAD",
+                    textColor: NSColor(red: 0.24, green: 0.20, blue: 0.54, alpha: 1.0),
+                    bgColor: NSColor(red: 0.93, green: 0.93, blue: 0.99, alpha: 1.0),
+                    isBold: true
+                )
             }
             
-            badgeStackView.addArrangedSubview(label)
+            badgeStackView.addArrangedSubview(badgeView)
         }
     }
     
@@ -172,5 +179,37 @@ class CommitRowView: NSTableCellView {
         }
         
         return "now"
+    }
+}
+
+class BadgeView: NSView {
+    private let label: NSTextField
+    
+    init(text: String, textColor: NSColor, bgColor: NSColor, isBold: Bool = false) {
+        label = NSTextField(labelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 10.5, weight: isBold ? .bold : .regular)
+        label.textColor = textColor
+        label.alignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        
+        super.init(frame: .zero)
+        
+        self.wantsLayer = true
+        self.layer?.cornerRadius = 3.5
+        self.layer?.backgroundColor = bgColor.cgColor
+        
+        addSubview(label)
+        
+        // Adjust padding constants to make it look perfectly centered
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 6),
+            label.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -6),
+            label.topAnchor.constraint(equalTo: topAnchor, constant: 1),
+            label.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -1)
+        ])
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
     }
 }

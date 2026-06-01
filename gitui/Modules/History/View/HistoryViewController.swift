@@ -130,7 +130,7 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         tableView.backgroundColor = NSColor.controlBackgroundColor
         tableView.gridColor = NSColor.separatorColor
         tableView.gridStyleMask = []
-        tableView.rowHeight = 28 // GraphMetrics.rowHeight
+        tableView.rowHeight = GraphMetrics.rowHeight
         tableView.intercellSpacing = NSSize(width: 0, height: 0)
         tableView.allowsMultipleSelection = false
         
@@ -147,15 +147,6 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         let menu = NSMenu()
         menu.delegate = self
         tableView.menu = menu
-        
-        // Setup bounds changed notification for infinite scrolling
-        scrollView.contentView.postsBoundsChangedNotifications = true
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(scrollViewDidScroll(_:)),
-            name: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView
-        )
         
         // 3. Right Pane UI: Embed CommitDetailViewController
         addChild(detailVC)
@@ -274,17 +265,6 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         NotificationCenter.default.removeObserver(self)
     }
     
-    @objc private func scrollViewDidScroll(_ notification: Notification) {
-        let visibleHeight = scrollView.documentVisibleRect.height
-        let contentHeight = scrollView.documentView?.frame.height ?? 0
-        let scrollY = scrollView.documentVisibleRect.origin.y
-        
-        // Trigger loadMore when scrolled within 100px of the bottom
-        if scrollY + visibleHeight >= contentHeight - 100 {
-            presenter?.loadMore()
-        }
-    }
-    
     // MARK: - NSSplitViewDelegate
     
     func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
@@ -306,18 +286,45 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     // MARK: - NSTableViewDataSource & Delegate
     
     func numberOfRows(in tableView: NSTableView) -> Int {
-        return commits.count
+        let extraRow = (presenter?.hasMoreCommits == true) ? 1 : 0
+        return commits.count + extraRow
+    }
+    
+    func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
+        if row == commits.count { return 40 } // Load more row height
+        guard row < commits.count else { return 24 }
+        let commit = commits[row]
+        return commit.refs.isEmpty ? 24 : GraphMetrics.rowHeight
     }
     
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        // Render the load more cell
+        if row == commits.count {
+            presenter?.loadMore() // Trigger load more!
+            
+            let cell = NSTableCellView()
+            let textField = NSTextField(labelWithString: "Loading more history...")
+            textField.font = .systemFont(ofSize: 12)
+            textField.textColor = .secondaryLabelColor
+            textField.alignment = .center
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            cell.addSubview(textField)
+            NSLayoutConstraint.activate([
+                textField.centerXAnchor.constraint(equalTo: cell.centerXAnchor),
+                textField.centerYAnchor.constraint(equalTo: cell.centerYAnchor)
+            ])
+            return cell
+        }
+        
         guard row < commits.count else { return nil }
+        
         let commit = commits[row]
         
         let cellIdentifier = NSUserInterfaceItemIdentifier("CommitRowCell")
         var cellView = tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? CommitRowView
         
         if cellView == nil {
-            cellView = CommitRowView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: 28))
+            cellView = CommitRowView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: GraphMetrics.rowHeight))
             cellView?.identifier = cellIdentifier
         }
         

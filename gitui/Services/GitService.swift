@@ -114,7 +114,7 @@ protocol GitServiceProtocol: Sendable {
     func getLineStats(in repoPath: String) async throws -> (added: Int, removed: Int)
     
     func fetch(remote: String, in repoPath: String) async throws
-    func pull(remote: String, branch: String, in repoPath: String) async throws
+    func pull(remote: String, branch: String, options: [String], in repoPath: String) async throws
     func push(remote: String, branch: String, in repoPath: String) async throws
     
     @discardableResult func pushStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping @Sendable (String) -> Void) async throws -> String
@@ -166,10 +166,15 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
             process.standardError = errPipe
             
             try process.run()
-            process.waitUntilExit()
             
-            let outData = outPipe.fileHandleForReading.readDataToEndOfFile()
-            let errData = errPipe.fileHandleForReading.readDataToEndOfFile()
+            // Read stdout and stderr concurrently to prevent pipe buffer deadlocks
+            let outTask = Task { outPipe.fileHandleForReading.readDataToEndOfFile() }
+            let errTask = Task { errPipe.fileHandleForReading.readDataToEndOfFile() }
+            
+            let outData = await outTask.value
+            let errData = await errTask.value
+            
+            process.waitUntilExit()
             
             let outString = String(data: outData, encoding: .utf8) ?? ""
             
@@ -677,8 +682,11 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
         _ = try await runGit(["fetch", remote], in: repoPath)
     }
     
-    func pull(remote: String, branch: String, in repoPath: String) async throws {
-        _ = try await runGit(["pull", remote, branch], in: repoPath)
+    func pull(remote: String, branch: String, options: [String] = [], in repoPath: String) async throws {
+        var args = ["pull"]
+        args.append(contentsOf: options)
+        args.append(contentsOf: [remote, branch])
+        _ = try await runGit(args, in: repoPath)
     }
     
     func push(remote: String, branch: String, in repoPath: String) async throws {

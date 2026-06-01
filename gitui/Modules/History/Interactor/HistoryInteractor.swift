@@ -193,6 +193,10 @@ class HistoryInteractor: HistoryInteractorInputProtocol {
             let trimmed = part.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { continue }
             
+            if trimmed == "refs/stash" {
+                continue
+            }
+            
             if trimmed.hasPrefix("HEAD ->") {
                 refs.append(.head)
                 let localBranch = trimmed.replacingOccurrences(of: "HEAD ->", with: "").trimmingCharacters(in: .whitespaces)

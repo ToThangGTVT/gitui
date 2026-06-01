@@ -258,6 +258,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         splitView.adjustSubviews()
     }
     
+    func splitView(_ splitView: NSSplitView, shouldAdjustSizeOfSubview view: NSView) -> Bool {
+        // Prevent sidebar from resizing when the window is resized
+        return view != splitView.subviews.first
+    }
+    
     func splitViewDidResizeSubviews(_ notification: Notification) {
         splitPersistence?.saveDividerPositions()
     }
@@ -309,7 +314,11 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
         Task {
             let currentBranch = await detectCurrentBranch(in: path)
-            await MainActor.run { self.showPullDialog(defaultBranch: currentBranch ?? "main", repoPath: path) }
+            await MainActor.run {
+                GitPullViewController.show(defaultBranch: currentBranch ?? "main", repoPath: path, from: self.window) { [weak self] remote, branch, options in
+                    self?.performPull(remote: remote, branch: branch, options: options, repoPath: path)
+                }
+            }
         }
     }
 
@@ -321,37 +330,6 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         Task {
             let currentBranch = await detectCurrentBranch(in: path)
             await MainActor.run { self.showPushDialog(defaultBranch: currentBranch ?? "main", repoPath: path) }
-        }
-    }
-
-    private func showPullDialog(defaultBranch: String, repoPath: String) {
-        guard let window = self.window else { return }
-        let alert = NSAlert()
-        alert.messageText = "Pull from Remote"
-        alert.addButton(withTitle: "Pull")
-        alert.addButton(withTitle: "Cancel")
-
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 84))
-
-        let remoteField = labeledField("Remote:", value: "origin",    y: 58, in: container)
-        let branchField = labeledField("Branch:", value: defaultBranch, y: 32, in: container)
-
-        let rebaseBox = NSButton(checkboxWithTitle: "Pull with rebase (--rebase)", target: nil, action: nil)
-        rebaseBox.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
-        rebaseBox.font = NSFont.systemFont(ofSize: 12)
-        container.addSubview(rebaseBox)
-
-        alert.accessoryView = container
-        alert.beginSheetModal(for: window) { [weak self] response in
-            guard let self = self, response == .alertFirstButtonReturn else { return }
-            let remote = remoteField.stringValue.trimmingCharacters(in: .whitespaces)
-            let branch = branchField.stringValue.trimmingCharacters(in: .whitespaces)
-            guard !remote.isEmpty && !branch.isEmpty else { return }
-            if rebaseBox.state == .on {
-                self.performPullRebase(remote: remote, branch: branch, repoPath: repoPath)
-            } else {
-                self.performPull(remote: remote, branch: branch, repoPath: repoPath)
-            }
         }
     }
 
@@ -405,24 +383,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         return field
     }
 
-    private func performPullRebase(remote: String, branch: String, repoPath: String) {
-        Task {
-            do {
-                try await GitService.shared.pullWithRebase(remote: remote, branch: branch, in: repoPath)
-                await MainActor.run {
-                    self.showToolbarAlert(title: "Pull (rebase) Complete",
-                                         message: "Rebased onto \(branch) from '\(remote)'.", isError: false)
-                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
-                    self.updateBranchLabel(for: repoPath, repoName: repoName)
-                    self.refreshCurrentTab()
-                }
-            } catch {
-                await MainActor.run {
-                    self.showToolbarAlert(title: "Pull Failed", message: error.localizedDescription, isError: true)
-                }
-            }
-        }
-    }
+
     
     @objc private func toolbarShowInFinderClicked() {
         guard let path = activeRepoPath else { return }
@@ -632,10 +593,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
     }
     
-    private func performPull(remote: String, branch: String, repoPath: String) {
+    private func performPull(remote: String, branch: String, options: [String], repoPath: String) {
         Task {
             do {
-                try await GitService.shared.pull(remote: remote, branch: branch, in: repoPath)
+                try await GitService.shared.pull(remote: remote, branch: branch, options: options, in: repoPath)
                 await MainActor.run {
                     self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
                     let repoName = URL(fileURLWithPath: repoPath).lastPathComponent

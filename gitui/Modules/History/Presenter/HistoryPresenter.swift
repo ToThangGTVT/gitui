@@ -3,6 +3,7 @@
 import Cocoa
 
 protocol HistoryPresenterProtocol: AnyObject {
+    var hasMoreCommits: Bool { get }
     func viewDidLoad()
     func refresh()
     func loadMore()
@@ -20,6 +21,7 @@ class HistoryPresenter: HistoryPresenterProtocol, HistoryInteractorOutputProtoco
     private var commits: [CommitNode] = []
     private var currentLimit = 200
     private var isLoadingMore = false
+    var hasMoreCommits = true
     
     init(view: HistoryViewProtocol, interactor: HistoryInteractorInputProtocol, router: HistoryRouterProtocol) {
         self.view = view
@@ -37,11 +39,12 @@ class HistoryPresenter: HistoryPresenterProtocol, HistoryInteractorOutputProtoco
     
     func refresh() {
         currentLimit = 200
+        hasMoreCommits = true
         loadHistory()
     }
     
     func loadMore() {
-        guard !isLoadingMore else { return }
+        guard !isLoadingMore, hasMoreCommits else { return }
         isLoadingMore = true
         currentLimit += 200
         loadHistory()
@@ -106,6 +109,11 @@ class HistoryPresenter: HistoryPresenterProtocol, HistoryInteractorOutputProtoco
     // MARK: - HistoryInteractorOutputProtocol
     
     func didLoadHistory(_ commits: [CommitNode]) {
+        // We reached the end of history if increasing the limit didn't give us any more commits
+        if commits.count <= self.commits.count && currentLimit > 200 {
+            self.hasMoreCommits = false
+        }
+        
         self.commits = commits
         self.isLoadingMore = false
         view?.showLoading(false)
