@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="GitPullViewController" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="view" destination="c22-O7-iKe" id="q8d-jO-k1t"/>
+                <outlet property="remoteDropdown" destination="remoteDropdown" id="conn1"/>
+                <outlet property="remoteUrlField" destination="remoteUrlField" id="conn2"/>
+                <outlet property="branchDropdown" destination="branchDropdown" id="conn3"/>
+                <outlet property="refreshButton" destination="refreshButton" id="conn4"/>
+                <outlet property="refreshProgressIndicator" destination="refreshProgressIndicator" id="conn5"/>
+                <outlet property="localBranchLabel" destination="localBranchLabel" id="conn6"/>
+                <outlet property="commitMergedCheckbox" destination="commitMergedCheckbox" id="conn7"/>
+                <outlet property="includeMessagesCheckbox" destination="includeMessagesCheckbox" id="conn8"/>
+                <outlet property="newCommitCheckbox" destination="newCommitCheckbox" id="conn9"/>
+                <outlet property="rebaseCheckbox" destination="rebaseCheckbox" id="conn10"/>
+                <outlet property="cancelButton" destination="cancelButton" id="conn11"/>
+                <outlet property="okButton" destination="okButton" id="conn12"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="580" height="320"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lbl1">
+                    <rect key="frame" x="18" y="280" width="164" height="16"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="160" id="wlbl1"/>
+                    </constraints>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Pull from repository:" id="cell1">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="remoteDropdown">
+                    <rect key="frame" x="185" y="274" width="379" height="25"/>
+                    <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="item1-remote" id="cellRemote">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu"/>
+                        <menu key="menu" id="menuRemote">
+                            <items>
+                                <menuItem title="Item 1" state="on" id="item1-remote"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                    <connections>
+                        <action selector="remoteChanged:" target="-2" id="act1"/>
+                    </connections>
+                </popUpButton>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="remoteUrlField">
+                    <rect key="frame" x="186" y="258" width="376" height="14"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" title="url" id="cellUrl">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="disabledControlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lbl2">
+                    <rect key="frame" x="18" y="230" width="164" height="16"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="160" id="wlbl2"/>
+                    </constraints>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Remote branch to pull:" id="cell2">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="branchDropdown">
+                    <rect key="frame" x="185" y="224" width="299" height="25"/>
+                    <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="item1-branch" id="cellBranch">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="menu"/>
+                        <menu key="menu" id="menuBranch">
+                            <items>
+                                <menuItem title="Item 1" state="on" id="item1-branch"/>
+                            </items>
+                        </menu>
+                    </popUpButtonCell>
+                </popUpButton>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="refreshButton">
+                    <rect key="frame" x="483" y="220" width="84" height="32"/>
+                    <buttonCell key="cell" type="push" title="Refresh" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cellRefresh">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="refreshClicked:" target="-2" id="act2"/>
+                    </connections>
+                </button>
+                <progressIndicator translatesAutoresizingMaskIntoConstraints="NO" id="refreshProgressIndicator">
+                    <rect key="frame" x="517" y="228" width="16" height="16"/>
+                    <progressIndicatorStyle key="style" spinning="YES"/>
+                </progressIndicator>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lbl3">
+                    <rect key="frame" x="18" y="198" width="164" height="16"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="160" id="wlbl3"/>
+                    </constraints>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Pull into local branch:" id="cell3">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="localBranchLabel">
+                    <rect key="frame" x="186" y="198" width="376" height="16"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="main" id="cellLocal">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <box title="Options" translatesAutoresizingMaskIntoConstraints="NO" id="box">
+                    <rect key="frame" x="17" y="56" width="546" height="122"/>
+                    <view key="contentView" id="boxContent">
+                        <rect key="frame" x="4" y="5" width="538" height="102"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="8" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="stack">
+                                <rect key="frame" x="12" y="12" width="514" height="78"/>
+                                <subviews>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="commitMergedCheckbox">
+                                        <rect key="frame" x="-2" y="61" width="241" height="18"/>
+                                        <buttonCell key="cell" type="check" title="Commit merged changes immediately" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="cellCommit">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                    </button>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="includeMessagesCheckbox">
+                                        <rect key="frame" x="-2" y="37" width="398" height="18"/>
+                                        <buttonCell key="cell" type="check" title="Include messages from commits being merged in merge commit" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cellInclude">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                    </button>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="newCommitCheckbox">
+                                        <rect key="frame" x="-2" y="13" width="291" height="18"/>
+                                        <buttonCell key="cell" type="check" title="Create new commit even if fast-forward merge" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cellNew">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                    </button>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="rebaseCheckbox">
+                                        <rect key="frame" x="-2" y="-11" width="506" height="18"/>
+                                        <buttonCell key="cell" type="check" title="Rebase instead of merge (WARNING: make sure you haven't pushed your changes)" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cellRebase">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                    </button>
+                                </subviews>
+                                <visibilityPriorities>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                    <integer value="1000"/>
+                                </visibilityPriorities>
+                                <customSpacing>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                    <real value="3.4028234663852886e+38"/>
+                                </customSpacing>
+                            </stackView>
+                        </subviews>
+                        <constraints>
+                            <constraint firstItem="stack" firstAttribute="leading" secondItem="boxContent" secondAttribute="leading" constant="12" id="stL"/>
+                            <constraint firstAttribute="trailing" secondItem="stack" secondAttribute="trailing" constant="12" id="stR"/>
+                            <constraint firstItem="stack" firstAttribute="top" secondItem="boxContent" secondAttribute="top" constant="12" id="stT"/>
+                            <constraint firstAttribute="bottom" secondItem="stack" secondAttribute="bottom" constant="12" id="stB"/>
+                        </constraints>
+                    </view>
+                    <font key="titleFont" metaFont="smallSystem"/>
+                </box>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cancelButton">
+                    <rect key="frame" x="403" y="13" width="76" height="32"/>
+                    <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cellCancel">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                        <string key="keyEquivalent" base64-UTF8="YES">
+Gw
+</string>
+                    </buttonCell>
+                    <connections>
+                        <action selector="cancelClicked:" target="-2" id="act3"/>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="okButton">
+                    <rect key="frame" x="477" y="13" width="90" height="32"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="76" id="wOkBtn"/>
+                    </constraints>
+                    <buttonCell key="cell" type="push" title="OK" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cellOk">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                        <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                    </buttonCell>
+                    <connections>
+                        <action selector="okClicked:" target="-2" id="act4"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstItem="lbl1" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="24" id="c1"/>
+                <constraint firstItem="lbl1" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c2"/>
+                <constraint firstItem="remoteDropdown" firstAttribute="centerY" secondItem="lbl1" secondAttribute="centerY" id="c3"/>
+                <constraint firstItem="remoteDropdown" firstAttribute="leading" secondItem="lbl1" secondAttribute="trailing" constant="8" id="c4"/>
+                <constraint firstAttribute="trailing" secondItem="remoteDropdown" secondAttribute="trailing" constant="20" id="c5"/>
+                <constraint firstItem="remoteUrlField" firstAttribute="top" secondItem="remoteDropdown" secondAttribute="bottom" constant="6" id="c6"/>
+                <constraint firstItem="remoteUrlField" firstAttribute="leading" secondItem="remoteDropdown" secondAttribute="leading" id="c7"/>
+                <constraint firstItem="remoteUrlField" firstAttribute="trailing" secondItem="remoteDropdown" secondAttribute="trailing" id="c8"/>
+                <constraint firstItem="lbl2" firstAttribute="top" secondItem="remoteUrlField" secondAttribute="bottom" constant="12" id="c9"/>
+                <constraint firstItem="lbl2" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c10"/>
+                <constraint firstItem="branchDropdown" firstAttribute="centerY" secondItem="lbl2" secondAttribute="centerY" id="c11"/>
+                <constraint firstItem="branchDropdown" firstAttribute="leading" secondItem="lbl2" secondAttribute="trailing" constant="8" id="c12"/>
+                <constraint firstItem="refreshButton" firstAttribute="centerY" secondItem="branchDropdown" secondAttribute="centerY" id="c13"/>
+                <constraint firstItem="refreshButton" firstAttribute="leading" secondItem="branchDropdown" secondAttribute="trailing" constant="8" id="c14"/>
+                <constraint firstAttribute="trailing" secondItem="refreshButton" secondAttribute="trailing" constant="20" id="c15"/>
+                <constraint firstAttribute="trailing" secondItem="branchDropdown" secondAttribute="trailing" constant="100" id="c16"/>
+                <constraint firstItem="refreshProgressIndicator" firstAttribute="centerY" secondItem="refreshButton" secondAttribute="centerY" id="c17"/>
+                <constraint firstItem="refreshProgressIndicator" firstAttribute="centerX" secondItem="refreshButton" secondAttribute="centerX" id="c18"/>
+                <constraint firstItem="lbl3" firstAttribute="top" secondItem="lbl2" secondAttribute="bottom" constant="16" id="c19"/>
+                <constraint firstItem="lbl3" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c20"/>
+                <constraint firstItem="localBranchLabel" firstAttribute="centerY" secondItem="lbl3" secondAttribute="centerY" id="c21"/>
+                <constraint firstItem="localBranchLabel" firstAttribute="leading" secondItem="lbl3" secondAttribute="trailing" constant="12" id="c22"/>
+                <constraint firstAttribute="trailing" secondItem="localBranchLabel" secondAttribute="trailing" constant="20" id="cLocalT"/>
+                <constraint firstItem="box" firstAttribute="top" secondItem="lbl3" secondAttribute="bottom" constant="20" id="c23"/>
+                <constraint firstItem="box" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c24"/>
+                <constraint firstAttribute="trailing" secondItem="box" secondAttribute="trailing" constant="20" id="c25"/>
+                <constraint firstAttribute="bottom" secondItem="okButton" secondAttribute="bottom" constant="20" id="c26"/>
+                <constraint firstAttribute="trailing" secondItem="okButton" secondAttribute="trailing" constant="20" id="c27"/>
+                <constraint firstItem="okButton" firstAttribute="leading" secondItem="cancelButton" secondAttribute="trailing" constant="12" id="c28"/>
+                <constraint firstItem="cancelButton" firstAttribute="centerY" secondItem="okButton" secondAttribute="centerY" id="c29"/>
+            </constraints>
+        </customView>
+    </objects>
+</document>
