@@ -66,9 +66,75 @@ struct GitTag: Identifiable, Equatable {
     let name: String
 }
 
+// MARK: - GitServiceProtocol
+
+protocol GitServiceProtocol: Sendable {
+    func runGit(_ args: [String], in repoPath: String) async throws -> String
+    func runGitStreaming(_ args: [String], in repoPath: String, onOutput: @escaping @Sendable (String) -> Void) async throws -> String
+    
+    func getStatus(in repoPath: String) async throws -> (staged: [GitFileStatus], unstaged: [GitFileStatus])
+    func getDiff(in repoPath: String, file: String, staged: Bool) async throws -> String
+    func getUntrackedFileDiff(path: String, in repoPath: String) -> String
+    func stageFile(_ path: String, in repoPath: String) async throws
+    func stageAll(in repoPath: String) async throws
+    func unstageFile(_ path: String, in repoPath: String) async throws
+    func unstageAll(in repoPath: String) async throws
+    
+    func commit(message: String, amend: Bool, in repoPath: String) async throws
+    func getCommitFileDiff(hash: String, file: String, in repoPath: String) async throws -> String
+    func getLastCommitMessage(in repoPath: String) async throws -> String
+    
+    func rebase(onto branch: String, in repoPath: String) async throws
+    func pullWithRebase(remote: String, branch: String, in repoPath: String) async throws
+    func applyPatch(_ patch: String, cached: Bool, reverse: Bool, in repoPath: String) async throws
+    func getHistory(in repoPath: String, limit: Int) async throws -> [GitCommit]
+    func getBranches(in repoPath: String) async throws -> [GitBranch]
+    func checkout(branch: String, in repoPath: String) async throws
+    func createBranch(name: String, startPoint: String, checkout: Bool, in repoPath: String) async throws
+    func getAheadBehind(in repoPath: String) async -> (ahead: Int, behind: Int)
+    
+    func discardFile(_ filePath: String, in repoPath: String) async throws
+    func discardUntrackedFile(_ filePath: String, in repoPath: String) throws
+    func removeFile(_ filePath: String, in repoPath: String) async throws
+    func addToGitignore(_ filePath: String, in repoPath: String) throws
+    
+    func merge(branch: String, in repoPath: String) async throws
+    
+    func getStashes(in repoPath: String) async throws -> [GitStash]
+    func stashSave(message: String?, in repoPath: String) async throws
+    func stashApply(index: Int, in repoPath: String) async throws
+    func stashPop(index: Int, in repoPath: String) async throws
+    func stashDrop(index: Int, in repoPath: String) async throws
+    func stashClear(in repoPath: String) async throws
+    
+    func getRemotes(in repoPath: String) async throws -> [GitRemote]
+    func addRemote(name: String, url: String, in repoPath: String) async throws
+    func removeRemote(name: String, in repoPath: String) async throws
+    
+    func getLineStats(in repoPath: String) async throws -> (added: Int, removed: Int)
+    
+    func fetch(remote: String, in repoPath: String) async throws
+    func pull(remote: String, branch: String, in repoPath: String) async throws
+    func push(remote: String, branch: String, in repoPath: String) async throws
+    
+    @discardableResult func pushStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping @Sendable (String) -> Void) async throws -> String
+    @discardableResult func pushForceStreaming(remote: String, branch: String, in repoPath: String, onOutput: @escaping @Sendable (String) -> Void) async throws -> String
+    
+    func getTags(in repoPath: String) async throws -> [GitTag]
+    func createTag(name: String, in repoPath: String) async throws
+    func deleteTag(name: String, in repoPath: String) async throws
+    func pushTag(remote: String, name: String, in repoPath: String) async throws
+    
+    func cherryPick(hash: String, in repoPath: String) async throws
+    func revert(hash: String, in repoPath: String) async throws
+    
+    func clone(url: String, to path: String) async throws
+    func initRepository(at path: String) async throws
+}
+
 // MARK: - GitService
 
-final class GitService: @unchecked Sendable {
+final class GitService: GitServiceProtocol, @unchecked Sendable {
     static let shared = GitService()
     
     private init() {}
