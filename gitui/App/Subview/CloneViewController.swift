@@ -36,7 +36,7 @@ class CloneViewController: NSViewController {
     private func buildUI() {
         func sectionLabel(_ text: String) -> NSTextField {
             let l = NSTextField(labelWithString: text)
-            l.font = NSFont.systemFont(ofSize: 12)
+            l.font = NSFont.systemFont(ofSize: 13)
             l.alignment = .right
             l.translatesAutoresizingMaskIntoConstraints = false
             return l
@@ -48,7 +48,7 @@ class CloneViewController: NSViewController {
         urlField.placeholderString  = "https://github.com/user/repo.git"
         destField.placeholderString = "/Users/you/Projects/repo"
         for f in [urlField, destField] {
-            f.font = NSFont.systemFont(ofSize: 12)
+            f.font = NSFont.systemFont(ofSize: 13)
             f.translatesAutoresizingMaskIntoConstraints = false
         }
 
@@ -56,7 +56,7 @@ class CloneViewController: NSViewController {
         browseButton.action = #selector(browseClicked)
         browseButton.translatesAutoresizingMaskIntoConstraints = false
 
-        statusLabel.font = NSFont.systemFont(ofSize: 11)
+        statusLabel.font = NSFont.systemFont(ofSize: 12)
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
 

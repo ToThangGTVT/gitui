@@ -188,17 +188,17 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
         if let textField = cell?.textField {
             if node.isHeader {
                 textField.stringValue = node.name
-                textField.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+                textField.font = NSFont.systemFont(ofSize: 11, weight: .bold)
                 textField.textColor = NSColor.secondaryLabelColor
             } else {
                 let displayName = node.name.replacingOccurrences(of: "remotes/", with: "")
                 textField.stringValue = displayName
                 
                 if node.isCurrent {
-                    textField.font = NSFont.systemFont(ofSize: 12, weight: .bold)
+                    textField.font = NSFont.systemFont(ofSize: 13, weight: .bold)
                     textField.textColor = NSColor.gitFlowAccent
                 } else {
-                    textField.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+                    textField.font = NSFont.systemFont(ofSize: 13, weight: .regular)
                     textField.textColor = NSColor.labelColor
                 }
             }

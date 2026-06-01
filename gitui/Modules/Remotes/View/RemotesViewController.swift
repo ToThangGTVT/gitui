@@ -53,13 +53,13 @@ class RemotesViewController: NSViewController, RemotesViewProtocol, NSTableViewD
         
         nameInputField = NSTextField()
         nameInputField.placeholderString = "Remote name (e.g. origin)"
-        nameInputField.font = NSFont.systemFont(ofSize: 12)
+        nameInputField.font = NSFont.systemFont(ofSize: 13)
         nameInputField.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(nameInputField)
         
         urlInputField = NSTextField()
         urlInputField.placeholderString = "Git Repository URL..."
-        urlInputField.font = NSFont.systemFont(ofSize: 12)
+        urlInputField.font = NSFont.systemFont(ofSize: 13)
         urlInputField.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(urlInputField)
         
@@ -117,7 +117,7 @@ class RemotesViewController: NSViewController, RemotesViewProtocol, NSTableViewD
         
         branchInputField = NSTextField()
         branchInputField.placeholderString = "Branch name (e.g. main)"
-        branchInputField.font = NSFont.systemFont(ofSize: 12)
+        branchInputField.font = NSFont.systemFont(ofSize: 13)
         branchInputField.translatesAutoresizingMaskIntoConstraints = false
         bottomView.addSubview(branchInputField)
         
@@ -274,11 +274,11 @@ class RemotesViewController: NSViewController, RemotesViewProtocol, NSTableViewD
         }
         
         if let textField = cell?.textField {
-            textField.font = NSFont.systemFont(ofSize: 12)
+            textField.font = NSFont.systemFont(ofSize: 13)
             textField.textColor = NSColor.labelColor
             if colId.rawValue == "colName" {
                 textField.stringValue = remote.name
-                textField.font = NSFont.systemFont(ofSize: 12, weight: .bold)
+                textField.font = NSFont.systemFont(ofSize: 13, weight: .bold)
             } else {
                 textField.stringValue = remote.url
             }

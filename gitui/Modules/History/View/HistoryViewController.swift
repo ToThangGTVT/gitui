@@ -201,7 +201,7 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         panel.addSubview(infoAvatarView)
 
         infoHashLabel = NSTextField(labelWithString: "")
-        infoHashLabel.font = NSFont(name: "Menlo", size: 10) ?? NSFont.userFixedPitchFont(ofSize: 10)
+        infoHashLabel.font = NSFont(name: "Menlo", size: 11) ?? NSFont.userFixedPitchFont(ofSize: 11)
         infoHashLabel.textColor = .secondaryLabelColor
         infoHashLabel.wantsLayer = true
         infoHashLabel.layer?.cornerRadius = 3
@@ -211,13 +211,13 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         panel.addSubview(infoHashLabel)
 
         infoAuthorLabel = NSTextField(labelWithString: "")
-        infoAuthorLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        infoAuthorLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         infoAuthorLabel.textColor = .labelColor
         infoAuthorLabel.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(infoAuthorLabel)
 
         infoDateLabel = NSTextField(labelWithString: "")
-        infoDateLabel.font = NSFont.systemFont(ofSize: 11)
+        infoDateLabel.font = NSFont.systemFont(ofSize: 12)
         infoDateLabel.textColor = .secondaryLabelColor
         infoDateLabel.translatesAutoresizingMaskIntoConstraints = false
         panel.addSubview(infoDateLabel)
@@ -232,7 +232,7 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         infoMessageView = NSTextView()
         infoMessageView.isRichText = false
         infoMessageView.isEditable = false
-        infoMessageView.font = NSFont.systemFont(ofSize: 11)
+        infoMessageView.font = NSFont.systemFont(ofSize: 12)
         infoMessageView.textColor = .labelColor
         infoMessageView.backgroundColor = .clear
         msgScroll.documentView = infoMessageView

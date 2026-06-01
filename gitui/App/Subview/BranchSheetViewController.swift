@@ -127,7 +127,7 @@ class BranchSheetViewController: NSViewController, NSTableViewDataSource, NSTabl
             cell?.imageView = icon
             
             let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 13)
+            label.font = NSFont.systemFont(ofSize: 14)
             label.lineBreakMode = .byTruncatingTail
             label.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(label)
@@ -135,7 +135,7 @@ class BranchSheetViewController: NSViewController, NSTableViewDataSource, NSTabl
             
             let check = NSTextField(labelWithString: "")
             check.identifier = NSUserInterfaceItemIdentifier("checkmark")
-            check.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+            check.font = NSFont.systemFont(ofSize: 14, weight: .bold)
             check.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(check)
             
@@ -157,7 +157,7 @@ class BranchSheetViewController: NSViewController, NSTableViewDataSource, NSTabl
         cell?.textField?.stringValue = branch.name
         
         if branch.isCurrent {
-            cell?.textField?.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+            cell?.textField?.font = NSFont.systemFont(ofSize: 14, weight: .bold)
             cell?.textField?.textColor = NSColor.controlAccentColor
             cell?.imageView?.contentTintColor = NSColor.controlAccentColor
             if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
@@ -165,7 +165,7 @@ class BranchSheetViewController: NSViewController, NSTableViewDataSource, NSTabl
                 check.textColor = NSColor.controlAccentColor
             }
         } else {
-            cell?.textField?.font = NSFont.systemFont(ofSize: 13)
+            cell?.textField?.font = NSFont.systemFont(ofSize: 14)
             cell?.textField?.textColor = NSColor.labelColor
             cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor
             if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {

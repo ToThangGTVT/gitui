@@ -70,7 +70,7 @@ class CommitDetailViewController: NSViewController,
         pane.addSubview(titleBar)
 
         let titleLabel = NSTextField(labelWithString: "CHANGED FILES")
-        titleLabel.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+        titleLabel.font = NSFont.systemFont(ofSize: 11, weight: .bold)
         titleLabel.textColor = .secondaryLabelColor
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         titleBar.addSubview(titleLabel)
@@ -138,7 +138,7 @@ class CommitDetailViewController: NSViewController,
         topBorder.translatesAutoresizingMaskIntoConstraints = false
         pane.addSubview(topBorder)
 
-        diffTitleLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        diffTitleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
         diffTitleLabel.textColor = .secondaryLabelColor
         diffTitleLabel.lineBreakMode = .byTruncatingMiddle
         diffTitleLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -316,13 +316,13 @@ class CommitDetailViewController: NSViewController,
             cell?.addSubview(badge)
 
             let badgeText = NSTextField(labelWithString: "")
-            badgeText.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+            badgeText.font = NSFont.systemFont(ofSize: 11, weight: .bold)
             badgeText.alignment = .center
             badgeText.translatesAutoresizingMaskIntoConstraints = false
             badge.addSubview(badgeText)
 
             let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 11)
+            label.font = NSFont.systemFont(ofSize: 12)
             label.lineBreakMode = .byTruncatingMiddle
             label.translatesAutoresizingMaskIntoConstraints = false
             cell?.addSubview(label)

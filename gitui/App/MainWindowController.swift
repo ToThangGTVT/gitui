@@ -105,7 +105,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         branchButton.isBordered = false
         branchButton.contentTintColor = NSColor.controlAccentColor
-        branchButton.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        branchButton.font = NSFont.systemFont(ofSize: 13, weight: .medium)
         branchButton.target = self
         branchButton.action = #selector(branchButtonClicked(_:))
         if #available(macOS 11.0, *) {
@@ -338,7 +338,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
 
         let rebaseBox = NSButton(checkboxWithTitle: "Pull with rebase (--rebase)", target: nil, action: nil)
         rebaseBox.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
-        rebaseBox.font = NSFont.systemFont(ofSize: 11)
+        rebaseBox.font = NSFont.systemFont(ofSize: 12)
         container.addSubview(rebaseBox)
 
         alert.accessoryView = container
@@ -369,7 +369,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
 
         let forceBox = NSButton(checkboxWithTitle: "Force push (--force-with-lease)", target: nil, action: nil)
         forceBox.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
-        forceBox.font = NSFont.systemFont(ofSize: 11)
+        forceBox.font = NSFont.systemFont(ofSize: 12)
         container.addSubview(forceBox)
 
         alert.accessoryView = container
@@ -394,13 +394,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     private func labeledField(_ label: String, value: String, y: CGFloat, in parent: NSView) -> NSTextField {
         let lbl = NSTextField(labelWithString: label)
         lbl.frame = NSRect(x: 0, y: y, width: 60, height: 22)
-        lbl.font = NSFont.systemFont(ofSize: 12)
+        lbl.font = NSFont.systemFont(ofSize: 13)
         parent.addSubview(lbl)
 
         let field = NSTextField()
         field.frame = NSRect(x: 65, y: y, width: 230, height: 22)
         field.stringValue = value
-        field.font = NSFont.systemFont(ofSize: 12)
+        field.font = NSFont.systemFont(ofSize: 13)
         parent.addSubview(field)
         return field
     }
@@ -447,7 +447,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 guard self.activeRepoPath == repoPath else { return }
                 if let branch = branch {
                     self.repoTitleLabel.stringValue = repoName
-                    self.repoTitleLabel.font = NSFont.systemFont(ofSize: 15, weight: .bold)
+                    self.repoTitleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
                     self.branchButton.title = " \(branch) ▾"
                     self.branchButton.superview?.isHidden = false
                     
@@ -472,18 +472,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         if ahead > 0 {
             result.append(NSAttributedString(string: "↑\(ahead)", attributes: [
                 .foregroundColor: NSColor.systemGreen,
-                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
+                .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
             ]))
         }
         if ahead > 0 && behind > 0 {
             result.append(NSAttributedString(string: "  ", attributes: [
-                .font: NSFont.systemFont(ofSize: 11)
+                .font: NSFont.systemFont(ofSize: 12)
             ]))
         }
         if behind > 0 {
             result.append(NSAttributedString(string: "↓\(behind)", attributes: [
                 .foregroundColor: NSColor.systemOrange,
-                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
+                .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
             ]))
         }
         
@@ -572,19 +572,19 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         let nameLabel = NSTextField(labelWithString: "Branch Name:")
         nameLabel.frame = NSRect(x: 0, y: 34, width: 90, height: 22)
-        nameLabel.font = NSFont.systemFont(ofSize: 12)
+        nameLabel.font = NSFont.systemFont(ofSize: 13)
         accessoryView.addSubview(nameLabel)
         
         let nameField = NSTextField()
         nameField.frame = NSRect(x: 95, y: 34, width: 200, height: 22)
-        nameField.font = NSFont.systemFont(ofSize: 12)
+        nameField.font = NSFont.systemFont(ofSize: 13)
         nameField.placeholderString = "e.g. feature-login"
         accessoryView.addSubview(nameField)
         
         let checkoutCheckbox = NSButton(checkboxWithTitle: "Checkout new branch immediately", target: nil, action: nil)
         checkoutCheckbox.frame = NSRect(x: 95, y: 4, width: 200, height: 22)
         checkoutCheckbox.state = .on
-        checkoutCheckbox.font = NSFont.systemFont(ofSize: 11)
+        checkoutCheckbox.font = NSFont.systemFont(ofSize: 12)
         accessoryView.addSubview(checkoutCheckbox)
         
         alert.accessoryView = accessoryView
@@ -672,25 +672,25 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         let remoteLabel = NSTextField(labelWithString: "Remote:")
         remoteLabel.frame = NSRect(x: 0, y: 32, width: 60, height: 22)
-        remoteLabel.font = NSFont.systemFont(ofSize: 12)
+        remoteLabel.font = NSFont.systemFont(ofSize: 13)
         accessoryView.addSubview(remoteLabel)
         
         let remoteField = NSTextField()
         remoteField.frame = NSRect(x: 65, y: 32, width: 230, height: 22)
         remoteField.stringValue = "origin"
-        remoteField.font = NSFont.systemFont(ofSize: 12)
+        remoteField.font = NSFont.systemFont(ofSize: 13)
         remoteField.placeholderString = "e.g. origin"
         accessoryView.addSubview(remoteField)
         
         let branchLabel = NSTextField(labelWithString: "Branch:")
         branchLabel.frame = NSRect(x: 0, y: 4, width: 60, height: 22)
-        branchLabel.font = NSFont.systemFont(ofSize: 12)
+        branchLabel.font = NSFont.systemFont(ofSize: 13)
         accessoryView.addSubview(branchLabel)
         
         let branchField = NSTextField()
         branchField.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
         branchField.stringValue = defaultBranch
-        branchField.font = NSFont.systemFont(ofSize: 12)
+        branchField.font = NSFont.systemFont(ofSize: 13)
         branchField.placeholderString = "e.g. main"
         accessoryView.addSubview(branchField)
         
@@ -804,7 +804,7 @@ extension MainWindowController: CustomToolbarViewDelegate {
 
         let msgField = NSTextField()
         msgField.frame = NSRect(x: 0, y: 0, width: 280, height: 22)
-        msgField.font = NSFont.systemFont(ofSize: 12)
+        msgField.font = NSFont.systemFont(ofSize: 13)
         msgField.placeholderString = "Stash message (optional)..."
         alert.accessoryView = msgField
 

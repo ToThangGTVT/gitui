@@ -326,7 +326,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         container.addSubview(headerBar)
         
         let label = NSTextField(labelWithString: title.uppercased())
-        label.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+        label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
         label.textColor = NSColor.secondaryLabelColor
         label.translatesAutoresizingMaskIntoConstraints = false
         headerBar.addSubview(label)
@@ -407,7 +407,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         commitTextView = NSTextView()
         commitTextView.isRichText = false
         commitTextView.isEditable = true
-        commitTextView.font = NSFont.systemFont(ofSize: 12)
+        commitTextView.font = NSFont.systemFont(ofSize: 13)
         commitTextView.textColor = NSColor.labelColor
         commitTextView.delegate = self
         commitTextView.insertionPointColor = NSColor.labelColor
@@ -416,7 +416,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         
         // Placeholder label overlay
         let placeholder = NSTextField(labelWithString: "Commit message...")
-        placeholder.font = NSFont.systemFont(ofSize: 12)
+        placeholder.font = NSFont.systemFont(ofSize: 13)
         placeholder.textColor = NSColor.placeholderTextColor
         placeholder.identifier = NSUserInterfaceItemIdentifier("commitPlaceholder")
         placeholder.translatesAutoresizingMaskIntoConstraints = false
@@ -481,7 +481,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         container.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
 
         diffTitleLabel = NSTextField(labelWithString: "No file selected")
-        diffTitleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        diffTitleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         diffTitleLabel.textColor = NSColor.labelColor
         diffTitleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(diffTitleLabel)
@@ -510,9 +510,9 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         diffTableView.usesAlternatingRowBackgroundColors = false
 
         let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("diffCol"))
-        col.resizingMask = .autoresizingMask
+        col.resizingMask = []
         diffTableView.addTableColumn(col)
-        diffTableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        diffTableView.columnAutoresizingStyle = .noColumnAutoresizing
         diffTableView.dataSource = self
         diffTableView.delegate = self
 
@@ -817,7 +817,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             cell?.addSubview(badgeContainer)
 
             let statusBadge = NSTextField(labelWithString: "")
-            statusBadge.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+            statusBadge.font = NSFont.systemFont(ofSize: 11, weight: .bold)
             statusBadge.alignment = .center
             statusBadge.translatesAutoresizingMaskIntoConstraints = false
             badgeContainer.addSubview(statusBadge)
@@ -829,7 +829,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             ])
 
             let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 12)
+            label.font = NSFont.systemFont(ofSize: 13)
             label.lineBreakMode = .byTruncatingMiddle
             label.setContentHuggingPriority(.defaultLow, for: .horizontal)
             label.translatesAutoresizingMaskIntoConstraints = false
@@ -1014,9 +1014,15 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     func showDiffText(_ text: String, for file: String, isStaged: Bool) {
         removeConflictUI()
         self.isShowingUnstagedDiff = !isStaged
-        isShowingUnstagedDiff = !isStaged
         let hunks = parseDiffHunks(from: text)
         diffLines = buildDiffLines(from: text, hunks: hunks)
+        
+        let maxLineLength = diffLines.map { $0.rawText.count }.max() ?? 0
+        let contentWidth = CGFloat(maxLineLength) * 8.0 + 80 // Approx 8px per char + gutter padding
+        if let col = diffTableView.tableColumns.first {
+            col.width = max(diffScrollView.bounds.width, contentWidth)
+        }
+        
         diffTableView.reloadData()
         if !diffLines.isEmpty {
             diffTableView.scrollRowToVisible(0)
@@ -1043,13 +1049,13 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         banner.layer?.backgroundColor = NSColor.gitFlowConflict.cgColor
 
         let icon = NSTextField(labelWithString: "⚠")
-        icon.font = NSFont.systemFont(ofSize: 13, weight: .bold)
+        icon.font = NSFont.systemFont(ofSize: 14, weight: .bold)
         icon.textColor = NSColor.gitFlowConflictText
         icon.translatesAutoresizingMaskIntoConstraints = false
         banner.addSubview(icon)
 
         let label = NSTextField(labelWithString: "Merge conflict — resolve conflicts and mark files as resolved, then commit")
-        label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         label.textColor = NSColor.gitFlowConflictText
         label.lineBreakMode = .byTruncatingTail
         label.translatesAutoresizingMaskIntoConstraints = false

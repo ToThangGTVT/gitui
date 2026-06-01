@@ -92,7 +92,7 @@ class CustomToolbarView: NSView {
             
             // 1. Spacing character (newline with font size 3)
             let spacer = NSAttributedString(string: "\n", attributes: [
-                .font: NSFont.systemFont(ofSize: 3)
+                .font: NSFont.systemFont(ofSize: 4)
             ])
             result.append(spacer)
             
@@ -100,7 +100,7 @@ class CustomToolbarView: NSView {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .center
             let textAttr = NSAttributedString(string: title, attributes: [
-                .font: NSFont.systemFont(ofSize: 11),
+                .font: NSFont.systemFont(ofSize: 12),
                 .foregroundColor: NSColor.controlAccentColor,
                 .paragraphStyle: paragraphStyle
             ])
@@ -110,11 +110,12 @@ class CustomToolbarView: NSView {
         }
         
         if #available(macOS 11.0, *) {
-            let config = NSImage.SymbolConfiguration(pointSize: 15, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
             for (btn, title, symbol) in buttons {
                 if let button = btn {
                     button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)?.withSymbolConfiguration(config)
                     button.imagePosition = .imageAbove
+                    button.imageScaling = .scaleNone
                     button.attributedTitle = createAttributedTitle(title)
                 }
             }
@@ -123,6 +124,7 @@ class CustomToolbarView: NSView {
                 if let button = btn {
                     button.image = NSImage(named: NSImage.actionTemplateName)
                     button.imagePosition = .imageAbove
+                    button.imageScaling = .scaleNone
                     button.attributedTitle = createAttributedTitle(title)
                 }
             }

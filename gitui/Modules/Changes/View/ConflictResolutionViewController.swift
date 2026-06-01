@@ -70,7 +70,7 @@ class ConflictResolutionViewController: NSViewController {
         
         let resolveBtn = NSButton(title: "Mark as Resolved", target: self, action: #selector(markAsResolvedClicked))
         resolveBtn.bezelStyle = .texturedRounded
-        resolveBtn.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        resolveBtn.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
         resolveBtn.translatesAutoresizingMaskIntoConstraints = false
         resolveContainer.addSubview(resolveBtn)
         
@@ -146,7 +146,7 @@ class ConflictResolutionViewController: NSViewController {
         textView.isEditable = false
         textView.isSelectable = true
         textView.drawsBackground = false
-        textView.font = NSFont(name: "SF Mono", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        textView.font = NSFont(name: "SF Mono", size: 13) ?? NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         textView.textContainerInset = NSSize(width: 8, height: 4)
         textView.translatesAutoresizingMaskIntoConstraints = false
         
@@ -249,7 +249,7 @@ class ConflictResolutionViewController: NSViewController {
         view.translatesAutoresizingMaskIntoConstraints = false
         
         let label = NSTextField(labelWithString: title)
-        label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .bold)
         label.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(label)
         

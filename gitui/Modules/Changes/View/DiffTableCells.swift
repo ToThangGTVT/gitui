@@ -35,7 +35,7 @@ class HunkHeaderCellView: NSView {
         wantsLayer = true
         layer?.backgroundColor = HunkHeaderCellView.background.cgColor
 
-        hunkLabel.font = NSFont(name: "Menlo", size: 10) ?? NSFont.userFixedPitchFont(ofSize: 10)
+        hunkLabel.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         hunkLabel.textColor = .secondaryLabelColor
         hunkLabel.lineBreakMode = .byTruncatingTail
         hunkLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -115,6 +115,7 @@ class HunkHeaderCellView: NSView {
 class DiffLineCellView: NSView {
 
     private let lineNumLabel = NSTextField(labelWithString: "")
+    private let signLabel = NSTextField(labelWithString: "")
     private let sep = NSView()
     private let contentLabel = NSTextField(labelWithString: "")
 
@@ -128,14 +129,20 @@ class DiffLineCellView: NSView {
     private func setup() {
         wantsLayer = true
 
-        let gutterFont  = NSFont(name: "Menlo", size: 10) ?? NSFont.userFixedPitchFont(ofSize: 10)
-        let contentFont = NSFont(name: "Menlo", size: 11) ?? NSFont.userFixedPitchFont(ofSize: 11)
+        let gutterFont  = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        let contentFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
 
         lineNumLabel.font = gutterFont
         lineNumLabel.textColor = .secondaryLabelColor
         lineNumLabel.alignment = .right
         lineNumLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(lineNumLabel)
+        
+        signLabel.font = gutterFont
+        signLabel.textColor = .secondaryLabelColor
+        signLabel.alignment = .center
+        signLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(signLabel)
 
         sep.wantsLayer = true
         sep.layer?.backgroundColor = NSColor.separatorColor.cgColor
@@ -150,9 +157,13 @@ class DiffLineCellView: NSView {
         NSLayoutConstraint.activate([
             lineNumLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
             lineNumLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            lineNumLabel.widthAnchor.constraint(equalToConstant: 52),
+            lineNumLabel.widthAnchor.constraint(equalToConstant: 40),
+            
+            signLabel.leadingAnchor.constraint(equalTo: lineNumLabel.trailingAnchor, constant: 2),
+            signLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            signLabel.widthAnchor.constraint(equalToConstant: 10),
 
-            sep.leadingAnchor.constraint(equalTo: lineNumLabel.trailingAnchor, constant: 2),
+            sep.leadingAnchor.constraint(equalTo: signLabel.trailingAnchor, constant: 2),
             sep.centerYAnchor.constraint(equalTo: centerYAnchor),
             sep.widthAnchor.constraint(equalToConstant: 1),
             sep.heightAnchor.constraint(equalTo: heightAnchor),
@@ -166,25 +177,35 @@ class DiffLineCellView: NSView {
     func configure(with line: DiffLine) {
         switch line.kind {
         case .context(_, let new):
-            lineNumLabel.stringValue = "  \(new)"
+            lineNumLabel.stringValue = "\(new)"
+            signLabel.stringValue = ""
+            lineNumLabel.textColor = .tertiaryLabelColor
+            signLabel.textColor = .tertiaryLabelColor
             contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
             contentLabel.textColor = .labelColor
             layer?.backgroundColor = NSColor.clear.cgColor
 
         case .added(let ln):
-            lineNumLabel.stringValue = "+ \(ln)"
+            lineNumLabel.stringValue = "\(ln)"
+            signLabel.stringValue = "+"
+            lineNumLabel.textColor = .gitFlowStagedAddText
+            signLabel.textColor = .gitFlowStagedAddText
             contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
             contentLabel.textColor = .labelColor
             layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
 
         case .removed(let ln):
-            lineNumLabel.stringValue = "- \(ln)"
+            lineNumLabel.stringValue = "\(ln)"
+            signLabel.stringValue = "-"
+            lineNumLabel.textColor = .gitFlowStagedDeleteText
+            signLabel.textColor = .gitFlowStagedDeleteText
             contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
             contentLabel.textColor = .labelColor
             layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
 
         case .fileHeader:
             lineNumLabel.stringValue = ""
+            signLabel.stringValue = ""
             contentLabel.stringValue = line.rawText
             contentLabel.textColor = .secondaryLabelColor
             layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.2).cgColor

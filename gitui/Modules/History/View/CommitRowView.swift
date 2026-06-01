@@ -35,7 +35,7 @@ class CommitRowView: NSTableCellView {
         
         // 2. Message Label
         messageLabel = NSTextField(labelWithString: "")
-        messageLabel.font = NSFont.systemFont(ofSize: 12)
+        messageLabel.font = NSFont.systemFont(ofSize: 13)
         messageLabel.lineBreakMode = .byTruncatingTail
         messageLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(messageLabel)
@@ -50,7 +50,7 @@ class CommitRowView: NSTableCellView {
         
         // 4. Author Label
         authorLabel = NSTextField(labelWithString: "")
-        authorLabel.font = NSFont.systemFont(ofSize: 11)
+        authorLabel.font = NSFont.systemFont(ofSize: 12)
         authorLabel.textColor = NSColor.secondaryLabelColor
         authorLabel.lineBreakMode = .byTruncatingTail
         authorLabel.alignment = .left
@@ -59,7 +59,7 @@ class CommitRowView: NSTableCellView {
         
         // 5. Date Label
         dateLabel = NSTextField(labelWithString: "")
-        dateLabel.font = NSFont.systemFont(ofSize: 11)
+        dateLabel.font = NSFont.systemFont(ofSize: 12)
         dateLabel.textColor = NSColor.secondaryLabelColor
         dateLabel.alignment = .right
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -115,7 +115,7 @@ class CommitRowView: NSTableCellView {
         
         for ref in refs {
             let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 9.5)
+            label.font = NSFont.systemFont(ofSize: 10.5)
             label.alignment = .center
             label.wantsLayer = true
             label.layer?.cornerRadius = 3.5
@@ -139,7 +139,7 @@ class CommitRowView: NSTableCellView {
                 label.layer?.backgroundColor = NSColor(red: 0.98, green: 0.93, blue: 0.85, alpha: 1.0).cgColor // #FAEEDA
             case .head:
                 label.stringValue = " HEAD "
-                label.font = NSFont.systemFont(ofSize: 9.5, weight: .bold)
+                label.font = NSFont.systemFont(ofSize: 10.5, weight: .bold)
                 label.textColor = NSColor(red: 0.24, green: 0.20, blue: 0.54, alpha: 1.0) // #3C3489
                 label.layer?.backgroundColor = NSColor(red: 0.93, green: 0.93, blue: 0.99, alpha: 1.0).cgColor // #EEEDFE
             }

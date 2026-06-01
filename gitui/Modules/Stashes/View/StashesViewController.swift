@@ -50,7 +50,7 @@ class StashesViewController: NSViewController, StashesViewProtocol, NSTableViewD
         
         stashInputField = NSTextField()
         stashInputField.placeholderString = "Stash message (optional)..."
-        stashInputField.font = NSFont.systemFont(ofSize: 12)
+        stashInputField.font = NSFont.systemFont(ofSize: 13)
         stashInputField.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(stashInputField)
         
@@ -243,11 +243,11 @@ class StashesViewController: NSViewController, StashesViewProtocol, NSTableViewD
         }
         
         if let textField = cell?.textField {
-            textField.font = NSFont.systemFont(ofSize: 12)
+            textField.font = NSFont.systemFont(ofSize: 13)
             textField.textColor = NSColor.labelColor
             if colId.rawValue == "colId" {
                 textField.stringValue = stash.name
-                textField.font = NSFont(name: "Menlo", size: 11)
+                textField.font = NSFont(name: "Menlo", size: 12)
             } else {
                 textField.stringValue = stash.message
             }

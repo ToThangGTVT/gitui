@@ -64,14 +64,14 @@ class GitPushProgressViewController: NSViewController {
         // 2. Title Label
         titleLabel = NSTextField(labelWithString: "Pushing to Remote...")
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = NSFont.systemFont(ofSize: 15, weight: .bold)
+        titleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
         titleLabel.textColor = NSColor.labelColor
         view.addSubview(titleLabel)
         
         // 3. Subtitle Label (Badge info)
         subtitleLabel = NSTextField(labelWithString: "Pushing branch '\(branch)' to '\(remote)'")
         subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        subtitleLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
         subtitleLabel.textColor = NSColor.secondaryLabelColor
         view.addSubview(subtitleLabel)
         
@@ -106,7 +106,7 @@ class GitPushProgressViewController: NSViewController {
         logTextView.autoresizingMask = [.width]
         logTextView.backgroundColor = NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.0)
         logTextView.textColor = NSColor(red: 0.85, green: 0.85, blue: 0.85, alpha: 1.0)
-        logTextView.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        logTextView.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         logTextView.textContainer?.containerSize = NSSize(width: 510, height: CGFloat.greatestFiniteMagnitude)
         logTextView.textContainer?.widthTracksTextView = true
         logScrollView.documentView = logTextView

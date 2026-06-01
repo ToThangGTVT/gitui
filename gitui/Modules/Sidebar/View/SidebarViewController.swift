@@ -116,7 +116,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         searchField = NSSearchField()
         searchField.placeholderString = "Search repositories..."
         searchField.delegate = self
-        searchField.font = NSFont.systemFont(ofSize: 11)
+        searchField.font = NSFont.systemFont(ofSize: 12)
         searchField.translatesAutoresizingMaskIntoConstraints = false
         searchContainer.addSubview(searchField)
         
@@ -371,7 +371,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.textField = label
                 
                 let pathLabel = NSTextField(labelWithString: "")
-                pathLabel.font = NSFont.systemFont(ofSize: 9)
+                pathLabel.font = NSFont.systemFont(ofSize: 10)
                 pathLabel.textColor = NSColor.secondaryLabelColor
                 pathLabel.lineBreakMode = .byTruncatingHead
                 pathLabel.identifier = NSUserInterfaceItemIdentifier("pathLabel")
@@ -379,7 +379,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.addSubview(pathLabel)
                 
                 let statsLabel = NSTextField(labelWithString: "")
-                statsLabel.font = NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                statsLabel.font = NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
                 statsLabel.identifier = NSUserInterfaceItemIdentifier("statsLabel")
                 statsLabel.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(statsLabel)
@@ -406,10 +406,10 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             if let textField = cell?.textField {
                 textField.stringValue = bookmark.name
                 if isActive {
-                    textField.font = NSFont.systemFont(ofSize: 12, weight: .bold)
+                    textField.font = NSFont.systemFont(ofSize: 13, weight: .bold)
                     textField.textColor = NSColor.gitFlowAccent
                 } else {
-                    textField.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+                    textField.font = NSFont.systemFont(ofSize: 13, weight: .medium)
                     textField.textColor = NSColor.labelColor
                 }
             }
@@ -425,18 +425,18 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                     if stats.added > 0 {
                         result.append(NSAttributedString(string: "+\(stats.added)", attributes: [
                             .foregroundColor: NSColor.gitFlowStagedAddText,
-                            .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                            .font: NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
                         ]))
                     }
                     if stats.added > 0 && stats.removed > 0 {
                         result.append(NSAttributedString(string: " ", attributes: [
-                            .font: NSFont.systemFont(ofSize: 10)
+                            .font: NSFont.systemFont(ofSize: 11)
                         ]))
                     }
                     if stats.removed > 0 {
                         result.append(NSAttributedString(string: "-\(stats.removed)", attributes: [
                             .foregroundColor: NSColor.gitFlowStagedDeleteText,
-                            .font: NSFont(name: "SF Mono", size: 10) ?? NSFont.monospacedSystemFont(ofSize: 10, weight: .medium)
+                            .font: NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
                         ]))
                     }
                     statsLabel.attributedStringValue = result
@@ -453,7 +453,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell = NSTableCellView()
                 cell?.identifier = cellIdentifier
                 let label = NSTextField(labelWithString: "")
-                label.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+                label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
                 label.textColor = NSColor.tertiaryLabelColor
                 label.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(label)
@@ -507,13 +507,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             if let textField = cell?.textField {
                 textField.stringValue = branch.shortName
                 if branch.isCurrent {
-                    textField.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+                    textField.font = NSFont.systemFont(ofSize: 12, weight: .bold)
                     textField.textColor = NSColor.gitFlowAccent
                     if #available(macOS 11.0, *) {
                         cell?.imageView?.contentTintColor = NSColor.gitFlowAccent
                     }
                 } else {
-                    textField.font = NSFont.systemFont(ofSize: 11, weight: .regular)
+                    textField.font = NSFont.systemFont(ofSize: 12, weight: .regular)
                     textField.textColor = NSColor.labelColor
                     if #available(macOS 11.0, *) {
                         cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor

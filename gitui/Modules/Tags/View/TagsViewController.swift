@@ -50,7 +50,7 @@ class TagsViewController: NSViewController, TagsViewProtocol, NSTableViewDataSou
         
         tagInputField = NSTextField()
         tagInputField.placeholderString = "Tag name (e.g. v1.0.0)..."
-        tagInputField.font = NSFont.systemFont(ofSize: 12)
+        tagInputField.font = NSFont.systemFont(ofSize: 13)
         tagInputField.translatesAutoresizingMaskIntoConstraints = false
         headerView.addSubview(tagInputField)
         
@@ -96,7 +96,7 @@ class TagsViewController: NSViewController, TagsViewProtocol, NSTableViewDataSou
         
         pushRemoteInputField = NSTextField()
         pushRemoteInputField.placeholderString = "Remote (default: origin)"
-        pushRemoteInputField.font = NSFont.systemFont(ofSize: 12)
+        pushRemoteInputField.font = NSFont.systemFont(ofSize: 13)
         pushRemoteInputField.translatesAutoresizingMaskIntoConstraints = false
         bottomView.addSubview(pushRemoteInputField)
         
@@ -220,7 +220,7 @@ class TagsViewController: NSViewController, TagsViewProtocol, NSTableViewDataSou
         
         if let textField = cell?.textField {
             textField.stringValue = tag.name
-            textField.font = NSFont.systemFont(ofSize: 12)
+            textField.font = NSFont.systemFont(ofSize: 13)
             textField.textColor = NSColor.labelColor
         }
         

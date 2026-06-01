@@ -29,7 +29,7 @@ class SettingsViewController: NSViewController, SettingsViewProtocol {
         
         func sectionLabel(_ text: String) -> NSTextField {
             let lbl = NSTextField(labelWithString: text)
-            lbl.font = NSFont.systemFont(ofSize: 10, weight: .bold)
+            lbl.font = NSFont.systemFont(ofSize: 11, weight: .bold)
             lbl.textColor = .secondaryLabelColor
             lbl.translatesAutoresizingMaskIntoConstraints = false
             return lbl
@@ -37,7 +37,7 @@ class SettingsViewController: NSViewController, SettingsViewProtocol {
         
         func rowLabel(_ text: String) -> NSTextField {
             let lbl = NSTextField(labelWithString: text)
-            lbl.font = NSFont.systemFont(ofSize: 12)
+            lbl.font = NSFont.systemFont(ofSize: 13)
             lbl.alignment = .right
             lbl.translatesAutoresizingMaskIntoConstraints = false
             return lbl
@@ -51,7 +51,7 @@ class SettingsViewController: NSViewController, SettingsViewProtocol {
         let editorLabel = rowLabel("Default editor:")
         
         for field in [nameField, emailField, editorField] {
-            field.font = NSFont.systemFont(ofSize: 12)
+            field.font = NSFont.systemFont(ofSize: 13)
             field.translatesAutoresizingMaskIntoConstraints = false
         }
         editorField.placeholderString = "e.g. code, vim, nano"

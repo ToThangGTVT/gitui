@@ -77,19 +77,19 @@ class BranchesRouter: BranchesRouterProtocol {
         
         let nameLabel = NSTextField(labelWithString: "Branch Name:")
         nameLabel.frame = NSRect(x: 0, y: 34, width: 90, height: 22)
-        nameLabel.font = NSFont.systemFont(ofSize: 12)
+        nameLabel.font = NSFont.systemFont(ofSize: 13)
         accessoryView.addSubview(nameLabel)
         
         let nameField = NSTextField()
         nameField.frame = NSRect(x: 95, y: 34, width: 200, height: 22)
-        nameField.font = NSFont.systemFont(ofSize: 12)
+        nameField.font = NSFont.systemFont(ofSize: 13)
         nameField.placeholderString = "e.g. feature-login"
         accessoryView.addSubview(nameField)
         
         let checkoutCheckbox = NSButton(checkboxWithTitle: "Checkout new branch immediately", target: nil, action: nil)
         checkoutCheckbox.frame = NSRect(x: 95, y: 4, width: 200, height: 22)
         checkoutCheckbox.state = .on
-        checkoutCheckbox.font = NSFont.systemFont(ofSize: 11)
+        checkoutCheckbox.font = NSFont.systemFont(ofSize: 12)
         accessoryView.addSubview(checkoutCheckbox)
         
         alert.accessoryView = accessoryView

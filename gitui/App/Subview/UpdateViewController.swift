@@ -56,7 +56,7 @@ class UpdateViewController: NSViewController {
         // 2. Title Label
         titleLabel = NSTextField(labelWithString: "New Update Available")
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
+        titleLabel.font = NSFont.systemFont(ofSize: 17, weight: .bold)
         titleLabel.textColor = NSColor.labelColor
         view.addSubview(titleLabel)
         
@@ -74,7 +74,7 @@ class UpdateViewController: NSViewController {
         
         // Arrow indicator
         let arrowLabel = NSTextField(labelWithString: "➔")
-        arrowLabel.font = NSFont.systemFont(ofSize: 12, weight: .bold)
+        arrowLabel.font = NSFont.systemFont(ofSize: 13, weight: .bold)
         arrowLabel.textColor = NSColor.secondaryLabelColor
         versionBadgeContainer.addArrangedSubview(arrowLabel)
         
@@ -85,7 +85,7 @@ class UpdateViewController: NSViewController {
         // 4. Notes Section Header
         notesLabel = NSTextField(labelWithString: "Release Notes (\(release.name)):")
         notesLabel.translatesAutoresizingMaskIntoConstraints = false
-        notesLabel.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+        notesLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
         notesLabel.textColor = NSColor.secondaryLabelColor
         view.addSubview(notesLabel)
         
@@ -112,7 +112,7 @@ class UpdateViewController: NSViewController {
         logTextView.autoresizingMask = [.width]
         logTextView.backgroundColor = NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.0)
         logTextView.textColor = NSColor(red: 0.9, green: 0.9, blue: 0.9, alpha: 1.0)
-        logTextView.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        logTextView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
         logTextView.textContainer?.containerSize = NSSize(width: 510, height: CGFloat.greatestFiniteMagnitude)
         logTextView.textContainer?.widthTracksTextView = true
         
@@ -125,14 +125,14 @@ class UpdateViewController: NSViewController {
         laterButton = NSButton(title: "Later", target: self, action: #selector(laterClicked(_:)))
         laterButton.translatesAutoresizingMaskIntoConstraints = false
         laterButton.bezelStyle = .rounded
-        laterButton.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+        laterButton.font = NSFont.systemFont(ofSize: 13, weight: .regular)
         view.addSubview(laterButton)
         
         // 8. Download Now Button
         downloadButton = NSButton(title: "Download Now", target: self, action: #selector(downloadClicked(_:)))
         downloadButton.translatesAutoresizingMaskIntoConstraints = false
         downloadButton.bezelStyle = .rounded
-        downloadButton.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+        downloadButton.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
         // Give download button standard focus
         downloadButton.keyEquivalent = "\r" // Enter key
         view.addSubview(downloadButton)
@@ -186,7 +186,7 @@ class UpdateViewController: NSViewController {
         
         let label = NSTextField(labelWithString: text)
         label.translatesAutoresizingMaskIntoConstraints = false
-        label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .bold)
         
         badge.addSubview(label)
         
