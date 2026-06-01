@@ -19,14 +19,16 @@ class GitPullViewController: NSViewController {
     @IBOutlet weak var cancelButton: NSButton!
     @IBOutlet weak var okButton: NSButton!
 
+    private var pullProgressIndicator = NSProgressIndicator()
+
     private let repoPath: String
     private let defaultBranch: String
     private var remotes: [GitRemote] = []
     private var remoteBranches: [GitBranch] = []
     
-    private var onPull: ((_ remote: String, _ branch: String, _ options: [String]) -> Void)?
+    private var onPull: ((_ remote: String, _ branch: String, _ options: [String]) async throws -> Void)?
 
-    init(repoPath: String, defaultBranch: String, onPull: @escaping (_ remote: String, _ branch: String, _ options: [String]) -> Void) {
+    init(repoPath: String, defaultBranch: String, onPull: @escaping (_ remote: String, _ branch: String, _ options: [String]) async throws -> Void) {
         self.repoPath = repoPath
         self.defaultBranch = defaultBranch
         self.onPull = onPull
@@ -37,7 +39,7 @@ class GitPullViewController: NSViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    static func show(defaultBranch: String, repoPath: String, from window: NSWindow?, onPull: @escaping (_ remote: String, _ branch: String, _ options: [String]) -> Void) {
+    static func show(defaultBranch: String, repoPath: String, from window: NSWindow?, onPull: @escaping (_ remote: String, _ branch: String, _ options: [String]) async throws -> Void) {
         guard let window = window else { return }
         let vc = GitPullViewController(repoPath: repoPath, defaultBranch: defaultBranch, onPull: onPull)
         let sheet = NSWindow(contentViewController: vc)
@@ -51,6 +53,18 @@ class GitPullViewController: NSViewController {
         super.viewDidLoad()
         setupUI()
         loadData()
+        
+        pullProgressIndicator.translatesAutoresizingMaskIntoConstraints = false
+        pullProgressIndicator.style = .bar
+        pullProgressIndicator.isIndeterminate = true
+        pullProgressIndicator.isDisplayedWhenStopped = false
+        view.addSubview(pullProgressIndicator)
+        
+        NSLayoutConstraint.activate([
+            pullProgressIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            pullProgressIndicator.centerYAnchor.constraint(equalTo: okButton.centerYAnchor),
+            pullProgressIndicator.trailingAnchor.constraint(equalTo: cancelButton.leadingAnchor, constant: -20)
+        ])
     }
 
     private func setupUI() {
@@ -94,7 +108,8 @@ class GitPullViewController: NSViewController {
         
         branchDropdown.removeAllItems()
         for branch in branchesForRemote {
-            branchDropdown.addItem(withTitle: branch.shortName)
+            let branchName = branch.name.replacingOccurrences(of: prefix, with: "")
+            branchDropdown.addItem(withTitle: branchName)
         }
         
         // Try to select default branch if exists
@@ -153,7 +168,25 @@ class GitPullViewController: NSViewController {
             options.append("--rebase")
         }
         
-        view.window?.sheetParent?.endSheet(view.window!)
-        onPull?(remote, branch, options)
+        okButton.isEnabled = false
+        cancelButton.isEnabled = false
+        pullProgressIndicator.startAnimation(nil)
+        
+        Task {
+            do {
+                if let onPull = self.onPull {
+                    try await onPull(remote, branch, options)
+                }
+                await MainActor.run {
+                    self.view.window?.sheetParent?.endSheet(self.view.window!)
+                }
+            } catch {
+                await MainActor.run {
+                    self.okButton.isEnabled = true
+                    self.cancelButton.isEnabled = true
+                    self.pullProgressIndicator.stopAnimation(nil)
+                }
+            }
+        }
     }
 }

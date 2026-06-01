@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="GitFetchViewController" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="view" destination="c22-O7-iKe" id="q8d-jO-k1t"/>
+                <outlet property="allRemotesCheckbox" destination="allRemotesCheckbox" id="conn1"/>
+                <outlet property="pruneCheckbox" destination="pruneCheckbox" id="conn2"/>
+                <outlet property="tagsCheckbox" destination="tagsCheckbox" id="conn3"/>
+                <outlet property="cancelButton" destination="cancelButton" id="conn4"/>
+                <outlet property="okButton" destination="okButton" id="conn5"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="420" height="150"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="8" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="stack">
+                    <rect key="frame" x="20" y="60" width="380" height="70"/>
+                    <subviews>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="allRemotesCheckbox">
+                            <rect key="frame" x="-2" y="53" width="168" height="18"/>
+                            <buttonCell key="cell" type="check" title="Fetch from all remotes" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="cellAll">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="pruneCheckbox">
+                            <rect key="frame" x="-2" y="29" width="345" height="18"/>
+                            <buttonCell key="cell" type="check" title="Prune tracking branches no longer present on remote(s)" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="cellPrune">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="tagsCheckbox">
+                            <rect key="frame" x="-2" y="5" width="215" height="18"/>
+                            <buttonCell key="cell" type="check" title="Fetch and store all tags locally" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cellTags">
+                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                        </button>
+                    </subviews>
+                    <visibilityPriorities>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                    </visibilityPriorities>
+                    <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                    </customSpacing>
+                </stackView>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cancelButton">
+                    <rect key="frame" x="243" y="13" width="76" height="32"/>
+                    <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cellCancel">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                        <string key="keyEquivalent" base64-UTF8="YES">
+Gw
+</string>
+                    </buttonCell>
+                    <connections>
+                        <action selector="cancelClicked:" target="-2" id="act1"/>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="okButton">
+                    <rect key="frame" x="317" y="13" width="90" height="32"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="76" id="wOkBtn"/>
+                    </constraints>
+                    <buttonCell key="cell" type="push" title="OK" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cellOk">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                        <string key="keyEquivalent" base64-UTF8="YES">
+DQ
+</string>
+                    </buttonCell>
+                    <connections>
+                        <action selector="okClicked:" target="-2" id="act2"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstItem="stack" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="20" id="c1"/>
+                <constraint firstItem="stack" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c2"/>
+                <constraint firstAttribute="trailing" secondItem="stack" secondAttribute="trailing" constant="20" id="c3"/>
+                <constraint firstAttribute="bottom" secondItem="okButton" secondAttribute="bottom" constant="20" id="c4"/>
+                <constraint firstAttribute="trailing" secondItem="okButton" secondAttribute="trailing" constant="20" id="c5"/>
+                <constraint firstItem="okButton" firstAttribute="leading" secondItem="cancelButton" secondAttribute="trailing" constant="12" id="c6"/>
+                <constraint firstItem="cancelButton" firstAttribute="centerY" secondItem="okButton" secondAttribute="centerY" id="c7"/>
+            </constraints>
+        </customView>
+    </objects>
+</document>

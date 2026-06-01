@@ -113,7 +113,7 @@ protocol GitServiceProtocol: Sendable {
     
     func getLineStats(in repoPath: String) async throws -> (added: Int, removed: Int)
     
-    func fetch(remote: String, in repoPath: String) async throws
+    func fetch(remote: String?, options: [String], in repoPath: String) async throws
     func pull(remote: String, branch: String, options: [String], in repoPath: String) async throws
     func push(remote: String, branch: String, in repoPath: String) async throws
     
@@ -678,8 +678,13 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
         return (totalAdded, totalRemoved)
     }
     
-    func fetch(remote: String, in repoPath: String) async throws {
-        _ = try await runGit(["fetch", remote], in: repoPath)
+    func fetch(remote: String? = nil, options: [String] = [], in repoPath: String) async throws {
+        var args = ["fetch"]
+        args.append(contentsOf: options)
+        if let remote = remote {
+            args.append(remote)
+        }
+        _ = try await runGit(args, in: repoPath)
     }
     
     func pull(remote: String, branch: String, options: [String] = [], in repoPath: String) async throws {

@@ -280,29 +280,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             return
         }
         
-        Task {
+        GitFetchViewController.show(repoPath: path, from: self.window) { [weak self] options in
             do {
-                let remotes = try await GitService.shared.getRemotes(in: path)
-                guard !remotes.isEmpty else {
-                    await MainActor.run {
-                        self.showToolbarAlert(title: "No Remotes", message: "This repository has no remotes configured. Add a remote in the Remotes tab first.", isError: true)
-                    }
-                    return
-                }
-                // Fetch all remotes
-                for remote in remotes {
-                    try await GitService.shared.fetch(remote: remote.name, in: path)
-                }
+                try await GitService.shared.fetch(remote: nil, options: options, in: path)
                 await MainActor.run {
-                    self.showToolbarAlert(title: "Fetch Complete", message: "Successfully fetched from all remotes.", isError: false)
+                    self?.showToolbarAlert(title: "Fetch Complete", message: "Successfully fetched.", isError: false)
                     let repoName = URL(fileURLWithPath: path).lastPathComponent
-                    self.updateBranchLabel(for: path, repoName: repoName)
-                    self.refreshCurrentTab()
+                    self?.updateBranchLabel(for: path, repoName: repoName)
+                    self?.refreshCurrentTab()
                 }
             } catch {
                 await MainActor.run {
-                    self.showToolbarAlert(title: "Fetch Failed", message: error.localizedDescription, isError: true)
+                    self?.showToolbarAlert(title: "Fetch Failed", message: error.localizedDescription, isError: true)
                 }
+                throw error
             }
         }
     }
@@ -316,7 +307,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             let currentBranch = await detectCurrentBranch(in: path)
             await MainActor.run {
                 GitPullViewController.show(defaultBranch: currentBranch ?? "main", repoPath: path, from: self.window) { [weak self] remote, branch, options in
-                    self?.performPull(remote: remote, branch: branch, options: options, repoPath: path)
+                    try await self?.performPull(remote: remote, branch: branch, options: options, repoPath: path)
                 }
             }
         }
@@ -593,21 +584,20 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
     }
     
-    private func performPull(remote: String, branch: String, options: [String], repoPath: String) {
-        Task {
-            do {
-                try await GitService.shared.pull(remote: remote, branch: branch, options: options, in: repoPath)
-                await MainActor.run {
-                    self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
-                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
-                    self.updateBranchLabel(for: repoPath, repoName: repoName)
-                    self.refreshCurrentTab()
-                }
-            } catch {
-                await MainActor.run {
-                    self.showToolbarAlert(title: "Pull Failed", message: error.localizedDescription, isError: true)
-                }
+    private func performPull(remote: String, branch: String, options: [String], repoPath: String) async throws {
+        do {
+            try await GitService.shared.pull(remote: remote, branch: branch, options: options, in: repoPath)
+            await MainActor.run {
+                self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
+                let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                self.updateBranchLabel(for: repoPath, repoName: repoName)
+                self.refreshCurrentTab()
             }
+        } catch {
+            await MainActor.run {
+                self.showToolbarAlert(title: "Pull Failed", message: error.localizedDescription, isError: true)
+            }
+            throw error
         }
     }
     
