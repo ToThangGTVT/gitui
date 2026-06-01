@@ -19,9 +19,9 @@ class HunkHeaderCellView: NSView {
 
     private static let background = NSColor(name: nil) { trait in
         if trait.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
-            return NSColor(red: 0.12, green: 0.16, blue: 0.24, alpha: 1.0)
+            return NSColor(white: 0.25, alpha: 1.0)
         }
-        return NSColor(red: 0.91, green: 0.94, blue: 0.98, alpha: 1.0)
+        return NSColor(white: 0.95, alpha: 1.0)
     }
 
     override init(frame: NSRect) {
@@ -174,20 +174,20 @@ class DiffLineCellView: NSView {
         case .added(let ln):
             lineNumLabel.stringValue = "+ \(ln)"
             contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
-            contentLabel.textColor = NSColor.gitFlowStagedAddText
+            contentLabel.textColor = .labelColor
             layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
 
         case .removed(let ln):
             lineNumLabel.stringValue = "- \(ln)"
             contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
-            contentLabel.textColor = NSColor.gitFlowStagedDeleteText
+            contentLabel.textColor = .labelColor
             layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
 
         case .fileHeader:
             lineNumLabel.stringValue = ""
             contentLabel.stringValue = line.rawText
-            contentLabel.textColor = NSColor.gitFlowAccent
-            layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.4).cgColor
+            contentLabel.textColor = .secondaryLabelColor
+            layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.2).cgColor
 
         case .hunkHeader:
             break // rendered by HunkHeaderCellView

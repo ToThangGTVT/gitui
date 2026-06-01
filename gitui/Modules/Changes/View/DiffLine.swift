@@ -46,7 +46,7 @@ func buildDiffLines(from diffText: String, hunks: [DiffHunk]) -> [DiffLine] {
                || raw.hasPrefix("new file") || raw.hasPrefix("deleted file")
                || raw.hasPrefix("old mode") || raw.hasPrefix("new mode")
                || raw.hasPrefix("Similarity index") {
-            // Do not append file headers to make the UI cleaner for normal users
+            // Ignore raw file headers
             continue
 
         } else if raw.hasPrefix("+") {
