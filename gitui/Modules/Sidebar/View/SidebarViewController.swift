@@ -41,6 +41,10 @@ class CustomSelectionRowView: NSTableRowView {
             path.fill()
         }
     }
+    
+    override var interiorBackgroundStyle: NSView.BackgroundStyle {
+        return .normal
+    }
 }
 
 class BranchItem: NSObject {
@@ -70,7 +74,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     private var progressIndicator: NSProgressIndicator!
     
     private let dragType = NSPasteboard.PasteboardType("gitflow.sidebar.drag")
-    private var visualEffectView: NSVisualEffectView!
+    private var backgroundView: NSView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -90,24 +94,23 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     }
     
     private func setupUI() {
-        // Translucent sidebar using NSVisualEffectView
-        visualEffectView = NSVisualEffectView()
-        visualEffectView.material = .sidebar
-        visualEffectView.blendingMode = .behindWindow
-        visualEffectView.state = .followsWindowActiveState
-        visualEffectView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(visualEffectView)
+        // Solid sidebar using NSView with M3 surface color
+        backgroundView = NSView()
+        backgroundView.wantsLayer = true
+        backgroundView.layer?.backgroundColor = NSColor.gitFlowSidebarBackground.cgColor
+        backgroundView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(backgroundView)
         NSLayoutConstraint.activate([
-            visualEffectView.topAnchor.constraint(equalTo: view.topAnchor),
-            visualEffectView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            visualEffectView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            visualEffectView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+            backgroundView.topAnchor.constraint(equalTo: view.topAnchor),
+            backgroundView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            backgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            backgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
         
         // 1. Search Bar at Top
         let searchContainer = NSView()
         searchContainer.translatesAutoresizingMaskIntoConstraints = false
-        visualEffectView.addSubview(searchContainer)
+        backgroundView.addSubview(searchContainer)
         
         searchField = NSSearchField()
         searchField.placeholderString = "Search repositories..."
@@ -122,7 +125,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         scroll.borderType = .noBorder
         scroll.drawsBackground = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
-        visualEffectView.addSubview(scroll)
+        backgroundView.addSubview(scroll)
         
         outlineView = NSOutlineView()
         outlineView.headerView = nil
@@ -145,7 +148,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         // 3. Bottom Bar
         let bottomView = NSView()
         bottomView.translatesAutoresizingMaskIntoConstraints = false
-        visualEffectView.addSubview(bottomView)
+        backgroundView.addSubview(bottomView)
         
         let border = NSView()
         border.wantsLayer = true
@@ -171,13 +174,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         progressIndicator.isDisplayedWhenStopped = false
         progressIndicator.controlSize = .small
         progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        visualEffectView.addSubview(progressIndicator)
+        backgroundView.addSubview(progressIndicator)
         
         // Constraints
         NSLayoutConstraint.activate([
-            searchContainer.topAnchor.constraint(equalTo: visualEffectView.topAnchor),
-            searchContainer.leadingAnchor.constraint(equalTo: visualEffectView.leadingAnchor),
-            searchContainer.trailingAnchor.constraint(equalTo: visualEffectView.trailingAnchor),
+            searchContainer.topAnchor.constraint(equalTo: backgroundView.topAnchor),
+            searchContainer.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
+            searchContainer.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
             searchContainer.heightAnchor.constraint(equalToConstant: 44),
             
             searchField.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
@@ -185,13 +188,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             searchField.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -12),
             
             scroll.topAnchor.constraint(equalTo: searchContainer.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: visualEffectView.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: visualEffectView.trailingAnchor),
+            scroll.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
             scroll.bottomAnchor.constraint(equalTo: bottomView.topAnchor),
             
-            bottomView.bottomAnchor.constraint(equalTo: visualEffectView.bottomAnchor),
-            bottomView.leadingAnchor.constraint(equalTo: visualEffectView.leadingAnchor),
-            bottomView.trailingAnchor.constraint(equalTo: visualEffectView.trailingAnchor),
+            bottomView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor),
+            bottomView.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
+            bottomView.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
             bottomView.heightAnchor.constraint(equalToConstant: 40),
             
             border.topAnchor.constraint(equalTo: bottomView.topAnchor),
@@ -335,7 +338,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     
     func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
         if item is RepositoryItem {
-            return 46
+            return 58
         } else if item is BranchGroupItem {
             return 24
         } else {
@@ -362,6 +365,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.addSubview(label)
                 cell?.textField = label
                 
+                let divider = NSView()
+                divider.wantsLayer = true
+                divider.layer?.backgroundColor = NSColor.gitFlowBorder.withAlphaComponent(0.4).cgColor
+                divider.identifier = NSUserInterfaceItemIdentifier("repoDivider")
+                divider.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(divider)
+                
                 let pathLabel = NSTextField(labelWithString: "")
                 pathLabel.font = NSFont.systemFont(ofSize: 10)
                 pathLabel.textColor = NSColor.secondaryLabelColor
@@ -377,8 +387,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.addSubview(statsLabel)
                 
                 NSLayoutConstraint.activate([
+                    divider.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 16),
+                    divider.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -16),
+                    divider.topAnchor.constraint(equalTo: cell!.topAnchor),
+                    divider.heightAnchor.constraint(equalToConstant: 1),
+                    
                     label.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
-                    label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 8),
+                    label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 16),
                     
                     statsLabel.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 4),
                     statsLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
@@ -430,6 +445,14 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                     statsLabel.attributedStringValue = result
                 } else {
                     statsLabel.stringValue = ""
+                }
+            }
+            
+            if let divider = cell?.subviews.first(where: { $0.identifier?.rawValue == "repoDivider" }) {
+                if let index = repositoryItems.firstIndex(of: repoItem), index > 0 {
+                    divider.isHidden = false
+                } else {
+                    divider.isHidden = true
                 }
             }
             

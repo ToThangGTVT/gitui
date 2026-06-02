@@ -452,9 +452,17 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         commitButton = NSButton(title: "Commit", target: self, action: #selector(commitClicked(_:)))
         commitButton.bezelStyle = .push
         if #available(macOS 11.0, *) {
-            commitButton.hasDestructiveAction = true
             commitButton.bezelColor = NSColor.systemBlue
             commitButton.contentTintColor = .white
+            
+            let pStyle = NSMutableParagraphStyle()
+            pStyle.alignment = .center
+            let attrTitle = NSAttributedString(string: "Commit", attributes: [
+                .foregroundColor: NSColor.white,
+                .font: NSFont.systemFont(ofSize: 13),
+                .paragraphStyle: pStyle
+            ])
+            commitButton.attributedTitle = attrTitle
         }
         commitButton.keyEquivalent = "\r"
         commitButton.keyEquivalentModifierMask = .command

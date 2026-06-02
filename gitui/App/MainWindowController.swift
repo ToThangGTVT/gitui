@@ -82,15 +82,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     
     private func setupWorkspaceUI() {
         if let window = self.window {
-            window.isOpaque = false
-            window.backgroundColor = .clear
-            
-            let visualEffect = NSVisualEffectView(frame: window.contentView?.bounds ?? .zero)
-            visualEffect.autoresizingMask = [.width, .height]
-            visualEffect.blendingMode = .behindWindow
-            visualEffect.material = .underWindowBackground
-            visualEffect.state = .active
-            window.contentView?.addSubview(visualEffect, positioned: .below, relativeTo: nil)
+            window.isOpaque = true
+            window.backgroundColor = NSColor.gitFlowBackground
         }
         
         mainContainer.wantsLayer = true
