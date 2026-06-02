@@ -17,25 +17,25 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     private var parentHashes: Set<String> = []
     
     // UI Elements
-    private var splitView: NSSplitView!
-    private var leftContainer: NSView!
-    private var rightContainer: NSView!
-    private var scrollView: NSScrollView!
-    private var tableView: NSTableView!
-    private var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var splitView: NSSplitView!
+    @IBOutlet private weak var leftContainer: NSView!
+    @IBOutlet private weak var rightContainer: NSView!
+    @IBOutlet private weak var scrollView: NSScrollView!
+    @IBOutlet private weak var tableView: NSTableView!
+    @IBOutlet private weak var progressIndicator: NSProgressIndicator!
 
     // Search Bar
-    private var searchContainer: NSView!
-    private var searchField: NSSearchField!
-    private var filterPopup: NSPopUpButton!
+    @IBOutlet private weak var searchContainer: NSView!
+    @IBOutlet private weak var searchField: NSSearchField!
+    @IBOutlet private weak var filterPopup: NSPopUpButton!
 
     // Commit info panel (bottom of left pane)
-    private var infoPanel: NSView!
-    private var infoAvatarView: AvatarView!
-    private var infoAuthorLabel: NSTextField!
-    private var infoDateLabel: NSTextField!
-    private var infoHashLabel: NSTextField!
-    private var infoMessageView: NSTextView!
+    @IBOutlet private weak var infoPanel: NSView!
+    @IBOutlet private weak var infoAvatarView: AvatarView!
+    @IBOutlet private weak var infoAuthorLabel: NSTextField!
+    @IBOutlet private weak var infoDateLabel: NSTextField!
+    @IBOutlet private weak var infoHashLabel: NSTextField!
+    @IBOutlet private weak var infoMessageView: NSTextView!
 
     // Split view persistence
     private var splitPersistence: SplitViewPersistence?
@@ -43,6 +43,14 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     // Child View Controller
     private let detailVC = CommitDetailViewController()
     
+    override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: "HistoryViewController", bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -67,130 +75,30 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         
-        // 1. Vertical NSSplitView
-        splitView = NSSplitView()
-        splitView.isVertical = true
-        splitView.dividerStyle = .thin
         splitView.delegate = self
-        splitView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(splitView)
         
         // Wire persistence (sets autosaveName + identifier internally)
         splitPersistence = SplitViewPersistence(splitView: splitView, key: "gitflow.split.history")
-        
-        NSLayoutConstraint.activate([
-            splitView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            splitView.topAnchor.constraint(equalTo: view.topAnchor),
-            splitView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-        
-        // Left pane (min width 400px)
-        leftContainer = NSView()
-        leftContainer.translatesAutoresizingMaskIntoConstraints = true
-        leftContainer.autoresizingMask = [.width, .height]
-        
-        // Right pane (min width 260px)
-        rightContainer = NSView()
-        rightContainer.translatesAutoresizingMaskIntoConstraints = true
-        rightContainer.autoresizingMask = [.width, .height]
-        
-        splitView.addArrangedSubview(leftContainer)
-        splitView.addArrangedSubview(rightContainer)
         
         // Set default divider position only if no saved position exists
         if UserDefaults.standard.array(forKey: "gitflow.split.history") == nil {
             splitView.setPosition(680, ofDividerAt: 0)
         }
         
-        // 2. Left Pane UI: SearchBar + NSScrollView + NSTableView + Info Panel
-        
-        searchContainer = NSView()
-        searchContainer.translatesAutoresizingMaskIntoConstraints = false
-        searchContainer.wantsLayer = true
-        searchContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        leftContainer.addSubview(searchContainer)
-        
-        searchField = NSSearchField()
-        searchField.placeholderString = "Search commits..."
-        searchField.translatesAutoresizingMaskIntoConstraints = false
         searchField.delegate = self
-        searchContainer.addSubview(searchField)
         
-        filterPopup = NSPopUpButton(frame: .zero, pullsDown: false)
-        filterPopup.addItems(withTitles: ["Message", "Author"])
-        filterPopup.translatesAutoresizingMaskIntoConstraints = false
-        searchContainer.addSubview(filterPopup)
+        infoHashLabel.wantsLayer = true
+        infoHashLabel.layer?.cornerRadius = 3
+        infoHashLabel.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         
-        let searchBorder = NSView()
-        searchBorder.wantsLayer = true
-        searchBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        searchBorder.translatesAutoresizingMaskIntoConstraints = false
-        searchContainer.addSubview(searchBorder)
-        
-        NSLayoutConstraint.activate([
-            searchContainer.topAnchor.constraint(equalTo: leftContainer.topAnchor),
-            searchContainer.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
-            searchContainer.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
-            searchContainer.heightAnchor.constraint(equalToConstant: 40),
-            
-            filterPopup.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
-            filterPopup.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 12),
-            filterPopup.widthAnchor.constraint(equalToConstant: 90),
-            
-            searchField.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
-            searchField.leadingAnchor.constraint(equalTo: filterPopup.trailingAnchor, constant: 8),
-            searchField.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -12),
-            
-            searchBorder.bottomAnchor.constraint(equalTo: searchContainer.bottomAnchor),
-            searchBorder.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor),
-            searchBorder.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor),
-            searchBorder.heightAnchor.constraint(equalToConstant: 1)
-        ])
-        
-        infoPanel = buildInfoPanel()
-        infoPanel.translatesAutoresizingMaskIntoConstraints = false
-        leftContainer.addSubview(infoPanel)
-
-        scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
-        scrollView.autohidesScrollers = true
-        scrollView.borderType = .noBorder
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        leftContainer.addSubview(scrollView)
-
-        NSLayoutConstraint.activate([
-            // Info panel pinned to bottom
-            infoPanel.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
-            infoPanel.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
-            infoPanel.bottomAnchor.constraint(equalTo: leftContainer.bottomAnchor),
-            infoPanel.heightAnchor.constraint(equalToConstant: 130),
-
-            // Graph fills the rest above info panel and below search bar
-            scrollView.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: infoPanel.topAnchor),
-        ])
-        
-        tableView = NSTableView()
-        tableView.headerView = nil
-        tableView.backgroundColor = NSColor.controlBackgroundColor
-        tableView.gridColor = NSColor.separatorColor
-        tableView.gridStyleMask = []
-        tableView.rowHeight = GraphMetrics.rowHeight
-        tableView.intercellSpacing = NSSize(width: 0, height: 0)
-        tableView.allowsMultipleSelection = false
-        
-        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("commitColumn"))
-        column.resizingMask = .autoresizingMask
-        tableView.addTableColumn(column)
-        tableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
+        infoMessageView.isRichText = false
+        infoMessageView.isEditable = false
+        infoMessageView.font = NSFont.systemFont(ofSize: 12)
+        infoMessageView.textColor = .labelColor
+        infoMessageView.backgroundColor = .clear
         
         tableView.dataSource = self
         tableView.delegate = self
-        scrollView.documentView = tableView
         
         // Setup table view context menu
         let menu = NSMenu()
@@ -208,106 +116,6 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
             detailVC.view.topAnchor.constraint(equalTo: rightContainer.topAnchor),
             detailVC.view.bottomAnchor.constraint(equalTo: rightContainer.bottomAnchor)
         ])
-        
-        // 4. Loading Indicator (top-right overlay on the left pane)
-        progressIndicator = NSProgressIndicator()
-        progressIndicator.style = .spinning
-        progressIndicator.isDisplayedWhenStopped = false
-        progressIndicator.controlSize = .small
-        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        leftContainer.addSubview(progressIndicator)
-        
-        NSLayoutConstraint.activate([
-            progressIndicator.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor, constant: -16),
-            progressIndicator.topAnchor.constraint(equalTo: leftContainer.topAnchor, constant: 16),
-            progressIndicator.widthAnchor.constraint(equalToConstant: 16),
-            progressIndicator.heightAnchor.constraint(equalToConstant: 16)
-        ])
-    }
-    
-    private func buildInfoPanel() -> NSView {
-        let panel = NSView()
-        panel.wantsLayer = true
-        panel.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-
-        let topBorder = NSView()
-        topBorder.wantsLayer = true
-        topBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        topBorder.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(topBorder)
-
-        infoAvatarView = AvatarView()
-        infoAvatarView.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(infoAvatarView)
-
-        infoHashLabel = NSTextField(labelWithString: "")
-        infoHashLabel.font = NSFont(name: "Menlo", size: 11) ?? NSFont.userFixedPitchFont(ofSize: 11)
-        infoHashLabel.textColor = .secondaryLabelColor
-        infoHashLabel.wantsLayer = true
-        infoHashLabel.layer?.cornerRadius = 3
-        infoHashLabel.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        infoHashLabel.alignment = .center
-        infoHashLabel.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(infoHashLabel)
-
-        infoAuthorLabel = NSTextField(labelWithString: "")
-        infoAuthorLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
-        infoAuthorLabel.textColor = .labelColor
-        infoAuthorLabel.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(infoAuthorLabel)
-
-        infoDateLabel = NSTextField(labelWithString: "")
-        infoDateLabel.font = NSFont.systemFont(ofSize: 12)
-        infoDateLabel.textColor = .secondaryLabelColor
-        infoDateLabel.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(infoDateLabel)
-
-        let msgScroll = NSScrollView()
-        msgScroll.hasVerticalScroller = false
-        msgScroll.borderType = .noBorder
-        msgScroll.drawsBackground = false
-        msgScroll.translatesAutoresizingMaskIntoConstraints = false
-        panel.addSubview(msgScroll)
-
-        infoMessageView = NSTextView()
-        infoMessageView.isRichText = false
-        infoMessageView.isEditable = false
-        infoMessageView.font = NSFont.systemFont(ofSize: 12)
-        infoMessageView.textColor = .labelColor
-        infoMessageView.backgroundColor = .clear
-        msgScroll.documentView = infoMessageView
-
-        NSLayoutConstraint.activate([
-            topBorder.topAnchor.constraint(equalTo: panel.topAnchor),
-            topBorder.leadingAnchor.constraint(equalTo: panel.leadingAnchor),
-            topBorder.trailingAnchor.constraint(equalTo: panel.trailingAnchor),
-            topBorder.heightAnchor.constraint(equalToConstant: 1),
-
-            infoAvatarView.topAnchor.constraint(equalTo: topBorder.bottomAnchor, constant: 10),
-            infoAvatarView.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 12),
-            infoAvatarView.widthAnchor.constraint(equalToConstant: 30),
-            infoAvatarView.heightAnchor.constraint(equalToConstant: 30),
-
-            infoAuthorLabel.topAnchor.constraint(equalTo: infoAvatarView.topAnchor),
-            infoAuthorLabel.leadingAnchor.constraint(equalTo: infoAvatarView.trailingAnchor, constant: 8),
-
-            infoHashLabel.centerYAnchor.constraint(equalTo: infoAuthorLabel.centerYAnchor),
-            infoHashLabel.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -12),
-            infoHashLabel.widthAnchor.constraint(equalToConstant: 70),
-            infoHashLabel.heightAnchor.constraint(equalToConstant: 16),
-            infoAuthorLabel.trailingAnchor.constraint(lessThanOrEqualTo: infoHashLabel.leadingAnchor, constant: -8),
-
-            infoDateLabel.topAnchor.constraint(equalTo: infoAuthorLabel.bottomAnchor, constant: 2),
-            infoDateLabel.leadingAnchor.constraint(equalTo: infoAvatarView.trailingAnchor, constant: 8),
-            infoDateLabel.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -12),
-
-            msgScroll.topAnchor.constraint(equalTo: infoAvatarView.bottomAnchor, constant: 8),
-            msgScroll.leadingAnchor.constraint(equalTo: panel.leadingAnchor, constant: 12),
-            msgScroll.trailingAnchor.constraint(equalTo: panel.trailingAnchor, constant: -12),
-            msgScroll.bottomAnchor.constraint(equalTo: panel.bottomAnchor, constant: -8),
-        ])
-
-        return panel
     }
 
     deinit {

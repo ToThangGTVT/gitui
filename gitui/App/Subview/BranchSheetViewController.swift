@@ -110,65 +110,28 @@ class BranchSheetViewController: NSViewController, NSTableViewDataSource, NSTabl
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         let branch = filteredBranches[row]
         let cellId = NSUserInterfaceItemIdentifier("BranchCell")
-        var cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSTableCellView
+        guard let cell = tableView.makeView(withIdentifier: cellId, owner: self) as? NSTableCellView else { return nil }
         
-        if cell == nil {
-            cell = NSTableCellView()
-            cell?.identifier = cellId
-            
-            let icon = NSImageView()
-            icon.translatesAutoresizingMaskIntoConstraints = false
-            if #available(macOS 11.0, *) {
-                let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
-                icon.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: nil)?.withSymbolConfiguration(config)
-            }
-            icon.contentTintColor = NSColor.secondaryLabelColor
-            cell?.addSubview(icon)
-            cell?.imageView = icon
-            
-            let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 14)
-            label.lineBreakMode = .byTruncatingTail
-            label.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(label)
-            cell?.textField = label
-            
-            let check = NSTextField(labelWithString: "")
-            check.identifier = NSUserInterfaceItemIdentifier("checkmark")
-            check.font = NSFont.systemFont(ofSize: 14, weight: .bold)
-            check.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(check)
-            
-            NSLayoutConstraint.activate([
-                icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 12),
-                icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                icon.widthAnchor.constraint(equalToConstant: 18),
-                
-                label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
-                label.trailingAnchor.constraint(equalTo: check.leadingAnchor, constant: -4),
-                label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                
-                check.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -12),
-                check.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                check.widthAnchor.constraint(equalToConstant: 20)
-            ])
+        cell.textField?.stringValue = branch.name
+        
+        if #available(macOS 11.0, *) {
+            let config = NSImage.SymbolConfiguration(pointSize: 12, weight: .medium)
+            cell.imageView?.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: nil)?.withSymbolConfiguration(config)
         }
         
-        cell?.textField?.stringValue = branch.name
-        
         if branch.isCurrent {
-            cell?.textField?.font = NSFont.systemFont(ofSize: 14, weight: .bold)
-            cell?.textField?.textColor = NSColor.controlAccentColor
-            cell?.imageView?.contentTintColor = NSColor.controlAccentColor
-            if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
+            cell.textField?.font = NSFont.systemFont(ofSize: 14, weight: .bold)
+            cell.textField?.textColor = NSColor.controlAccentColor
+            cell.imageView?.contentTintColor = NSColor.controlAccentColor
+            if let check = cell.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
                 check.stringValue = "✓"
                 check.textColor = NSColor.controlAccentColor
             }
         } else {
-            cell?.textField?.font = NSFont.systemFont(ofSize: 14)
-            cell?.textField?.textColor = NSColor.labelColor
-            cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor
-            if let check = cell?.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
+            cell.textField?.font = NSFont.systemFont(ofSize: 14)
+            cell.textField?.textColor = NSColor.labelColor
+            cell.imageView?.contentTintColor = NSColor.secondaryLabelColor
+            if let check = cell.subviews.first(where: { $0.identifier?.rawValue == "checkmark" }) as? NSTextField {
                 check.stringValue = ""
             }
         }

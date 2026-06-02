@@ -8,17 +8,21 @@ protocol InteractiveRebaseViewProtocol: AnyObject {
 class InteractiveRebaseViewController: NSViewController, InteractiveRebaseViewProtocol, NSTableViewDataSource, NSTableViewDelegate {
     var presenter: InteractiveRebasePresenterProtocol!
     
-    private var scrollView: NSScrollView!
-    private var tableView: NSTableView!
-    private var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var scrollView: NSScrollView!
+    @IBOutlet private weak var tableView: NSTableView!
+    @IBOutlet private weak var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var startButton: NSButton!
+    @IBOutlet private weak var abortButton: NSButton!
     private var items: [RebaseTodoItem] = []
     
     private let dragType = NSPasteboard.PasteboardType("com.gitui.rebase.row")
     
-    override func loadView() {
-        self.view = NSView()
-        self.view.wantsLayer = true
-        self.view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+    override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: "InteractiveRebaseViewController", bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
     }
     
     override func viewDidLoad() {
@@ -28,94 +32,23 @@ class InteractiveRebaseViewController: NSViewController, InteractiveRebaseViewPr
     }
     
     private func setupUI() {
-        // Bottom buttons container
-        let bottomBar = NSView()
-        bottomBar.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(bottomBar)
-        
-        let startButton = NSButton(title: "Start Rebase", target: self, action: #selector(startClicked))
-        startButton.bezelStyle = .rounded
-        if #available(macOS 11.0, *) { startButton.bezelColor = NSColor.systemBlue; startButton.contentTintColor = .white }
-        startButton.translatesAutoresizingMaskIntoConstraints = false
-        bottomBar.addSubview(startButton)
-        
-        let abortButton = NSButton(title: "Cancel", target: self, action: #selector(cancelClicked))
-        abortButton.bezelStyle = .rounded
-        abortButton.translatesAutoresizingMaskIntoConstraints = false
-        bottomBar.addSubview(abortButton)
-        
-        // Scroll & Table
-        scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
-        scrollView.autohidesScrollers = true
-        scrollView.borderType = .noBorder
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scrollView)
-        
-        tableView = NSTableView()
-        tableView.headerView = NSTableHeaderView()
-        tableView.rowHeight = 32
-        tableView.style = .inset
-        tableView.backgroundColor = NSColor.controlBackgroundColor
-        tableView.gridStyleMask = .solidHorizontalGridLineMask
-        
-        let actionCol = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("Action"))
-        actionCol.title = "Action"
-        actionCol.width = 100
-        tableView.addTableColumn(actionCol)
-        
-        let hashCol = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("Hash"))
-        hashCol.title = "Commit"
-        hashCol.width = 80
-        tableView.addTableColumn(hashCol)
-        
-        let msgCol = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("Message"))
-        msgCol.title = "Message"
-        msgCol.resizingMask = .autoresizingMask
-        tableView.addTableColumn(msgCol)
+        if #available(macOS 11.0, *) {
+            startButton.bezelColor = NSColor.systemBlue
+            startButton.contentTintColor = .white
+        }
         
         tableView.dataSource = self
         tableView.delegate = self
         tableView.registerForDraggedTypes([dragType])
-        
-        scrollView.documentView = tableView
-        
-        // Progress
-        progressIndicator = NSProgressIndicator()
-        progressIndicator.style = .spinning
-        progressIndicator.isDisplayedWhenStopped = false
-        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(progressIndicator)
-        
-        NSLayoutConstraint.activate([
-            bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            bottomBar.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            bottomBar.heightAnchor.constraint(equalToConstant: 50),
-            
-            startButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -20),
-            startButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
-            
-            abortButton.trailingAnchor.constraint(equalTo: startButton.leadingAnchor, constant: -12),
-            abortButton.centerYAnchor.constraint(equalTo: bottomBar.centerYAnchor),
-            
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: bottomBar.topAnchor),
-            
-            progressIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            progressIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
     }
     
     // MARK: - Actions
     
-    @objc private func startClicked() {
+    @IBAction private func startClicked(_ sender: Any) {
         presenter.startRebase()
     }
     
-    @objc private func cancelClicked() {
+    @IBAction private func cancelClicked(_ sender: Any) {
         presenter.abortRebase()
     }
     

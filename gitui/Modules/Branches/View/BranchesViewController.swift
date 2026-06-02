@@ -14,8 +14,16 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
     private var treeRoots: [BranchNode] = []
     
     // UI Elements
-    private var outlineView: NSOutlineView!
-    private var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var outlineView: NSOutlineView!
+    @IBOutlet private weak var progressIndicator: NSProgressIndicator!
+    
+    override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: "BranchesViewController", bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -26,25 +34,6 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
     private func setupUI() {
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        
-        let scroll = NSScrollView()
-        scroll.hasVerticalScroller = true
-        scroll.hasHorizontalScroller = true
-        scroll.autohidesScrollers = true
-        scroll.borderType = .noBorder
-        scroll.pinToEdges(of: view)
-        
-        outlineView = NSOutlineView()
-        outlineView.headerView = nil
-        outlineView.backgroundColor = NSColor.controlBackgroundColor
-        outlineView.rowHeight = 24
-        outlineView.allowsMultipleSelection = false
-        outlineView.indentationPerLevel = 16
-        
-        let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("branchColumn"))
-        col.width = 400
-        outlineView.addTableColumn(col)
-        outlineView.outlineTableColumn = col
         
         outlineView.dataSource = self
         outlineView.delegate = self
@@ -60,22 +49,6 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Push branch to origin", action: #selector(contextPushClicked(_:)), keyEquivalent: ""))
         outlineView.menu = menu
-        
-        scroll.documentView = outlineView
-        
-        progressIndicator = NSProgressIndicator()
-        progressIndicator.style = .spinning
-        progressIndicator.isDisplayedWhenStopped = false
-        progressIndicator.controlSize = .small
-        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(progressIndicator)
-        
-        NSLayoutConstraint.activate([
-            progressIndicator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            progressIndicator.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
-            progressIndicator.widthAnchor.constraint(equalToConstant: 16),
-            progressIndicator.heightAnchor.constraint(equalToConstant: 16)
-        ])
     }
     
     // MARK: - Actions
@@ -167,25 +140,9 @@ class BranchesViewController: NSViewController, BranchesViewProtocol, NSOutlineV
         guard let node = item as? BranchNode else { return nil }
         
         let cellIdentifier = NSUserInterfaceItemIdentifier("BranchCell")
-        var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+        guard let cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView else { return nil }
         
-        if cell == nil {
-            cell = NSTableCellView()
-            cell?.identifier = cellIdentifier
-            
-            let label = NSTextField(labelWithString: "")
-            label.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(label)
-            cell?.textField = label
-            
-            NSLayoutConstraint.activate([
-                label.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
-                label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -6),
-                label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
-            ])
-        }
-        
-        if let textField = cell?.textField {
+        if let textField = cell.textField {
             if node.isHeader {
                 textField.stringValue = node.name
                 textField.font = NSFont.systemFont(ofSize: 11, weight: .bold)

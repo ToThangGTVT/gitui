@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="InteractiveRebaseViewController" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="view" destination="c22-O7-iKe" id="out-view"/>
+                <outlet property="scrollView" destination="scroll-view" id="out-scroll"/>
+                <outlet property="tableView" destination="table-view" id="out-table"/>
+                <outlet property="progressIndicator" destination="prog-ind" id="out-prog"/>
+                <outlet property="startButton" destination="start-btn" id="out-start"/>
+                <outlet property="abortButton" destination="abort-btn" id="out-abort"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="600" height="400"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-bar">
+                    <rect key="frame" x="0.0" y="0.0" width="600" height="50"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="50" id="bot-h"/>
+                    </constraints>
+                    <subviews>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="start-btn">
+                            <rect key="frame" x="461" y="9" width="126" height="32"/>
+                            <buttonCell key="cell" type="push" title="Start Rebase" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="start-cell">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="system"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="startClicked:" target="-2" id="conn-start"/>
+                            </connections>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="abort-btn">
+                            <rect key="frame" x="375" y="9" width="88" height="32"/>
+                            <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="abort-cell">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="system"/>
+                                <string key="keyEquivalent" base64-UTF8="YES">
+Gw
+</string>
+                            </buttonCell>
+                            <connections>
+                                <action selector="cancelClicked:" target="-2" id="conn-abort"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <constraints>
+                        <constraint firstAttribute="trailing" secondItem="start-btn" secondAttribute="trailing" constant="20" id="c-start-r"/>
+                        <constraint firstItem="start-btn" firstAttribute="centerY" secondItem="bottom-bar" secondAttribute="centerY" id="c-start-cy"/>
+                        <constraint firstItem="start-btn" firstAttribute="leading" secondItem="abort-btn" secondAttribute="trailing" constant="12" id="c-abort-r"/>
+                        <constraint firstItem="abort-btn" firstAttribute="centerY" secondItem="bottom-bar" secondAttribute="centerY" id="c-abort-cy"/>
+                    </constraints>
+                </customView>
+                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="32" horizontalPageScroll="10" verticalLineScroll="32" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="scroll-view">
+                    <rect key="frame" x="0.0" y="50" width="600" height="350"/>
+                    <clipView key="contentView" id="clip-view">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="350"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" emptySelection="NO" autosaveColumns="NO" rowHeight="32" headerView="header-view" viewBased="YES" id="table-view">
+                                <rect key="frame" x="0.0" y="0.0" width="600" height="322"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <size key="intercellSpacing" width="0.0" height="1"/>
+                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                <tableColumns>
+                                    <tableColumn identifier="Action" width="100" minWidth="100" maxWidth="150" id="col-action">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Action">
+                                            <font key="font" metaFont="smallSystem"/>
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="cell-action"/>
+                                        <prototypeCellViews>
+                                            <tableCellView identifier="Action" id="proto-action">
+                                                <rect key="frame" x="0.0" y="0.0" width="100" height="32"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="Hash" width="80" minWidth="80" maxWidth="100" id="col-hash">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Commit">
+                                            <font key="font" metaFont="smallSystem"/>
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="cell-hash"/>
+                                        <prototypeCellViews>
+                                            <tableCellView identifier="Hash" id="proto-hash">
+                                                <rect key="frame" x="0.0" y="0.0" width="80" height="32"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="Message" width="420" minWidth="100" maxWidth="2000" id="col-msg">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Message">
+                                            <font key="font" metaFont="smallSystem"/>
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="cell-msg"/>
+                                        <prototypeCellViews>
+                                            <tableCellView identifier="Message" id="proto-msg">
+                                                <rect key="frame" x="0.0" y="0.0" width="420" height="32"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                </tableColumns>
+                            </tableView>
+                        </subviews>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scroll">
+                        <rect key="frame" x="-100" y="-100" width="223" height="15"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scroll">
+                        <rect key="frame" x="584" y="28" width="16" height="322"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <tableHeaderView key="headerView" wantsLayer="YES" id="header-view">
+                        <rect key="frame" x="0.0" y="0.0" width="600" height="28"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </tableHeaderView>
+                </scrollView>
+                <progressIndicator hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" style="spinning" id="prog-ind">
+                    <rect key="frame" x="284" y="184" width="32" height="32"/>
+                </progressIndicator>
+            </subviews>
+            <constraints>
+                <constraint firstItem="bottom-bar" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-bot-l"/>
+                <constraint firstItem="bottom-bar" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-bot-r"/>
+                <constraint firstItem="bottom-bar" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" id="c-bot-b"/>
+                <constraint firstItem="scroll-view" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="c-scroll-t"/>
+                <constraint firstItem="scroll-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-scroll-l"/>
+                <constraint firstItem="scroll-view" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-scroll-r"/>
+                <constraint firstItem="scroll-view" firstAttribute="bottom" secondItem="bottom-bar" secondAttribute="top" id="c-scroll-b"/>
+                <constraint firstItem="prog-ind" firstAttribute="centerX" secondItem="c22-O7-iKe" secondAttribute="centerX" id="c-prog-x"/>
+                <constraint firstItem="prog-ind" firstAttribute="centerY" secondItem="c22-O7-iKe" secondAttribute="centerY" id="c-prog-y"/>
+            </constraints>
+        </customView>
+    </objects>
+</document>

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="ConflictResolutionViewController" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="view" destination="c22-O7-iKe" id="out-view"/>
+                <outlet property="scrollView" destination="scroll-view" id="out-scroll"/>
+                <outlet property="stackView" destination="stack-view" id="out-stack"/>
+                <outlet property="resolveContainer" destination="res-cont" id="out-res"/>
+                <outlet property="resolveButton" destination="res-btn" id="out-btn"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="scroll-view">
+                    <rect key="frame" x="0.0" y="50" width="800" height="550"/>
+                    <clipView key="contentView" drawsBackground="NO" id="clip-view">
+                        <rect key="frame" x="0.0" y="0.0" width="800" height="550"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view translatesAutoresizingMaskIntoConstraints="NO" id="doc-view">
+                                <rect key="frame" x="0.0" y="0.0" width="800" height="550"/>
+                                <subviews>
+                                    <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="0.0" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="stack-view">
+                                        <rect key="frame" x="0.0" y="0.0" width="800" height="550"/>
+                                    </stackView>
+                                </subviews>
+                                <constraints>
+                                    <constraint firstItem="stack-view" firstAttribute="leading" secondItem="doc-view" secondAttribute="leading" id="c-stk-l"/>
+                                    <constraint firstItem="stack-view" firstAttribute="trailing" secondItem="doc-view" secondAttribute="trailing" id="c-stk-r"/>
+                                    <constraint firstItem="stack-view" firstAttribute="top" secondItem="doc-view" secondAttribute="top" id="c-stk-t"/>
+                                    <constraint firstItem="stack-view" firstAttribute="bottom" secondItem="doc-view" secondAttribute="bottom" id="c-stk-b"/>
+                                </constraints>
+                            </view>
+                        </subviews>
+                        <constraints>
+                            <constraint firstItem="doc-view" firstAttribute="leading" secondItem="clip-view" secondAttribute="leading" id="c-doc-l"/>
+                            <constraint firstItem="doc-view" firstAttribute="trailing" secondItem="clip-view" secondAttribute="trailing" id="c-doc-r"/>
+                            <constraint firstItem="doc-view" firstAttribute="top" secondItem="clip-view" secondAttribute="top" id="c-doc-t"/>
+                        </constraints>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scroll">
+                        <rect key="frame" x="-100" y="-100" width="784" height="16"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scroll">
+                        <rect key="frame" x="784" y="0.0" width="16" height="550"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                </scrollView>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="res-cont">
+                    <rect key="frame" x="0.0" y="0.0" width="800" height="50"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="50" id="res-h"/>
+                    </constraints>
+                    <subviews>
+                        <customView translatesAutoresizingMaskIntoConstraints="NO" id="res-border">
+                            <rect key="frame" x="0.0" y="49" width="800" height="1"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="1" id="res-border-h"/>
+                            </constraints>
+                        </customView>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="res-btn">
+                            <rect key="frame" x="653" y="10" width="131" height="30"/>
+                            <buttonCell key="cell" type="push" title="Mark as Resolved" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="res-btn-cell">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                <font key="font" metaFont="systemSemibold" size="14"/>
+                            </buttonCell>
+                            <connections>
+                                <action selector="markAsResolvedClicked:" target="-2" id="conn-res"/>
+                            </connections>
+                        </button>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="res-border" firstAttribute="leading" secondItem="res-cont" secondAttribute="leading" id="c-bdr-l"/>
+                        <constraint firstItem="res-border" firstAttribute="trailing" secondItem="res-cont" secondAttribute="trailing" id="c-bdr-r"/>
+                        <constraint firstItem="res-border" firstAttribute="top" secondItem="res-cont" secondAttribute="top" id="c-bdr-t"/>
+                        <constraint firstAttribute="trailing" secondItem="res-btn" secondAttribute="trailing" constant="16" id="c-btn-r"/>
+                        <constraint firstItem="res-btn" firstAttribute="centerY" secondItem="res-cont" secondAttribute="centerY" id="c-btn-cy"/>
+                    </constraints>
+                </customView>
+            </subviews>
+            <constraints>
+                <constraint firstItem="scroll-view" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="c-scr-t"/>
+                <constraint firstItem="scroll-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-scr-l"/>
+                <constraint firstItem="scroll-view" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-scr-r"/>
+                <constraint firstItem="res-cont" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-res-l"/>
+                <constraint firstItem="res-cont" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-res-r"/>
+                <constraint firstItem="res-cont" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" id="c-res-b"/>
+                <constraint firstItem="scroll-view" firstAttribute="bottom" secondItem="res-cont" secondAttribute="top" id="c-scr-b"/>
+            </constraints>
+        </customView>
+    </objects>
+</document>

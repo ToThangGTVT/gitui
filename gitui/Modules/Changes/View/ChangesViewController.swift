@@ -82,50 +82,59 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private var searchQuery: String = ""
 
     // UI Split View Components
-    private var mainSplitView: NSSplitView!
-    private var leftSplitView: NSSplitView!
+    @IBOutlet private weak var mainSplitView: NSSplitView!
+    @IBOutlet private weak var leftSplitView: NSSplitView!
 
     // Main split persistence (left | right)
     private var mainSplitPersistence: SplitViewPersistence?
 
     // Table Views
-    private var stagedTableView: NSTableView!
-    private var unstagedTableView: NSTableView!
+    @IBOutlet private weak var stagedTableView: NSTableView!
+    @IBOutlet private weak var unstagedTableView: NSTableView!
 
     // Diff View Components
-    private var diffTableView: NSTableView!
-    private var diffScrollView: NSScrollView!
-    private var diffTitleLabel: NSTextField!
+    @IBOutlet private weak var diffTableView: NSTableView!
+    @IBOutlet private weak var diffScrollView: NSScrollView!
+    @IBOutlet private weak var diffTitleLabel: NSTextField!
     private var diffLines: [DiffLine] = []
     private var isShowingUnstagedDiff: Bool = true
     
     // Binary Diff View Components
-    private var diffBinaryView: NSView!
-    private var binaryBeforeSizeLabel: NSTextField!
-    private var binaryAfterSizeLabel: NSTextField!
-    private var binaryBeforeOpenButton: NSButton!
-    private var binaryAfterOpenButton: NSButton!
+    @IBOutlet private weak var diffBinaryView: NSView!
+    @IBOutlet private weak var binaryBeforeSizeLabel: NSTextField!
+    @IBOutlet private weak var binaryAfterSizeLabel: NSTextField!
+    @IBOutlet private weak var binaryBeforeOpenButton: NSButton!
+    @IBOutlet private weak var binaryAfterOpenButton: NSButton!
     private var currentBinaryFilePath: String?
 
     // Commit Box Components
-    private var commitTextView: CommitTextView!
-    private var commitButton: NSButton!
-    private var amendCheckbox: NSButton!
-    private var stageAllButton: NSButton!
-    private var stagedCheckbox: NSButton!
-    private var unstagedCheckbox: NSButton!
-    private var undoButton: NSButton!
-    private var progressIndicator: NSProgressIndicator!
-    private var diffEmptyStateView: NSView!
+    @IBOutlet private weak var commitTextView: CommitTextView!
+    @IBOutlet private weak var commitButton: NSButton!
+    @IBOutlet private weak var amendCheckbox: NSButton!
+    @IBOutlet private weak var stageAllButton: NSButton!
+    @IBOutlet private weak var stagedCheckbox: NSButton!
+    @IBOutlet private weak var unstagedCheckbox: NSButton!
+    @IBOutlet private weak var undoButton: NSButton!
+    @IBOutlet private weak var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var diffEmptyStateView: NSView!
     
+    @IBOutlet private weak var conflictBannerContainer: NSView!
+    @IBOutlet private weak var conflictBannerHeight: NSLayoutConstraint!
     private var conflictBanner: NSView!
-    private var conflictBannerHeight: NSLayoutConstraint!
     
     private var conflictVC: ConflictResolutionViewController?
 
     private var hasRestoredMainSplit = false
     private var hasRestoredLeftSplit = false
     
+    override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: "ChangesViewController", bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+    }
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
@@ -210,103 +219,41 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         
-        // 1. Setup Main Split View (Horizontal: Left list, Right diff)
-        mainSplitView = NSSplitView()
-        mainSplitView.isVertical = true
-        mainSplitView.dividerStyle = .thin
         mainSplitView.delegate = self
-        mainSplitView.pinToEdges(of: view)
-        
         // Wire main split persistence
         mainSplitPersistence = SplitViewPersistence(splitView: mainSplitView, key: "gitflow.split.changes")
         
-        let leftContainer = NSView()
-        leftContainer.wantsLayer = true
-        leftContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        leftContainer.autoresizingMask = [.width, .height]
-        leftContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 500) // Crucial for NSSplitView initial layout
-        
-        let rightContainer = NSView()
-        rightContainer.autoresizingMask = [.width, .height]
-        rightContainer.frame = NSRect(x: 0, y: 0, width: 400, height: 500) // Crucial for NSSplitView initial layout
-        
-        mainSplitView.addArrangedSubview(leftContainer)
-        mainSplitView.addArrangedSubview(rightContainer)
-        
-        // 2a. Conflict banner (hidden initially)
         conflictBanner = buildConflictBanner()
         conflictBanner.translatesAutoresizingMaskIntoConstraints = false
-        leftContainer.addSubview(conflictBanner)
-        conflictBannerHeight = conflictBanner.heightAnchor.constraint(equalToConstant: 0)
-        NSLayoutConstraint.activate([
-            conflictBanner.topAnchor.constraint(equalTo: leftContainer.topAnchor),
-            conflictBanner.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
-            conflictBanner.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
-            conflictBannerHeight,
-        ])
-
-        // 2b. Setup Left Split View (Vertical: Staged, Unstaged, Commit Box)
-        leftSplitView = NSSplitView()
-        leftSplitView.isVertical = false
-        leftSplitView.dividerStyle = .thin
+        conflictBannerContainer.addSubview(conflictBanner)
+        conflictBanner.pinToEdges(of: conflictBannerContainer)
+        
         leftSplitView.delegate = self
-        leftSplitView.translatesAutoresizingMaskIntoConstraints = false
-        leftContainer.addSubview(leftSplitView)
-        NSLayoutConstraint.activate([
-            leftSplitView.topAnchor.constraint(equalTo: conflictBanner.bottomAnchor),
-            leftSplitView.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
-            leftSplitView.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
-            leftSplitView.bottomAnchor.constraint(equalTo: leftContainer.bottomAnchor),
-        ])
         
-        let (stagedView, stagedTable, sCheck) = createListSection(title: "Staged Changes")
-        let stagedContainer = stagedView
-        stagedTableView = stagedTable
-        stagedCheckbox = sCheck
-        stagedCheckbox.state = .on
-        stagedCheckbox.target = self
-        stagedCheckbox.action = #selector(stagedCheckboxToggled(_:))
-        stagedContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
+        stagedTableView.dataSource = self
+        stagedTableView.delegate = self
         
-        let (unstagedView, unstagedTable, uCheck) = createListSection(title: "Unstaged Changes")
-        let unstagedContainer = unstagedView
-        unstagedTableView = unstagedTable
-        unstagedCheckbox = uCheck
-        unstagedCheckbox.state = .off
-        unstagedCheckbox.target = self
-        unstagedCheckbox.action = #selector(unstagedCheckboxToggled(_:))
-        unstagedContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
+        unstagedTableView.dataSource = self
+        unstagedTableView.delegate = self
         
-        let commitBox = createCommitSection()
-        commitBox.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
+        commitTextView.delegate = self
         
-        leftSplitView.addArrangedSubview(stagedContainer)
-        leftSplitView.addArrangedSubview(unstagedContainer)
-        leftSplitView.addArrangedSubview(commitBox)
+        if #available(macOS 11.0, *) {
+            commitButton.bezelColor = NSColor.systemBlue
+            commitButton.contentTintColor = .white
+            
+            let pStyle = NSMutableParagraphStyle()
+            pStyle.alignment = .center
+            let attrTitle = NSAttributedString(string: "Commit", attributes: [
+                .foregroundColor: NSColor.white,
+                .font: NSFont.systemFont(ofSize: 13),
+                .paragraphStyle: pStyle
+            ])
+            commitButton.attributedTitle = attrTitle
+        }
         
-        // Set holding priorities so NSSplitView knows which panes to resize first when the window shrinks.
-        // Lowest priority resizes first. We want staged/unstaged to shrink before the commit box.
-        leftSplitView.setHoldingPriority(NSLayoutConstraint.Priority(250), forSubviewAt: 0)
-        leftSplitView.setHoldingPriority(NSLayoutConstraint.Priority(251), forSubviewAt: 1)
-        leftSplitView.setHoldingPriority(NSLayoutConstraint.Priority(252), forSubviewAt: 2)
-        
-        // 3. Setup Right Container (Diff Viewer)
-        setupDiffContainer(in: rightContainer)
-        
-        // 4. Progress Loading
-        progressIndicator = NSProgressIndicator()
-        progressIndicator.style = .spinning
-        progressIndicator.isDisplayedWhenStopped = false
-        progressIndicator.controlSize = .small
-        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(progressIndicator)
-        
-        NSLayoutConstraint.activate([
-            progressIndicator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-            progressIndicator.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
-            progressIndicator.widthAnchor.constraint(equalToConstant: 16),
-            progressIndicator.heightAnchor.constraint(equalToConstant: 16)
-        ])
+        diffTableView.dataSource = self
+        diffTableView.delegate = self
         
         // Set double click actions on tables
         stagedTableView.doubleAction = #selector(stagedTableDoubleClicked(_:))
@@ -1163,7 +1110,27 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
 
         if let textField = cell?.textField {
-            textField.stringValue = file.path
+            let path = file.path
+            let nsPath = path as NSString
+            let extensionStr = nsPath.pathExtension
+            
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.lineBreakMode = .byTruncatingMiddle
+            
+            let attrString = NSMutableAttributedString(string: path, attributes: [
+                .font: NSFont.systemFont(ofSize: 13),
+                .foregroundColor: NSColor.labelColor,
+                .paragraphStyle: paragraphStyle
+            ])
+            
+            if !extensionStr.isEmpty {
+                let targetExt = "." + extensionStr
+                let range = nsPath.range(of: targetExt, options: .backwards)
+                if range.location != NSNotFound {
+                    attrString.addAttribute(.font, value: NSFont.systemFont(ofSize: 13, weight: .bold), range: range)
+                }
+            }
+            textField.attributedStringValue = attrString
         }
 
         // Locate the badge container

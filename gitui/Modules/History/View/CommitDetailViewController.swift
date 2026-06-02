@@ -5,13 +5,16 @@ import Cocoa
 class CommitDetailViewController: NSViewController,
     NSTableViewDataSource, NSTableViewDelegate, NSSplitViewDelegate, NSMenuDelegate {
 
+    // MARK: - IBOutlets
+    @IBOutlet private weak var splitView: NSSplitView!
+    @IBOutlet private weak var changedFilesTableView: NSTableView!
+    @IBOutlet private weak var diffTableView: NSTableView!
+    @IBOutlet private weak var diffTitleLabel: NSTextField!
+
     // MARK: Files pane
-    private var changedFilesTableView = NSTableView()
     private var changedFiles: [GitFileStatus] = []
 
     // MARK: Diff pane
-    private var diffTableView  = NSTableView()
-    private var diffTitleLabel = NSTextField(labelWithString: "Select a file to view diff")
     private var diffLines: [DiffLine] = []
 
     // MARK: State
@@ -20,8 +23,12 @@ class CommitDetailViewController: NSViewController,
 
     // MARK: - Lifecycle
 
-    override func loadView() {
-        view = NSView()
+    override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
+        super.init(nibName: "CommitDetailViewController", bundle: nil)
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
     }
 
     override func viewDidLoad() {
@@ -35,171 +42,17 @@ class CommitDetailViewController: NSViewController,
         view.wantsLayer = true
         view.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
 
-        let splitView = NSSplitView()
-        splitView.isVertical = false
-        splitView.dividerStyle = .thin
         splitView.delegate = self
-        splitView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(splitView)
-
-        NSLayoutConstraint.activate([
-            splitView.topAnchor.constraint(equalTo: view.topAnchor),
-            splitView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            splitView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-        ])
-
-        let filesPane = buildFilesPane()
-        filesPane.frame = NSRect(x: 0, y: 0, width: 260, height: 140)
-        splitView.addArrangedSubview(filesPane)
-
-        let diffPane = buildDiffPane()
-        diffPane.frame = NSRect(x: 0, y: 0, width: 260, height: 260)
-        splitView.addArrangedSubview(diffPane)
-    }
-
-    private func buildFilesPane() -> NSView {
-        let pane = NSView()
-        pane.translatesAutoresizingMaskIntoConstraints = true
-        pane.autoresizingMask = [.width, .height]
-
-        let titleBar = NSView()
-        titleBar.wantsLayer = true
-        titleBar.layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.6).cgColor
-        titleBar.translatesAutoresizingMaskIntoConstraints = false
-        pane.addSubview(titleBar)
-
-        let titleLabel = NSTextField(labelWithString: "CHANGED FILES")
-        titleLabel.font = NSFont.systemFont(ofSize: 11, weight: .bold)
-        titleLabel.textColor = .secondaryLabelColor
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleBar.addSubview(titleLabel)
-
-        let titleBorder = NSView()
-        titleBorder.wantsLayer = true
-        titleBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        titleBorder.translatesAutoresizingMaskIntoConstraints = false
-        titleBar.addSubview(titleBorder)
-
-        let scroll = NSScrollView()
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .noBorder
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        pane.addSubview(scroll)
-
-        changedFilesTableView.headerView = nil
-        changedFilesTableView.backgroundColor = NSColor.controlBackgroundColor
-        changedFilesTableView.gridColor = NSColor.separatorColor
-        changedFilesTableView.gridStyleMask = .solidHorizontalGridLineMask
-        changedFilesTableView.rowHeight = 24
-        changedFilesTableView.allowsMultipleSelection = false
+        
         changedFilesTableView.dataSource = self
         changedFilesTableView.delegate = self
         
         let menu = NSMenu()
         menu.delegate = self
         changedFilesTableView.menu = menu
-
-        let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("fileCol"))
-        col.resizingMask = .autoresizingMask
-        changedFilesTableView.addTableColumn(col)
-        changedFilesTableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
-        scroll.documentView = changedFilesTableView
-
-        NSLayoutConstraint.activate([
-            titleBar.topAnchor.constraint(equalTo: pane.topAnchor),
-            titleBar.leadingAnchor.constraint(equalTo: pane.leadingAnchor),
-            titleBar.trailingAnchor.constraint(equalTo: pane.trailingAnchor),
-            titleBar.heightAnchor.constraint(equalToConstant: 26),
-
-            titleLabel.centerYAnchor.constraint(equalTo: titleBar.centerYAnchor),
-            titleLabel.leadingAnchor.constraint(equalTo: titleBar.leadingAnchor, constant: 12),
-
-            titleBorder.leadingAnchor.constraint(equalTo: titleBar.leadingAnchor),
-            titleBorder.trailingAnchor.constraint(equalTo: titleBar.trailingAnchor),
-            titleBorder.bottomAnchor.constraint(equalTo: titleBar.bottomAnchor),
-            titleBorder.heightAnchor.constraint(equalToConstant: 1),
-
-            scroll.topAnchor.constraint(equalTo: titleBar.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: pane.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: pane.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: pane.bottomAnchor),
-        ])
-
-        return pane
-    }
-
-    private func buildDiffPane() -> NSView {
-        let pane = NSView()
-        pane.translatesAutoresizingMaskIntoConstraints = true
-        pane.autoresizingMask = [.width, .height]
-        pane.wantsLayer = true
-        pane.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-
-        let topBorder = NSView()
-        topBorder.wantsLayer = true
-        topBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        topBorder.translatesAutoresizingMaskIntoConstraints = false
-        pane.addSubview(topBorder)
-
-        diffTitleLabel.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
-        diffTitleLabel.textColor = .secondaryLabelColor
-        diffTitleLabel.lineBreakMode = .byTruncatingMiddle
-        diffTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        pane.addSubview(diffTitleLabel)
-
-        let titleBorder = NSView()
-        titleBorder.wantsLayer = true
-        titleBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        titleBorder.translatesAutoresizingMaskIntoConstraints = false
-        pane.addSubview(titleBorder)
-
-        let diffScroll = NSScrollView()
-        diffScroll.hasVerticalScroller = true
-        diffScroll.hasHorizontalScroller = true
-        diffScroll.autohidesScrollers = true
-        diffScroll.borderType = .noBorder
-        diffScroll.translatesAutoresizingMaskIntoConstraints = false
-        pane.addSubview(diffScroll)
-
-        diffTableView.headerView = nil
-        diffTableView.backgroundColor = NSColor.controlBackgroundColor
-        diffTableView.rowHeight = 18
-        diffTableView.gridStyleMask = []
-        diffTableView.intercellSpacing = NSSize(width: 0, height: 0)
-        diffTableView.selectionHighlightStyle = .none
-        diffTableView.usesAlternatingRowBackgroundColors = false
+        
         diffTableView.dataSource = self
         diffTableView.delegate = self
-
-        let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("diffCol"))
-        col.resizingMask = .autoresizingMask
-        diffTableView.addTableColumn(col)
-        diffTableView.columnAutoresizingStyle = .uniformColumnAutoresizingStyle
-        diffScroll.documentView = diffTableView
-
-        NSLayoutConstraint.activate([
-            topBorder.topAnchor.constraint(equalTo: pane.topAnchor),
-            topBorder.leadingAnchor.constraint(equalTo: pane.leadingAnchor),
-            topBorder.trailingAnchor.constraint(equalTo: pane.trailingAnchor),
-            topBorder.heightAnchor.constraint(equalToConstant: 1),
-
-            diffTitleLabel.topAnchor.constraint(equalTo: topBorder.bottomAnchor, constant: 6),
-            diffTitleLabel.leadingAnchor.constraint(equalTo: pane.leadingAnchor, constant: 12),
-            diffTitleLabel.trailingAnchor.constraint(equalTo: pane.trailingAnchor, constant: -12),
-
-            titleBorder.topAnchor.constraint(equalTo: diffTitleLabel.bottomAnchor, constant: 6),
-            titleBorder.leadingAnchor.constraint(equalTo: pane.leadingAnchor),
-            titleBorder.trailingAnchor.constraint(equalTo: pane.trailingAnchor),
-            titleBorder.heightAnchor.constraint(equalToConstant: 1),
-
-            diffScroll.topAnchor.constraint(equalTo: titleBorder.bottomAnchor),
-            diffScroll.leadingAnchor.constraint(equalTo: pane.leadingAnchor),
-            diffScroll.trailingAnchor.constraint(equalTo: pane.trailingAnchor),
-            diffScroll.bottomAnchor.constraint(equalTo: pane.bottomAnchor),
-        ])
-
-        return pane
     }
 
     // MARK: - Public
@@ -342,48 +195,11 @@ class CommitDetailViewController: NSViewController,
         guard row < changedFiles.count else { return nil }
         let file = changedFiles[row]
         let id = NSUserInterfaceItemIdentifier("commitFileCell")
-        var cell = changedFilesTableView.makeView(withIdentifier: id, owner: self) as? NSTableCellView
+        guard let cell = changedFilesTableView.makeView(withIdentifier: id, owner: self) as? NSTableCellView else { return nil }
 
-        if cell == nil {
-            cell = NSTableCellView()
-            cell?.identifier = id
+        cell.textField?.stringValue = file.path
 
-            let badge = NSView()
-            badge.wantsLayer = true
-            badge.layer?.cornerRadius = 3
-            badge.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(badge)
-
-            let badgeText = NSTextField(labelWithString: "")
-            badgeText.font = NSFont.systemFont(ofSize: 11, weight: .bold)
-            badgeText.alignment = .center
-            badgeText.translatesAutoresizingMaskIntoConstraints = false
-            badge.addSubview(badgeText)
-
-            let label = NSTextField(labelWithString: "")
-            label.font = NSFont.systemFont(ofSize: 12)
-            label.lineBreakMode = .byTruncatingMiddle
-            label.translatesAutoresizingMaskIntoConstraints = false
-            cell?.addSubview(label)
-            cell?.textField = label
-
-            NSLayoutConstraint.activate([
-                badge.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 6),
-                badge.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                badge.widthAnchor.constraint(equalToConstant: 22),
-                badge.heightAnchor.constraint(equalToConstant: 16),
-                badgeText.leadingAnchor.constraint(equalTo: badge.leadingAnchor, constant: 2),
-                badgeText.trailingAnchor.constraint(equalTo: badge.trailingAnchor, constant: -2),
-                badgeText.centerYAnchor.constraint(equalTo: badge.centerYAnchor),
-                label.leadingAnchor.constraint(equalTo: badge.trailingAnchor, constant: 7),
-                label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -6),
-                label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-            ])
-        }
-
-        cell?.textField?.stringValue = file.path
-
-        if let badge = cell?.subviews.first(where: { !($0 is NSTextField) }),
+        if let badge = cell.subviews.first(where: { !($0 is NSTextField) }),
            let text = badge.subviews.first as? NSTextField {
             text.stringValue = file.status
             switch file.status {

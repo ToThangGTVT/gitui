@@ -1,146 +1,241 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="CommitDetailViewController" customModule="gitui" customModuleProvider="target">
             <connections>
-                <outlet property="authorLabel" destination="author-lbl" id="out-author"/>
-                <outlet property="avatarView" destination="avatar-view" id="out-avatar"/>
-                <outlet property="changedFilesTableView" destination="files-table" id="out-files"/>
-                <outlet property="dateLabel" destination="date-lbl" id="out-date"/>
-                <outlet property="hashPill" destination="hash-pill" id="out-hash"/>
-                <outlet property="messageTextView" destination="message-text" id="out-message"/>
                 <outlet property="view" destination="c22-O7-iKe" id="out-view"/>
+                <outlet property="splitView" destination="split-view" id="out-split"/>
+                <outlet property="changedFilesTableView" destination="files-table" id="out-files-tb"/>
+                <outlet property="diffTableView" destination="diff-table" id="out-diff-tb"/>
+                <outlet property="diffTitleLabel" destination="lbl-diff-title" id="out-diff-title"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customView id="c22-O7-iKe">
-            <rect key="frame" x="0.0" y="0.0" width="300" height="600"/>
+            <rect key="frame" x="0.0" y="0.0" width="300" height="400"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="hash-pill">
-                    <rect key="frame" x="14" y="570" width="99" height="18"/>
-                    <constraints>
-                        <constraint firstAttribute="height" constant="18" id="hash-h"/>
-                        <constraint firstAttribute="width" constant="95" id="hash-w"/>
-                    </constraints>
-                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="COMMIT HASH" id="hash-cell">
-                        <font key="font" size="10" name="Menlo-Regular"/>
-                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="windowBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <customView translatesAutoresizingMaskIntoConstraints="NO" id="avatar-view" customClass="AvatarView" customModule="gitui" customModuleProvider="target">
-                    <rect key="frame" x="16" y="522" width="36" height="36"/>
-                    <constraints>
-                        <constraint firstAttribute="height" constant="36" id="avatar-h"/>
-                        <constraint firstAttribute="width" constant="36" id="avatar-w"/>
-                    </constraints>
-                </customView>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="author-lbl">
-                    <rect key="frame" x="60" y="541" width="226" height="16"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" title="Author" id="author-cell">
-                        <font key="font" metaFont="systemBold"/>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="date-lbl">
-                    <rect key="frame" x="60" y="525" width="226" height="14"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" title="Date" id="date-cell">
-                        <font key="font" metaFont="smallSystem"/>
-                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" translatesAutoresizingMaskIntoConstraints="NO" id="message-scroll">
-                    <rect key="frame" x="16" y="430" width="268" height="80"/>
-                    <clipView key="contentView" drawsBackground="NO" id="msg-clip">
-                        <rect key="frame" x="0.0" y="0.0" width="268" height="80"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <subviews>
-                            <textView editable="NO" importsGraphics="NO" verticallyResizable="NO" spellingCorrection="YES" smartInsertDelete="YES" id="message-text">
-                                <rect key="frame" x="0.0" y="0.0" width="268" height="80"/>
-                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                                <size key="minSize" width="268" height="80"/>
-                                <size key="maxSize" width="463" height="10000000"/>
-                                <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
-                            </textView>
-                        </subviews>
-                    </clipView>
-                    <constraints>
-                        <constraint firstAttribute="height" constant="80" id="msg-h"/>
-                    </constraints>
-                </scrollView>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="files-title">
-                    <rect key="frame" x="14" y="401" width="88" height="13"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" title="CHANGED FILES" id="files-title-cell">
-                        <font key="font" metaFont="systemBold" size="10"/>
-                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <scrollView autohidesScrollers="YES" horizontalLineScroll="24" horizontalPageScroll="10" verticalLineScroll="24" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="files-scroll">
-                    <rect key="frame" x="16" y="12" width="268" height="381"/>
-                    <clipView key="contentView" id="files-clip">
-                        <rect key="frame" x="1" y="1" width="266" height="379"/>
-                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <subviews>
-                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" emptySelection="NO" autosaveColumns="NO" rowHeight="24" viewBased="YES" id="files-table">
-                                <rect key="frame" x="0.0" y="0.0" width="266" height="379"/>
-                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                <size key="intercellSpacing" width="17" height="0.0"/>
-                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
-                                <tableColumns>
-                                    <tableColumn identifier="fileCol" width="249" minWidth="40" maxWidth="1000" id="file-col">
-                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
-                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
-                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
-                                        </tableHeaderCell>
-                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="file-data-cell"/>
-                                    </tableColumn>
-                                </tableColumns>
-                            </tableView>
-                        </subviews>
-                    </clipView>
-                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="files-hscroll">
-                        <rect key="frame" x="1" y="360" width="266" height="17"/>
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    </scroller>
-                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="files-vscroll">
-                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    </scroller>
-                </scrollView>
+                <splitView translatesAutoresizingMaskIntoConstraints="NO" id="split-view" dividerStyle="thin">
+                    <rect key="frame" x="0.0" y="0.0" width="300" height="400"/>
+                    <subviews>
+                        <customView id="files-pane">
+                            <rect key="frame" x="0.0" y="0.0" width="300" height="140"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <customView translatesAutoresizingMaskIntoConstraints="NO" id="files-title-bar">
+                                    <rect key="frame" x="0.0" y="114" width="300" height="26"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="26" id="c-ft-h"/>
+                                    </constraints>
+                                    <subviews>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-files">
+                                            <rect key="frame" x="10" y="5" width="97" height="15"/>
+                                            <textFieldCell key="cell" lineBreakMode="clipping" title="CHANGED FILES" id="lbl-cell-files">
+                                                <font key="font" metaFont="systemBold" size="11"/>
+                                                <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <customView translatesAutoresizingMaskIntoConstraints="NO" id="files-border">
+                                            <rect key="frame" x="0.0" y="0.0" width="300" height="1"/>
+                                            <constraints>
+                                                <constraint firstAttribute="height" constant="1" id="c-fb-h"/>
+                                            </constraints>
+                                        </customView>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstItem="lbl-files" firstAttribute="leading" secondItem="files-title-bar" secondAttribute="leading" constant="12" id="c-lblf-l"/>
+                                        <constraint firstItem="lbl-files" firstAttribute="centerY" secondItem="files-title-bar" secondAttribute="centerY" id="c-lblf-cy"/>
+                                        <constraint firstItem="files-border" firstAttribute="leading" secondItem="files-title-bar" secondAttribute="leading" id="c-fb-l"/>
+                                        <constraint firstItem="files-border" firstAttribute="trailing" secondItem="files-title-bar" secondAttribute="trailing" id="c-fb-r"/>
+                                        <constraint firstItem="files-border" firstAttribute="bottom" secondItem="files-title-bar" secondAttribute="bottom" id="c-fb-b"/>
+                                    </constraints>
+                                </customView>
+                                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="24" horizontalPageScroll="10" verticalLineScroll="24" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="files-scroll">
+                                    <rect key="frame" x="0.0" y="0.0" width="300" height="114"/>
+                                    <clipView key="contentView" id="files-clip">
+                                        <rect key="frame" x="0.0" y="0.0" width="300" height="114"/>
+                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                        <subviews>
+                                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="uniform" multipleSelection="NO" autosaveColumns="NO" rowHeight="24" rowSizeStyle="automatic" viewBased="YES" id="files-table">
+                                                <rect key="frame" x="0.0" y="0.0" width="300" height="114"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <size key="intercellSpacing" width="3" height="0.0"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="gridColor" name="separatorColor" catalog="System" colorSpace="catalog"/>
+                                                <tableColumns>
+                                                    <tableColumn identifier="fileCol" width="290" minWidth="40" maxWidth="1000" id="col-file">
+                                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
+                                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                                        </tableHeaderCell>
+                                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="cell-txt-f"/>
+                                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                                        <prototypeCellViews>
+                                                            <tableCellView identifier="commitFileCell" id="cell-view-file">
+                                                                <rect key="frame" x="1" y="0.0" width="290" height="24"/>
+                                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                                <subviews>
+                                                                    <customView translatesAutoresizingMaskIntoConstraints="NO" id="badge-view">
+                                                                        <rect key="frame" x="6" y="4" width="22" height="16"/>
+                                                                        <subviews>
+                                                                            <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="badge-txt">
+                                                                                <rect key="frame" x="0.0" y="1" width="22" height="14"/>
+                                                                                <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="M" id="cell-txt-badge">
+                                                                                    <font key="font" metaFont="systemBold" size="11"/>
+                                                                                    <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                                                    <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                                </textFieldCell>
+                                                                            </textField>
+                                                                        </subviews>
+                                                                        <constraints>
+                                                                            <constraint firstAttribute="width" constant="22" id="c-bdg-w"/>
+                                                                            <constraint firstAttribute="height" constant="16" id="c-bdg-h"/>
+                                                                            <constraint firstItem="badge-txt" firstAttribute="leading" secondItem="badge-view" secondAttribute="leading" constant="2" id="c-bt-l"/>
+                                                                            <constraint firstAttribute="trailing" secondItem="badge-txt" secondAttribute="trailing" constant="2" id="c-bt-r"/>
+                                                                            <constraint firstItem="badge-txt" firstAttribute="centerY" secondItem="badge-view" secondAttribute="centerY" id="c-bt-cy"/>
+                                                                        </constraints>
+                                                                    </customView>
+                                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-file">
+                                                                        <rect key="frame" x="33" y="4" width="253" height="16"/>
+                                                                        <textFieldCell key="cell" lineBreakMode="truncatingMiddle" sendsActionOnEndEditing="YES" title="Label" id="cell-lbl-file">
+                                                                            <font key="font" metaFont="system"/>
+                                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                                        </textFieldCell>
+                                                                    </textField>
+                                                                </subviews>
+                                                                <constraints>
+                                                                    <constraint firstItem="badge-view" firstAttribute="leading" secondItem="cell-view-file" secondAttribute="leading" constant="6" id="c-cv-b-l"/>
+                                                                    <constraint firstItem="badge-view" firstAttribute="centerY" secondItem="cell-view-file" secondAttribute="centerY" id="c-cv-b-cy"/>
+                                                                    <constraint firstItem="lbl-file" firstAttribute="leading" secondItem="badge-view" secondAttribute="trailing" constant="7" id="c-cv-l-l"/>
+                                                                    <constraint firstAttribute="trailing" secondItem="lbl-file" secondAttribute="trailing" constant="6" id="c-cv-l-r"/>
+                                                                    <constraint firstItem="lbl-file" firstAttribute="centerY" secondItem="cell-view-file" secondAttribute="centerY" id="c-cv-l-cy"/>
+                                                                </constraints>
+                                                                <connections>
+                                                                    <outlet property="textField" destination="lbl-file" id="conn-tf-f"/>
+                                                                </connections>
+                                                            </tableCellView>
+                                                        </prototypeCellViews>
+                                                    </tableColumn>
+                                                </tableColumns>
+                                            </tableView>
+                                        </subviews>
+                                    </clipView>
+                                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scr-f">
+                                        <rect key="frame" x="0.0" y="98" width="300" height="16"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                    </scroller>
+                                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scr-f">
+                                        <rect key="frame" x="224" y="17" width="15" height="102"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                    </scroller>
+                                </scrollView>
+                            </subviews>
+                            <constraints>
+                                <constraint firstItem="files-title-bar" firstAttribute="top" secondItem="files-pane" secondAttribute="top" id="c-ft-t"/>
+                                <constraint firstItem="files-title-bar" firstAttribute="leading" secondItem="files-pane" secondAttribute="leading" id="c-ft-l"/>
+                                <constraint firstItem="files-title-bar" firstAttribute="trailing" secondItem="files-pane" secondAttribute="trailing" id="c-ft-r"/>
+                                <constraint firstItem="files-scroll" firstAttribute="top" secondItem="files-title-bar" secondAttribute="bottom" id="c-fs-t"/>
+                                <constraint firstItem="files-scroll" firstAttribute="leading" secondItem="files-pane" secondAttribute="leading" id="c-fs-l"/>
+                                <constraint firstItem="files-scroll" firstAttribute="trailing" secondItem="files-pane" secondAttribute="trailing" id="c-fs-r"/>
+                                <constraint firstItem="files-scroll" firstAttribute="bottom" secondItem="files-pane" secondAttribute="bottom" id="c-fs-b"/>
+                            </constraints>
+                        </customView>
+                        <customView id="diff-pane">
+                            <rect key="frame" x="0.0" y="141" width="300" height="259"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <customView translatesAutoresizingMaskIntoConstraints="NO" id="diff-top-border">
+                                    <rect key="frame" x="0.0" y="258" width="300" height="1"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="1" id="c-dtb-h"/>
+                                    </constraints>
+                                </customView>
+                                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-diff-title">
+                                    <rect key="frame" x="10" y="236" width="280" height="16"/>
+                                    <textFieldCell key="cell" lineBreakMode="truncatingMiddle" title="Select a file to view diff" id="lbl-cell-diff">
+                                        <font key="font" metaFont="systemSemibold" size="12"/>
+                                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <customView translatesAutoresizingMaskIntoConstraints="NO" id="diff-mid-border">
+                                    <rect key="frame" x="0.0" y="229" width="300" height="1"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="1" id="c-dmb-h"/>
+                                    </constraints>
+                                </customView>
+                                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="18" horizontalPageScroll="10" verticalLineScroll="18" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="diff-scroll">
+                                    <rect key="frame" x="0.0" y="0.0" width="300" height="229"/>
+                                    <clipView key="contentView" id="diff-clip">
+                                        <rect key="frame" x="0.0" y="0.0" width="300" height="229"/>
+                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                        <subviews>
+                                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="uniform" multipleSelection="NO" autosaveColumns="NO" rowHeight="18" rowSizeStyle="automatic" viewBased="YES" id="diff-table">
+                                                <rect key="frame" x="0.0" y="0.0" width="300" height="229"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <size key="intercellSpacing" width="0.0" height="0.0"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="gridColor" name="separatorColor" catalog="System" colorSpace="catalog"/>
+                                                <tableColumns>
+                                                    <tableColumn identifier="diffCol" width="300" minWidth="40" maxWidth="1000" id="col-diff">
+                                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
+                                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                                        </tableHeaderCell>
+                                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="cell-txt-d"/>
+                                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                                    </tableColumn>
+                                                </tableColumns>
+                                            </tableView>
+                                        </subviews>
+                                    </clipView>
+                                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scr-d">
+                                        <rect key="frame" x="0.0" y="213" width="300" height="16"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                    </scroller>
+                                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scr-d">
+                                        <rect key="frame" x="224" y="17" width="15" height="102"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                    </scroller>
+                                </scrollView>
+                            </subviews>
+                            <constraints>
+                                <constraint firstItem="diff-top-border" firstAttribute="top" secondItem="diff-pane" secondAttribute="top" id="c-dtb-t"/>
+                                <constraint firstItem="diff-top-border" firstAttribute="leading" secondItem="diff-pane" secondAttribute="leading" id="c-dtb-l"/>
+                                <constraint firstItem="diff-top-border" firstAttribute="trailing" secondItem="diff-pane" secondAttribute="trailing" id="c-dtb-r"/>
+                                <constraint firstItem="lbl-diff-title" firstAttribute="top" secondItem="diff-top-border" secondAttribute="bottom" constant="6" id="c-ldt-t"/>
+                                <constraint firstItem="lbl-diff-title" firstAttribute="leading" secondItem="diff-pane" secondAttribute="leading" constant="12" id="c-ldt-l"/>
+                                <constraint firstAttribute="trailing" secondItem="lbl-diff-title" secondAttribute="trailing" constant="12" id="c-ldt-r"/>
+                                <constraint firstItem="diff-mid-border" firstAttribute="top" secondItem="lbl-diff-title" secondAttribute="bottom" constant="6" id="c-dmb-t"/>
+                                <constraint firstItem="diff-mid-border" firstAttribute="leading" secondItem="diff-pane" secondAttribute="leading" id="c-dmb-l"/>
+                                <constraint firstItem="diff-mid-border" firstAttribute="trailing" secondItem="diff-pane" secondAttribute="trailing" id="c-dmb-r"/>
+                                <constraint firstItem="diff-scroll" firstAttribute="top" secondItem="diff-mid-border" secondAttribute="bottom" id="c-ds-t"/>
+                                <constraint firstItem="diff-scroll" firstAttribute="leading" secondItem="diff-pane" secondAttribute="leading" id="c-ds-l"/>
+                                <constraint firstItem="diff-scroll" firstAttribute="trailing" secondItem="diff-pane" secondAttribute="trailing" id="c-ds-r"/>
+                                <constraint firstItem="diff-scroll" firstAttribute="bottom" secondItem="diff-pane" secondAttribute="bottom" id="c-ds-b"/>
+                            </constraints>
+                        </customView>
+                    </subviews>
+                    <holdingPriorities>
+                        <real value="250"/>
+                        <real value="250"/>
+                    </holdingPriorities>
+                </splitView>
             </subviews>
             <constraints>
-                <constraint firstItem="author-lbl" firstAttribute="leading" secondItem="avatar-view" secondAttribute="trailing" constant="10" id="c-author-l"/>
-                <constraint firstItem="author-lbl" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-16" id="c-author-r"/>
-                <constraint firstItem="author-lbl" firstAttribute="top" secondItem="avatar-view" secondAttribute="top" constant="1" id="c-author-t"/>
-                <constraint firstItem="avatar-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="16" id="c-avatar-l"/>
-                <constraint firstItem="avatar-view" firstAttribute="top" secondItem="hash-pill" secondAttribute="bottom" constant="12" id="c-avatar-t"/>
-                <constraint firstItem="date-lbl" firstAttribute="leading" secondItem="avatar-view" secondAttribute="trailing" constant="10" id="c-date-l"/>
-                <constraint firstItem="date-lbl" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-16" id="c-date-r"/>
-                <constraint firstItem="date-lbl" firstAttribute="top" secondItem="author-lbl" secondAttribute="bottom" constant="2" id="c-date-t"/>
-                <constraint firstItem="files-scroll" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" constant="-12" id="c-files-scroll-b"/>
-                <constraint firstItem="files-scroll" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="16" id="c-files-scroll-l"/>
-                <constraint firstItem="files-scroll" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-16" id="c-files-scroll-r"/>
-                <constraint firstItem="files-scroll" firstAttribute="top" secondItem="files-title" secondAttribute="bottom" constant="8" id="c-files-scroll-t"/>
-                <constraint firstItem="files-title" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="16" id="c-files-title-l"/>
-                <constraint firstItem="files-title" firstAttribute="top" secondItem="message-scroll" secondAttribute="bottom" constant="16" id="c-files-title-t"/>
-                <constraint firstItem="hash-pill" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="16" id="c-hash-l"/>
-                <constraint firstItem="hash-pill" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="12" id="c-hash-t"/>
-                <constraint firstItem="message-scroll" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="16" id="c-msg-l"/>
-                <constraint firstItem="message-scroll" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-16" id="c-msg-r"/>
-                <constraint firstItem="message-scroll" firstAttribute="top" secondItem="avatar-view" secondAttribute="bottom" constant="12" id="c-msg-t"/>
+                <constraint firstItem="split-view" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="c-sp-t"/>
+                <constraint firstItem="split-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-sp-l"/>
+                <constraint firstItem="split-view" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-sp-r"/>
+                <constraint firstItem="split-view" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" id="c-sp-b"/>
             </constraints>
-            <point key="canvasLocation" x="140" y="154"/>
         </customView>
     </objects>
 </document>

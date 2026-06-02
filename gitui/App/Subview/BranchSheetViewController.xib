@@ -68,6 +68,57 @@
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
                                         <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="data-cell"/>
+                                        <prototypeCellViews>
+                                            <tableCellView identifier="BranchCell" id="cell-view-1">
+                                                <rect key="frame" x="0.0" y="0.0" width="340" height="32"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="cell-icon">
+                                                        <rect key="frame" x="12" y="7" width="18" height="18"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="18" id="cell-icon-w"/>
+                                                            <constraint firstAttribute="height" constant="18" id="cell-icon-h"/>
+                                                        </constraints>
+                                                        <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSActionTemplate" id="cell-icon-cell"/>
+                                                    </imageView>
+                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cell-label">
+                                                        <rect key="frame" x="36" y="8" width="274" height="17"/>
+                                                        <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Label" id="cell-label-cell">
+                                                            <font key="font" metaFont="system" size="14"/>
+                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
+                                                    <textField identifier="checkmark" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cell-check">
+                                                        <rect key="frame" x="310" y="8" width="22" height="17"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="18" id="cell-check-w"/>
+                                                        </constraints>
+                                                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="✓" id="cell-check-cell">
+                                                            <font key="font" metaFont="systemBold" size="14"/>
+                                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="cell-icon" firstAttribute="leading" secondItem="cell-view-1" secondAttribute="leading" constant="12" id="c-icon-l"/>
+                                                    <constraint firstItem="cell-icon" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-icon-cy"/>
+                                                    
+                                                    <constraint firstItem="cell-label" firstAttribute="leading" secondItem="cell-icon" secondAttribute="trailing" constant="8" id="c-label-l"/>
+                                                    <constraint firstItem="cell-label" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-label-cy"/>
+                                                    
+                                                    <constraint firstItem="cell-check" firstAttribute="leading" secondItem="cell-label" secondAttribute="trailing" constant="4" id="c-label-r"/>
+                                                    
+                                                    <constraint firstAttribute="trailing" secondItem="cell-check" secondAttribute="trailing" constant="10" id="c-check-r"/>
+                                                    <constraint firstItem="cell-check" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-check-cy"/>
+                                                </constraints>
+                                                <connections>
+                                                    <outlet property="imageView" destination="cell-icon" id="conn-img"/>
+                                                    <outlet property="textField" destination="cell-label" id="conn-txt"/>
+                                                </connections>
+                                            </tableCellView>
+                                        </prototypeCellViews>
                                     </tableColumn>
                                 </tableColumns>
                             </tableView>

@@ -9,13 +9,90 @@
         <customObject id="-2" userLabel="File's Owner" customClass="BranchesViewController" customModule="gitui" customModuleProvider="target">
             <connections>
                 <outlet property="view" destination="c22-O7-iKe" id="out-view"/>
+                <outlet property="outlineView" destination="out-line" id="out-outl"/>
+                <outlet property="progressIndicator" destination="prog-ind" id="out-prog"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customView id="c22-O7-iKe">
-            <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
+            <rect key="frame" x="0.0" y="0.0" width="300" height="600"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="24" horizontalPageScroll="10" verticalLineScroll="24" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="scr-view">
+                    <rect key="frame" x="0.0" y="0.0" width="300" height="600"/>
+                    <clipView key="contentView" id="clip-view">
+                        <rect key="frame" x="0.0" y="0.0" width="300" height="600"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <outlineView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" multipleSelection="NO" autosaveColumns="NO" rowHeight="24" rowSizeStyle="automatic" viewBased="YES" indentationPerLevel="16" outlineTableColumn="col-brn" id="out-line">
+                                <rect key="frame" x="0.0" y="0.0" width="300" height="600"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <size key="intercellSpacing" width="3" height="0.0"/>
+                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                <tableColumns>
+                                    <tableColumn identifier="branchColumn" width="290" minWidth="40" maxWidth="1000" id="col-brn">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="cell-txt"/>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView identifier="BranchCell" id="cell-brn">
+                                                <rect key="frame" x="11" y="0.0" width="280" height="24"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-brn">
+                                                        <rect key="frame" x="4" y="4" width="272" height="16"/>
+                                                        <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Label" id="lbl-cell-brn">
+                                                            <font key="font" usesAppearanceFont="YES"/>
+                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="lbl-brn" firstAttribute="leading" secondItem="cell-brn" secondAttribute="leading" constant="6" id="c-lbl-l"/>
+                                                    <constraint firstAttribute="trailing" secondItem="lbl-brn" secondAttribute="trailing" constant="6" id="c-lbl-r"/>
+                                                    <constraint firstItem="lbl-brn" firstAttribute="centerY" secondItem="cell-brn" secondAttribute="centerY" id="c-lbl-cy"/>
+                                                </constraints>
+                                                <connections>
+                                                    <outlet property="textField" destination="lbl-brn" id="conn-tf"/>
+                                                </connections>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                </tableColumns>
+                            </outlineView>
+                        </subviews>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scr">
+                        <rect key="frame" x="0.0" y="584" width="300" height="16"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scr">
+                        <rect key="frame" x="224" y="17" width="15" height="102"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                </scrollView>
+                <progressIndicator hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" controlSize="small" style="spinning" id="prog-ind">
+                    <rect key="frame" x="268" y="568" width="16" height="16"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="16" id="c-prog-w"/>
+                        <constraint firstAttribute="height" constant="16" id="c-prog-h"/>
+                    </constraints>
+                </progressIndicator>
+            </subviews>
+            <constraints>
+                <constraint firstItem="scr-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-scr-l"/>
+                <constraint firstItem="scr-view" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-scr-r"/>
+                <constraint firstItem="scr-view" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="c-scr-t"/>
+                <constraint firstItem="scr-view" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" id="c-scr-b"/>
+                <constraint firstAttribute="trailing" secondItem="prog-ind" secondAttribute="trailing" constant="16" id="c-prog-r"/>
+                <constraint firstItem="prog-ind" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="16" id="c-prog-t"/>
+            </constraints>
         </customView>
     </objects>
 </document>

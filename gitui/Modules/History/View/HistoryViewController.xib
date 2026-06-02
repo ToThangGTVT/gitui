@@ -9,6 +9,21 @@
         <customObject id="-2" userLabel="File's Owner" customClass="HistoryViewController" customModule="gitui" customModuleProvider="target">
             <connections>
                 <outlet property="view" destination="c22-O7-iKe" id="out-view"/>
+                <outlet property="splitView" destination="split-view" id="out-split"/>
+                <outlet property="leftContainer" destination="left-pane" id="out-left"/>
+                <outlet property="rightContainer" destination="right-pane" id="out-right"/>
+                <outlet property="searchContainer" destination="search-cont" id="out-search-cont"/>
+                <outlet property="searchField" destination="search-fld" id="out-search-fld"/>
+                <outlet property="filterPopup" destination="filter-pop" id="out-filter-pop"/>
+                <outlet property="scrollView" destination="table-scroll" id="out-table-scroll"/>
+                <outlet property="tableView" destination="table-view" id="out-table-view"/>
+                <outlet property="progressIndicator" destination="prog-ind" id="out-prog"/>
+                <outlet property="infoPanel" destination="info-pan" id="out-info-pan"/>
+                <outlet property="infoAvatarView" destination="info-ava" id="out-info-ava"/>
+                <outlet property="infoHashLabel" destination="info-hash" id="out-info-hash"/>
+                <outlet property="infoAuthorLabel" destination="info-auth" id="out-info-auth"/>
+                <outlet property="infoDateLabel" destination="info-date" id="out-info-date"/>
+                <outlet property="infoMessageView" destination="info-msg" id="out-info-msg"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -16,6 +31,230 @@
         <customView id="c22-O7-iKe">
             <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <splitView translatesAutoresizingMaskIntoConstraints="NO" id="split-view" dividerStyle="thin" vertical="YES">
+                    <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
+                    <subviews>
+                        <customView id="left-pane">
+                            <rect key="frame" x="0.0" y="0.0" width="400" height="600"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <customView translatesAutoresizingMaskIntoConstraints="NO" id="search-cont">
+                                    <rect key="frame" x="0.0" y="560" width="400" height="40"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="40" id="c-sc-h"/>
+                                    </constraints>
+                                    <subviews>
+                                        <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="filter-pop">
+                                            <rect key="frame" x="9" y="7" width="94" height="25"/>
+                                            <constraints>
+                                                <constraint firstAttribute="width" constant="90" id="c-fp-w"/>
+                                            </constraints>
+                                            <popUpButtonCell key="cell" type="push" title="Message" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="item-msg" id="cell-fp">
+                                                <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                                <font key="font" metaFont="menu"/>
+                                                <menu key="menu" id="menu-fp">
+                                                    <items>
+                                                        <menuItem title="Message" state="on" id="item-msg"/>
+                                                        <menuItem title="Author" id="item-auth"/>
+                                                    </items>
+                                                </menu>
+                                            </popUpButtonCell>
+                                        </popUpButton>
+                                        <searchField wantsLayer="YES" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="search-fld">
+                                            <rect key="frame" x="108" y="9" width="280" height="22"/>
+                                            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Search commits..." usesSingleLineMode="YES" bezelStyle="round" id="cell-sf">
+                                                <font key="font" metaFont="system"/>
+                                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </searchFieldCell>
+                                        </searchField>
+                                        <customView translatesAutoresizingMaskIntoConstraints="NO" id="search-border">
+                                            <rect key="frame" x="0.0" y="0.0" width="400" height="1"/>
+                                            <constraints>
+                                                <constraint firstAttribute="height" constant="1" id="c-sb-h"/>
+                                            </constraints>
+                                        </customView>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstItem="filter-pop" firstAttribute="centerY" secondItem="search-cont" secondAttribute="centerY" id="c-fp-cy"/>
+                                        <constraint firstItem="filter-pop" firstAttribute="leading" secondItem="search-cont" secondAttribute="leading" constant="12" id="c-fp-l"/>
+                                        <constraint firstItem="search-fld" firstAttribute="centerY" secondItem="search-cont" secondAttribute="centerY" id="c-sf-cy"/>
+                                        <constraint firstItem="search-fld" firstAttribute="leading" secondItem="filter-pop" secondAttribute="trailing" constant="8" id="c-sf-l"/>
+                                        <constraint firstAttribute="trailing" secondItem="search-fld" secondAttribute="trailing" constant="12" id="c-sf-r"/>
+                                        <constraint firstItem="search-border" firstAttribute="leading" secondItem="search-cont" secondAttribute="leading" id="c-sb-l"/>
+                                        <constraint firstItem="search-border" firstAttribute="trailing" secondItem="search-cont" secondAttribute="trailing" id="c-sb-r"/>
+                                        <constraint firstItem="search-border" firstAttribute="bottom" secondItem="search-cont" secondAttribute="bottom" id="c-sb-b"/>
+                                    </constraints>
+                                </customView>
+                                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="24" horizontalPageScroll="10" verticalLineScroll="24" verticalPageScroll="10" hasHorizontalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="table-scroll">
+                                    <rect key="frame" x="0.0" y="130" width="400" height="430"/>
+                                    <clipView key="contentView" id="table-clip">
+                                        <rect key="frame" x="0.0" y="0.0" width="400" height="430"/>
+                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                        <subviews>
+                                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="uniform" multipleSelection="NO" autosaveColumns="NO" rowHeight="24" rowSizeStyle="automatic" viewBased="YES" id="table-view">
+                                                <rect key="frame" x="0.0" y="0.0" width="400" height="430"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <size key="intercellSpacing" width="0.0" height="0.0"/>
+                                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="gridColor" name="separatorColor" catalog="System" colorSpace="catalog"/>
+                                                <tableColumns>
+                                                    <tableColumn identifier="commitColumn" width="400" minWidth="40" maxWidth="2000" id="col-commit">
+                                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
+                                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                                        </tableHeaderCell>
+                                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="cell-txt-com"/>
+                                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                                    </tableColumn>
+                                                </tableColumns>
+                                            </tableView>
+                                        </subviews>
+                                    </clipView>
+                                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scr-t">
+                                        <rect key="frame" x="-100" y="-100" width="400" height="16"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                    </scroller>
+                                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scr-t">
+                                        <rect key="frame" x="384" y="0.0" width="16" height="430"/>
+                                        <autoresizingMask key="autoresizingMask"/>
+                                    </scroller>
+                                </scrollView>
+                                <customView translatesAutoresizingMaskIntoConstraints="NO" id="info-pan">
+                                    <rect key="frame" x="0.0" y="0.0" width="400" height="130"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="130" id="c-ip-h"/>
+                                    </constraints>
+                                    <subviews>
+                                        <customView translatesAutoresizingMaskIntoConstraints="NO" id="info-border">
+                                            <rect key="frame" x="0.0" y="129" width="400" height="1"/>
+                                            <constraints>
+                                                <constraint firstAttribute="height" constant="1" id="c-ib-h"/>
+                                            </constraints>
+                                        </customView>
+                                        <customView translatesAutoresizingMaskIntoConstraints="NO" id="info-ava" customClass="AvatarView" customModule="gitui" customModuleProvider="target">
+                                            <rect key="frame" x="12" y="89" width="30" height="30"/>
+                                            <constraints>
+                                                <constraint firstAttribute="width" constant="30" id="c-ia-w"/>
+                                                <constraint firstAttribute="height" constant="30" id="c-ia-h"/>
+                                            </constraints>
+                                        </customView>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="info-auth">
+                                            <rect key="frame" x="48" y="103" width="266" height="16"/>
+                                            <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Author" id="cell-iauth">
+                                                <font key="font" metaFont="systemSemibold" size="13"/>
+                                                <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="info-hash">
+                                            <rect key="frame" x="318" y="103" width="70" height="16"/>
+                                            <constraints>
+                                                <constraint firstAttribute="width" constant="70" id="c-ih-w"/>
+                                                <constraint firstAttribute="height" constant="16" id="c-ih-h"/>
+                                            </constraints>
+                                            <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="HASH" id="cell-ihash">
+                                                <font key="font" size="11" name="Menlo-Regular"/>
+                                                <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="info-date">
+                                            <rect key="frame" x="48" y="86" width="342" height="15"/>
+                                            <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Date" id="cell-idate">
+                                                <font key="font" metaFont="message" size="12"/>
+                                                <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                            </textFieldCell>
+                                        </textField>
+                                        <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="msg-scroll">
+                                            <rect key="frame" x="12" y="8" width="376" height="73"/>
+                                            <clipView key="contentView" drawsBackground="NO" id="msg-clip">
+                                                <rect key="frame" x="0.0" y="0.0" width="376" height="73"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" spellingCorrection="YES" smartInsertDelete="YES" id="info-msg">
+                                                        <rect key="frame" x="0.0" y="0.0" width="376" height="73"/>
+                                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                                        <size key="minSize" width="376" height="73"/>
+                                                        <size key="maxSize" width="400" height="10000000"/>
+                                                        <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                                    </textView>
+                                                </subviews>
+                                            </clipView>
+                                            <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scr-m">
+                                                <rect key="frame" x="-100" y="-100" width="240" height="16"/>
+                                                <autoresizingMask key="autoresizingMask"/>
+                                            </scroller>
+                                            <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scr-m">
+                                                <rect key="frame" x="-100" y="-100" width="16" height="73"/>
+                                                <autoresizingMask key="autoresizingMask"/>
+                                            </scroller>
+                                        </scrollView>
+                                    </subviews>
+                                    <constraints>
+                                        <constraint firstItem="info-border" firstAttribute="leading" secondItem="info-pan" secondAttribute="leading" id="c-ibd-l"/>
+                                        <constraint firstItem="info-border" firstAttribute="trailing" secondItem="info-pan" secondAttribute="trailing" id="c-ibd-r"/>
+                                        <constraint firstItem="info-border" firstAttribute="top" secondItem="info-pan" secondAttribute="top" id="c-ibd-t"/>
+                                        <constraint firstItem="info-ava" firstAttribute="top" secondItem="info-border" secondAttribute="bottom" constant="10" id="c-ia-t"/>
+                                        <constraint firstItem="info-ava" firstAttribute="leading" secondItem="info-pan" secondAttribute="leading" constant="12" id="c-ia-l"/>
+                                        <constraint firstItem="info-auth" firstAttribute="top" secondItem="info-ava" secondAttribute="top" id="c-iau-t"/>
+                                        <constraint firstItem="info-auth" firstAttribute="leading" secondItem="info-ava" secondAttribute="trailing" constant="8" id="c-iau-l"/>
+                                        <constraint firstItem="info-hash" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="info-auth" secondAttribute="trailing" constant="8" id="c-ih-l"/>
+                                        <constraint firstItem="info-hash" firstAttribute="centerY" secondItem="info-auth" secondAttribute="centerY" id="c-ih-cy"/>
+                                        <constraint firstAttribute="trailing" secondItem="info-hash" secondAttribute="trailing" constant="12" id="c-ih-r"/>
+                                        <constraint firstItem="info-date" firstAttribute="top" secondItem="info-auth" secondAttribute="bottom" constant="2" id="c-idt-t"/>
+                                        <constraint firstItem="info-date" firstAttribute="leading" secondItem="info-ava" secondAttribute="trailing" constant="8" id="c-idt-l"/>
+                                        <constraint firstAttribute="trailing" secondItem="info-date" secondAttribute="trailing" constant="12" id="c-idt-r"/>
+                                        <constraint firstItem="msg-scroll" firstAttribute="top" secondItem="info-ava" secondAttribute="bottom" constant="8" id="c-ms-t"/>
+                                        <constraint firstItem="msg-scroll" firstAttribute="leading" secondItem="info-pan" secondAttribute="leading" constant="12" id="c-ms-l"/>
+                                        <constraint firstAttribute="trailing" secondItem="msg-scroll" secondAttribute="trailing" constant="12" id="c-ms-r"/>
+                                        <constraint firstAttribute="bottom" secondItem="msg-scroll" secondAttribute="bottom" constant="8" id="c-ms-b"/>
+                                    </constraints>
+                                </customView>
+                                <progressIndicator hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" controlSize="small" style="spinning" id="prog-ind">
+                                    <rect key="frame" x="368" y="568" width="16" height="16"/>
+                                    <constraints>
+                                        <constraint firstAttribute="width" constant="16" id="c-prog-w"/>
+                                        <constraint firstAttribute="height" constant="16" id="c-prog-h"/>
+                                    </constraints>
+                                </progressIndicator>
+                            </subviews>
+                            <constraints>
+                                <constraint firstItem="search-cont" firstAttribute="top" secondItem="left-pane" secondAttribute="top" id="c-sc-t"/>
+                                <constraint firstItem="search-cont" firstAttribute="leading" secondItem="left-pane" secondAttribute="leading" id="c-sc-l"/>
+                                <constraint firstItem="search-cont" firstAttribute="trailing" secondItem="left-pane" secondAttribute="trailing" id="c-sc-r"/>
+                                <constraint firstItem="table-scroll" firstAttribute="top" secondItem="search-cont" secondAttribute="bottom" id="c-ts-t"/>
+                                <constraint firstItem="table-scroll" firstAttribute="leading" secondItem="left-pane" secondAttribute="leading" id="c-ts-l"/>
+                                <constraint firstItem="table-scroll" firstAttribute="trailing" secondItem="left-pane" secondAttribute="trailing" id="c-ts-r"/>
+                                <constraint firstItem="info-pan" firstAttribute="top" secondItem="table-scroll" secondAttribute="bottom" id="c-ip-t"/>
+                                <constraint firstItem="info-pan" firstAttribute="leading" secondItem="left-pane" secondAttribute="leading" id="c-ip-l"/>
+                                <constraint firstItem="info-pan" firstAttribute="trailing" secondItem="left-pane" secondAttribute="trailing" id="c-ip-r"/>
+                                <constraint firstAttribute="bottom" secondItem="info-pan" secondAttribute="bottom" id="c-ip-b"/>
+                                <constraint firstItem="prog-ind" firstAttribute="top" secondItem="left-pane" secondAttribute="top" constant="16" id="c-pg-t"/>
+                                <constraint firstAttribute="trailing" secondItem="prog-ind" secondAttribute="trailing" constant="16" id="c-pg-r"/>
+                            </constraints>
+                        </customView>
+                        <customView id="right-pane">
+                            <rect key="frame" x="401" y="0.0" width="399" height="600"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        </customView>
+                    </subviews>
+                    <holdingPriorities>
+                        <real value="250"/>
+                        <real value="250"/>
+                    </holdingPriorities>
+                </splitView>
+            </subviews>
+            <constraints>
+                <constraint firstItem="split-view" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="c-sv-t"/>
+                <constraint firstItem="split-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-sv-l"/>
+                <constraint firstItem="split-view" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-sv-r"/>
+                <constraint firstItem="split-view" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" id="c-sv-b"/>
+            </constraints>
         </customView>
     </objects>
 </document>

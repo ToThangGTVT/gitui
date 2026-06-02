@@ -14,95 +14,31 @@ class ConflictResolutionViewController: NSViewController {
     
     weak var delegate: ConflictResolutionDelegate?
     
-    private var scrollView: NSScrollView!
-    private var stackView: NSStackView!
-    private var resolveContainer: NSView!
+    @IBOutlet private weak var scrollView: NSScrollView!
+    @IBOutlet private weak var stackView: NSStackView!
+    @IBOutlet private weak var resolveContainer: NSView!
+    @IBOutlet private weak var resolveButton: NSButton!
     
     init(filePath: String, repoPath: String) {
         self.filePath = filePath
         self.repoPath = repoPath
-        super.init(nibName: nil, bundle: nil)
+        super.init(nibName: "ConflictResolutionViewController", bundle: nil)
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
     
-    override func loadView() {
-        self.view = NSView()
-        self.view.wantsLayer = true
-        self.view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        
+    override func viewDidLoad() {
+        super.viewDidLoad()
         setupUI()
         loadFile()
     }
     
     private func setupUI() {
-        scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
-        scrollView.borderType = .noBorder
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.drawsBackground = false
-        view.addSubview(scrollView)
-        
-        let documentView = NSView()
-        documentView.translatesAutoresizingMaskIntoConstraints = false
-        
-        stackView = NSStackView()
-        stackView.orientation = .vertical
-        stackView.alignment = .leading
-        stackView.spacing = 0
-        stackView.translatesAutoresizingMaskIntoConstraints = false
-        documentView.addSubview(stackView)
-        
-        resolveContainer = NSView()
         resolveContainer.wantsLayer = true
         resolveContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        resolveContainer.translatesAutoresizingMaskIntoConstraints = false
         resolveContainer.isHidden = true
-        view.addSubview(resolveContainer)
-        
-        let border = NSView()
-        border.wantsLayer = true
-        border.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        border.translatesAutoresizingMaskIntoConstraints = false
-        resolveContainer.addSubview(border)
-        
-        let resolveBtn = NSButton(title: "Mark as Resolved", target: self, action: #selector(markAsResolvedClicked))
-        resolveBtn.bezelStyle = .texturedRounded
-        resolveBtn.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
-        resolveBtn.translatesAutoresizingMaskIntoConstraints = false
-        resolveContainer.addSubview(resolveBtn)
-        
-        scrollView.documentView = documentView
-        
-        NSLayoutConstraint.activate([
-            resolveContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            resolveContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            resolveContainer.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            resolveContainer.heightAnchor.constraint(equalToConstant: 50),
-            
-            border.leadingAnchor.constraint(equalTo: resolveContainer.leadingAnchor),
-            border.trailingAnchor.constraint(equalTo: resolveContainer.trailingAnchor),
-            border.topAnchor.constraint(equalTo: resolveContainer.topAnchor),
-            border.heightAnchor.constraint(equalToConstant: 1),
-            
-            resolveBtn.centerYAnchor.constraint(equalTo: resolveContainer.centerYAnchor),
-            resolveBtn.trailingAnchor.constraint(equalTo: resolveContainer.trailingAnchor, constant: -16),
-            
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: resolveContainer.topAnchor),
-            
-            stackView.leadingAnchor.constraint(equalTo: documentView.leadingAnchor),
-            stackView.trailingAnchor.constraint(equalTo: documentView.trailingAnchor),
-            stackView.topAnchor.constraint(equalTo: documentView.topAnchor),
-            stackView.bottomAnchor.constraint(equalTo: documentView.bottomAnchor),
-            
-            documentView.leadingAnchor.constraint(equalTo: scrollView.contentView.leadingAnchor),
-            documentView.trailingAnchor.constraint(equalTo: scrollView.contentView.trailingAnchor)
-        ])
     }
     
     private func loadFile() {
@@ -296,7 +232,7 @@ class ConflictResolutionViewController: NSViewController {
         }
     }
     
-    @objc private func markAsResolvedClicked() {
+    @IBAction private func markAsResolvedClicked(_ sender: Any) {
         Task {
             do {
                 try await GitService.shared.stageFile(filePath, in: repoPath)
