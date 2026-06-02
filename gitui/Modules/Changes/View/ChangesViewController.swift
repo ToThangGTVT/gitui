@@ -126,6 +126,8 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
 
     private var hasRestoredMainSplit = false
     private var hasRestoredLeftSplit = false
+    private var hasQueuedMainSplitRestore = false
+    private var hasQueuedLeftSplitRestore = false
     
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: "ChangesViewController", bundle: nil)
@@ -184,14 +186,20 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     override func viewDidAppear() {
         super.viewDidAppear()
         // Restore dividers after initial layout is complete and window is visible
-        if !hasRestoredMainSplit {
-            mainSplitPersistence?.restoreDividerPositions()
-            hasRestoredMainSplit = true
+        if !hasQueuedMainSplitRestore {
+            hasQueuedMainSplitRestore = true
+            DispatchQueue.main.async { [weak self] in
+                self?.mainSplitPersistence?.restoreDividerPositions()
+                self?.hasRestoredMainSplit = true
+            }
         }
         
-        if !hasRestoredLeftSplit {
-            restoreFilesDividerPositions()
-            hasRestoredLeftSplit = true
+        if !hasQueuedLeftSplitRestore {
+            hasQueuedLeftSplitRestore = true
+            DispatchQueue.main.async { [weak self] in
+                self?.restoreFilesDividerPositions()
+                self?.hasRestoredLeftSplit = true
+            }
         }
     }
     

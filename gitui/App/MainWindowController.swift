@@ -700,10 +700,81 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 }
             }
         } catch {
-            await MainActor.run {
-                self.showToolbarAlert(title: "Pull Failed", message: error.localizedDescription, isError: true)
+            let errorMsg = error.localizedDescription
+            if errorMsg.contains("divergent branches") {
+                await MainActor.run {
+                    self.showDivergentBranchesDialog(remote: remote, branch: branch, options: options, repoPath: repoPath)
+                }
+                throw error
+            } else {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Pull Failed", message: errorMsg, isError: true)
+                }
+                throw error
             }
-            throw error
+        }
+    }
+    
+    private func showDivergentBranchesDialog(remote: String, branch: String, options: [String], repoPath: String) {
+        guard let window = self.window else { return }
+        
+        var targetWindow = window
+        while let sheet = targetWindow.attachedSheet {
+            targetWindow = sheet
+        }
+        
+        let alert = NSAlert()
+        alert.messageText = "Divergent Branches Detected"
+        alert.informativeText = "You have divergent branches and need to specify how to reconcile them.\n\n• Merge: Combine changes with a merge commit (recommended).\n• Rebase: Reapply your changes on top of the remote branch."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Use Merge")
+        alert.addButton(withTitle: "Use Rebase")
+        alert.addButton(withTitle: "Cancel")
+        
+        alert.beginSheetModal(for: targetWindow) { [weak self] response in
+            guard let self = self else { return }
+            if response == .alertFirstButtonReturn {
+                self.resolveDivergentAndPull(rebase: false, remote: remote, branch: branch, options: options, repoPath: repoPath)
+            } else if response == .alertSecondButtonReturn {
+                self.resolveDivergentAndPull(rebase: true, remote: remote, branch: branch, options: options, repoPath: repoPath)
+            }
+        }
+    }
+    
+    private func resolveDivergentAndPull(rebase: Bool, remote: String, branch: String, options: [String], repoPath: String) {
+        Task {
+            do {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+                process.arguments = ["config", "pull.rebase", rebase ? "true" : "false"]
+                process.currentDirectoryPath = repoPath
+                try process.run()
+                process.waitUntilExit()
+                
+                try await GitService.shared.pull(remote: remote, branch: branch, options: options, in: repoPath)
+                
+                await MainActor.run {
+                    let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
+                    self.updateBranchLabel(for: repoPath, repoName: repoName)
+                    self.refreshCurrentTab()
+                    
+                    var targetWindow = self.window
+                    while let sheet = targetWindow?.attachedSheet {
+                        targetWindow = sheet
+                    }
+                    if let pullWindow = targetWindow, pullWindow != self.window {
+                        pullWindow.sheetParent?.endSheet(pullWindow)
+                    }
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        self.showToolbarAlert(title: "Pull Complete", message: "Successfully resolved and pulled \(branch) from '\(remote)'.", isError: false)
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.showToolbarAlert(title: "Pull Failed", message: error.localizedDescription, isError: true)
+                }
+            }
         }
     }
     
@@ -779,7 +850,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = isError ? .warning : .informational
-        alert.addButton(withTitle: "OK")
+        let okButton = alert.addButton(withTitle: "OK")
+        if #available(macOS 11.0, *), isError {
+            okButton.hasDestructiveAction = true
+        }
         alert.beginSheetModal(for: targetWindow, completionHandler: nil)
     }
     

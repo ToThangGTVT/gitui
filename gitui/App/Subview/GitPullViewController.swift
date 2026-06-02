@@ -164,6 +164,7 @@ class GitPullViewController: NSViewController {
         
         okButton.isEnabled = false
         cancelButton.isEnabled = false
+        pullProgressIndicator.isHidden = false
         pullProgressIndicator.startAnimation(nil)
         
         Task {
@@ -172,6 +173,7 @@ class GitPullViewController: NSViewController {
                     try await onPull(remote, branch, options)
                 }
                 await MainActor.run {
+                    self.pullProgressIndicator.isHidden = true
                     self.view.window?.sheetParent?.endSheet(self.view.window!)
                 }
             } catch {
@@ -179,6 +181,7 @@ class GitPullViewController: NSViewController {
                     self.okButton.isEnabled = true
                     self.cancelButton.isEnabled = true
                     self.pullProgressIndicator.stopAnimation(nil)
+                    self.pullProgressIndicator.isHidden = true
                 }
             }
         }

@@ -69,6 +69,7 @@ class GitFetchViewController: NSViewController {
         
         okButton.isEnabled = false
         cancelButton.isEnabled = false
+        fetchProgressIndicator.isHidden = false
         fetchProgressIndicator.startAnimation(nil)
         
         Task {
@@ -77,6 +78,7 @@ class GitFetchViewController: NSViewController {
                     try await onFetch(options)
                 }
                 await MainActor.run {
+                    self.fetchProgressIndicator.isHidden = true
                     self.view.window?.sheetParent?.endSheet(self.view.window!)
                 }
             } catch {
@@ -84,6 +86,7 @@ class GitFetchViewController: NSViewController {
                     self.okButton.isEnabled = true
                     self.cancelButton.isEnabled = true
                     self.fetchProgressIndicator.stopAnimation(nil)
+                    self.fetchProgressIndicator.isHidden = true
                 }
             }
         }

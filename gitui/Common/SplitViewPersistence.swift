@@ -68,7 +68,20 @@ final class SplitViewPersistence {
         else { return }
         
         for (i, position) in saved.enumerated() {
-            sv.setPosition(CGFloat(position), ofDividerAt: i)
+            var finalPos = CGFloat(position)
+            
+            if let delegate = sv.delegate {
+                if delegate.responds(to: #selector(NSSplitViewDelegate.splitView(_:constrainMinCoordinate:ofSubviewAt:))) {
+                    let minPos = delegate.splitView?(sv, constrainMinCoordinate: 0, ofSubviewAt: i) ?? 0
+                    finalPos = max(finalPos, minPos)
+                }
+                if delegate.responds(to: #selector(NSSplitViewDelegate.splitView(_:constrainMaxCoordinate:ofSubviewAt:))) {
+                    let maxPos = delegate.splitView?(sv, constrainMaxCoordinate: sv.bounds.width, ofSubviewAt: i) ?? sv.bounds.width
+                    finalPos = min(finalPos, maxPos)
+                }
+            }
+            
+            sv.setPosition(finalPos, ofDividerAt: i)
         }
     }
     
