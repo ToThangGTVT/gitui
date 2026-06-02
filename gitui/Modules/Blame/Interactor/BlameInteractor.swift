@@ -1,9 +1,26 @@
 import Foundation
 
 protocol BlameInteractorProtocol: AnyObject {
-    // Add methods for presenter to request data
+    func fetchBlame(for filePath: String, repoPath: String)
 }
 
 class BlameInteractor: BlameInteractorProtocol {
-    weak var presenter: BlamePresenterProtocol?
+    weak var presenter: BlameInteractorOutputProtocol?
+    
+    func fetchBlame(for filePath: String, repoPath: String) {
+        guard !repoPath.isEmpty else { return }
+        
+        Task {
+            do {
+                let lines = try await GitBlameService.shared.getBlame(for: filePath, in: repoPath)
+                await MainActor.run {
+                    presenter?.didLoadBlame(lines)
+                }
+            } catch {
+                await MainActor.run {
+                    presenter?.didFailToLoadBlame(error: error)
+                }
+            }
+        }
+    }
 }

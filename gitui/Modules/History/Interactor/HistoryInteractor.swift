@@ -10,6 +10,7 @@ protocol HistoryInteractorInputProtocol: AnyObject {
     func cherryPick(repoPath: String, hash: String)
     func revert(repoPath: String, hash: String)
     func reset(repoPath: String, hash: String, mode: ResetMode)
+    func searchHistory(repoPath: String, query: String, filterType: GitSearchFilterType)
 }
 
 protocol HistoryInteractorOutputProtocol: AnyObject {
@@ -76,6 +77,42 @@ class HistoryInteractor: HistoryInteractorInputProtocol {
                     
                     await MainActor.run {
                         self.presenter?.didLoadHistory(laidOutCommits)
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.presenter?.didOperationError(error)
+                    }
+                }
+            }
+        }
+    }
+    
+    func searchHistory(repoPath: String, query: String, filterType: GitSearchFilterType) {
+        DispatchQueue.global(qos: .userInitiated).async {
+            Task {
+                do {
+                    let commitsList = try await GitSearchService.shared.searchCommits(query: query, filterType: filterType, in: repoPath)
+                    
+                    let dateFieldFormatter = DateFormatter()
+                    dateFieldFormatter.dateFormat = "yyyy-MM-dd" // Search service uses --date=short
+                    
+                    let commitNodes = commitsList.map { c in
+                        CommitNode(
+                            hash: c.hash,
+                            shortHash: c.shortHash,
+                            message: c.message,
+                            author: c.author,
+                            date: dateFieldFormatter.date(from: c.date) ?? Date(),
+                            parents: [], // Search results might not form a contiguous graph
+                            refs: [],
+                            laneIndex: 0,
+                            incomingEdges: [],
+                            outgoingEdges: []
+                        )
+                    }
+                    
+                    await MainActor.run {
+                        self.presenter?.didLoadHistory(commitNodes)
                     }
                 } catch {
                     await MainActor.run {

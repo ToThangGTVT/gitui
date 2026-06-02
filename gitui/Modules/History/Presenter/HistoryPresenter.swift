@@ -10,6 +10,7 @@ protocol HistoryPresenterProtocol: AnyObject {
     func didSelectCommit(_ commit: CommitNode)
     func handleAction(_ action: CommitAction)
     func showContextMenu(for commit: CommitNode, menu: NSMenu)
+    func performSearch(query: String, filterType: GitSearchFilterType)
 }
 
 class HistoryPresenter: HistoryPresenterProtocol, HistoryInteractorOutputProtocol {
@@ -21,6 +22,8 @@ class HistoryPresenter: HistoryPresenterProtocol, HistoryInteractorOutputProtoco
     private var commits: [CommitNode] = []
     private var currentLimit = 200
     private var isLoadingMore = false
+    private var currentSearchQuery: String?
+    private var currentSearchFilter: GitSearchFilterType?
     var hasMoreCommits = true
     
     init(view: HistoryViewProtocol, interactor: HistoryInteractorInputProtocol, router: HistoryRouterProtocol) {
@@ -40,11 +43,14 @@ class HistoryPresenter: HistoryPresenterProtocol, HistoryInteractorOutputProtoco
     func refresh() {
         currentLimit = 200
         hasMoreCommits = true
+        currentSearchQuery = nil
+        currentSearchFilter = nil
         loadHistory()
     }
     
     func loadMore() {
         guard !isLoadingMore, hasMoreCommits else { return }
+        if currentSearchQuery != nil { return } // No load more for search results currently
         isLoadingMore = true
         currentLimit += 200
         loadHistory()
@@ -56,7 +62,22 @@ class HistoryPresenter: HistoryPresenterProtocol, HistoryInteractorOutputProtoco
             return
         }
         view?.showLoading(true)
-        interactor.loadHistory(repoPath: path, limit: currentLimit)
+        if let query = currentSearchQuery, let filter = currentSearchFilter {
+            interactor.searchHistory(repoPath: path, query: query, filterType: filter)
+        } else {
+            interactor.loadHistory(repoPath: path, limit: currentLimit)
+        }
+    }
+    
+    func performSearch(query: String, filterType: GitSearchFilterType) {
+        guard !query.isEmpty else {
+            refresh()
+            return
+        }
+        currentSearchQuery = query
+        currentSearchFilter = filterType
+        hasMoreCommits = false // Disable load more for search results
+        loadHistory()
     }
     
     func didSelectCommit(_ commit: CommitNode) {

@@ -8,7 +8,7 @@ protocol HistoryViewProtocol: AnyObject {
     func showLoading(_ loading: Bool)
 }
 
-class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate, NSSplitViewDelegate {
+class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate, NSSplitViewDelegate, NSSearchFieldDelegate {
     
     var presenter: HistoryPresenterProtocol?
     
@@ -23,6 +23,11 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     private var scrollView: NSScrollView!
     private var tableView: NSTableView!
     private var progressIndicator: NSProgressIndicator!
+
+    // Search Bar
+    private var searchContainer: NSView!
+    private var searchField: NSSearchField!
+    private var filterPopup: NSPopUpButton!
 
     // Commit info panel (bottom of left pane)
     private var infoPanel: NSView!
@@ -98,7 +103,51 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
             splitView.setPosition(680, ofDividerAt: 0)
         }
         
-        // 2. Left Pane UI: NSScrollView + NSTableView + Info Panel
+        // 2. Left Pane UI: SearchBar + NSScrollView + NSTableView + Info Panel
+        
+        searchContainer = NSView()
+        searchContainer.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.wantsLayer = true
+        searchContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        leftContainer.addSubview(searchContainer)
+        
+        searchField = NSSearchField()
+        searchField.placeholderString = "Search commits..."
+        searchField.translatesAutoresizingMaskIntoConstraints = false
+        searchField.delegate = self
+        searchContainer.addSubview(searchField)
+        
+        filterPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+        filterPopup.addItems(withTitles: ["Message", "Author"])
+        filterPopup.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.addSubview(filterPopup)
+        
+        let searchBorder = NSView()
+        searchBorder.wantsLayer = true
+        searchBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        searchBorder.translatesAutoresizingMaskIntoConstraints = false
+        searchContainer.addSubview(searchBorder)
+        
+        NSLayoutConstraint.activate([
+            searchContainer.topAnchor.constraint(equalTo: leftContainer.topAnchor),
+            searchContainer.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
+            searchContainer.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
+            searchContainer.heightAnchor.constraint(equalToConstant: 40),
+            
+            filterPopup.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+            filterPopup.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 12),
+            filterPopup.widthAnchor.constraint(equalToConstant: 90),
+            
+            searchField.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
+            searchField.leadingAnchor.constraint(equalTo: filterPopup.trailingAnchor, constant: 8),
+            searchField.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -12),
+            
+            searchBorder.bottomAnchor.constraint(equalTo: searchContainer.bottomAnchor),
+            searchBorder.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor),
+            searchBorder.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor),
+            searchBorder.heightAnchor.constraint(equalToConstant: 1)
+        ])
+        
         infoPanel = buildInfoPanel()
         infoPanel.translatesAutoresizingMaskIntoConstraints = false
         leftContainer.addSubview(infoPanel)
@@ -118,10 +167,10 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
             infoPanel.bottomAnchor.constraint(equalTo: leftContainer.bottomAnchor),
             infoPanel.heightAnchor.constraint(equalToConstant: 130),
 
-            // Graph fills the rest above info panel
+            // Graph fills the rest above info panel and below search bar
             scrollView.leadingAnchor.constraint(equalTo: leftContainer.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: leftContainer.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: leftContainer.topAnchor),
+            scrollView.topAnchor.constraint(equalTo: searchContainer.bottomAnchor),
             scrollView.bottomAnchor.constraint(equalTo: infoPanel.topAnchor),
         ])
         
@@ -263,6 +312,16 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
 
     deinit {
         NotificationCenter.default.removeObserver(self)
+    }
+    
+    // MARK: - NSSearchFieldDelegate
+    
+    func controlTextDidEndEditing(_ obj: Notification) {
+        if let field = obj.object as? NSSearchField, field == searchField {
+            let query = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            let filterType: GitSearchFilterType = filterPopup.titleOfSelectedItem == "Author" ? .author : .message
+            presenter?.performSearch(query: query, filterType: filterType)
+        }
     }
     
     // MARK: - NSSplitViewDelegate
