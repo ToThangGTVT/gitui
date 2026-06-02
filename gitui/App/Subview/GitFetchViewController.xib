@@ -14,6 +14,7 @@
                 <outlet property="tagsCheckbox" destination="tagsCheckbox" id="conn3"/>
                 <outlet property="cancelButton" destination="cancelButton" id="conn4"/>
                 <outlet property="okButton" destination="okButton" id="conn5"/>
+                <outlet property="fetchProgressIndicator" destination="prg-ind" id="conn6"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -87,6 +88,9 @@ DQ
                         <action selector="okClicked:" target="-2" id="act2"/>
                     </connections>
                 </button>
+                <progressIndicator hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" style="bar" id="prg-ind">
+                    <rect key="frame" x="20" y="19" width="215" height="20"/>
+                </progressIndicator>
             </subviews>
             <constraints>
                 <constraint firstItem="stack" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="20" id="c1"/>
@@ -96,6 +100,9 @@ DQ
                 <constraint firstAttribute="trailing" secondItem="okButton" secondAttribute="trailing" constant="20" id="c5"/>
                 <constraint firstItem="okButton" firstAttribute="leading" secondItem="cancelButton" secondAttribute="trailing" constant="12" id="c6"/>
                 <constraint firstItem="cancelButton" firstAttribute="centerY" secondItem="okButton" secondAttribute="centerY" id="c7"/>
+                <constraint firstItem="prg-ind" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c8"/>
+                <constraint firstItem="prg-ind" firstAttribute="centerY" secondItem="okButton" secondAttribute="centerY" id="c9"/>
+                <constraint firstItem="cancelButton" firstAttribute="leading" secondItem="prg-ind" secondAttribute="trailing" constant="15" id="c10"/>
             </constraints>
         </customView>
     </objects>

@@ -10,14 +10,13 @@ class GitPushProgressViewController: NSViewController {
     private let force: Bool
     private let onComplete: (Bool) -> Void
     
-    // UI Outlets
-    private var headerIcon: NSImageView!
-    private var titleLabel: NSTextField!
-    private var subtitleLabel: NSTextField!
-    private var progressIndicator: NSProgressIndicator!
-    private var logScrollView: NSScrollView!
-    private var logTextView: NSTextView!
-    private var actionButton: NSButton!
+    @IBOutlet private weak var headerIcon: NSImageView!
+    @IBOutlet private weak var titleLabel: NSTextField!
+    @IBOutlet private weak var subtitleLabel: NSTextField!
+    @IBOutlet private weak var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var logScrollView: NSScrollView!
+    @IBOutlet private var logTextView: NSTextView!
+    @IBOutlet private weak var actionButton: NSButton!
     
     private var isSuccess = false
     
@@ -27,19 +26,11 @@ class GitPushProgressViewController: NSViewController {
         self.force = force
         self.repoPath = repoPath
         self.onComplete = onComplete
-        super.init(nibName: nil, bundle: nil)
+        super.init(nibName: "GitPushProgressViewController", bundle: nil)
     }
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
-    }
-    
-    override func loadView() {
-        // Setup base container view
-        let container = NSView()
-        container.wantsLayer = true
-        container.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-        self.view = container
     }
     
     override func viewDidLoad() {
@@ -49,111 +40,23 @@ class GitPushProgressViewController: NSViewController {
     }
     
     private func setupUI() {
-        // 1. Icon ImageView
-        headerIcon = NSImageView()
-        headerIcon.translatesAutoresizingMaskIntoConstraints = false
-        headerIcon.imageScaling = .scaleProportionallyUpOrDown
         if #available(macOS 11.0, *) {
             let config = NSImage.SymbolConfiguration(pointSize: 22, weight: .semibold)
             headerIcon.image = NSImage(systemSymbolName: "cloud.and.arrow.up.fill", accessibilityDescription: nil)?
                 .withSymbolConfiguration(config)
         }
         headerIcon.contentTintColor = NSColor.controlAccentColor
-        view.addSubview(headerIcon)
         
-        // 2. Title Label
-        titleLabel = NSTextField(labelWithString: "Pushing to Remote...")
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
-        titleLabel.textColor = NSColor.labelColor
-        view.addSubview(titleLabel)
+        subtitleLabel.stringValue = "Pushing branch '\(branch)' to '\(remote)'"
         
-        // 3. Subtitle Label (Badge info)
-        subtitleLabel = NSTextField(labelWithString: "Pushing branch '\(branch)' to '\(remote)'")
-        subtitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        subtitleLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-        subtitleLabel.textColor = NSColor.secondaryLabelColor
-        view.addSubview(subtitleLabel)
-        
-        // 4. Horizontal Indeterminate Progress Indicator (Bar style)
-        progressIndicator = NSProgressIndicator()
-        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        progressIndicator.style = .bar
-        progressIndicator.isIndeterminate = true
-        progressIndicator.controlSize = .regular
-        view.addSubview(progressIndicator)
-        
-        // 5. Scroll View for Terminal Logs
-        logScrollView = NSScrollView()
-        logScrollView.translatesAutoresizingMaskIntoConstraints = false
-        logScrollView.hasVerticalScroller = true
-        logScrollView.hasHorizontalScroller = false
-        logScrollView.autohidesScrollers = true
-        logScrollView.borderType = .noBorder
         logScrollView.wantsLayer = true
         logScrollView.layer?.cornerRadius = 6
         logScrollView.layer?.masksToBounds = true
         logScrollView.layer?.borderWidth = 1
         logScrollView.layer?.borderColor = NSColor.separatorColor.cgColor
-        logScrollView.drawsBackground = true
-        logScrollView.backgroundColor = NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.0)
-        view.addSubview(logScrollView)
         
-        // 6. Text View for Terminal Logs
-        logTextView = NSTextView(frame: NSRect(x: 0, y: 0, width: 510, height: 200))
-        logTextView.isEditable = false
-        logTextView.isSelectable = true
-        logTextView.autoresizingMask = [.width]
-        logTextView.backgroundColor = NSColor(red: 0.08, green: 0.08, blue: 0.08, alpha: 1.0)
-        logTextView.textColor = NSColor(red: 0.85, green: 0.85, blue: 0.85, alpha: 1.0)
-        logTextView.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-        logTextView.textContainer?.containerSize = NSSize(width: 510, height: CGFloat.greatestFiniteMagnitude)
+        logTextView.textContainer?.containerSize = NSSize(width: logScrollView.contentSize.width, height: CGFloat.greatestFiniteMagnitude)
         logTextView.textContainer?.widthTracksTextView = true
-        logScrollView.documentView = logTextView
-        
-        // 7. Action / Close Button
-        actionButton = NSButton(title: "Pushing...", target: self, action: #selector(actionButtonClicked(_:)))
-        actionButton.translatesAutoresizingMaskIntoConstraints = false
-        actionButton.bezelStyle = .rounded
-        actionButton.isEnabled = false
-        view.addSubview(actionButton)
-        
-        // Autolayout constraints
-        NSLayoutConstraint.activate([
-            // Icon
-            headerIcon.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            headerIcon.topAnchor.constraint(equalTo: view.topAnchor, constant: 18),
-            headerIcon.widthAnchor.constraint(equalToConstant: 28),
-            headerIcon.heightAnchor.constraint(equalToConstant: 28),
-            
-            // Title
-            titleLabel.leadingAnchor.constraint(equalTo: headerIcon.trailingAnchor, constant: 10),
-            titleLabel.topAnchor.constraint(equalTo: view.topAnchor, constant: 16),
-            titleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            
-            // Subtitle
-            subtitleLabel.leadingAnchor.constraint(equalTo: titleLabel.leadingAnchor),
-            subtitleLabel.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 3),
-            subtitleLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            
-            // Indeterminate Progress Bar
-            progressIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            progressIndicator.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            progressIndicator.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 14),
-            progressIndicator.heightAnchor.constraint(equalToConstant: 12),
-            
-            // Scrollview for Logs
-            logScrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            logScrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            logScrollView.topAnchor.constraint(equalTo: progressIndicator.bottomAnchor, constant: 12),
-            logScrollView.bottomAnchor.constraint(equalTo: actionButton.topAnchor, constant: -16),
-            
-            // Action Button
-            actionButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20),
-            actionButton.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -16),
-            actionButton.widthAnchor.constraint(equalToConstant: 100),
-            actionButton.heightAnchor.constraint(equalToConstant: 30)
-        ])
     }
     
     private func appendLog(_ text: String) {
@@ -229,7 +132,7 @@ class GitPushProgressViewController: NSViewController {
         actionButton.isEnabled = true
     }
     
-    @objc private func actionButtonClicked(_ sender: Any) {
+    @IBAction private func actionButtonClicked(_ sender: Any) {
         closeSheet()
         onComplete(isSuccess)
     }

@@ -21,6 +21,7 @@
                 <outlet property="rebaseCheckbox" destination="rebaseCheckbox" id="conn10"/>
                 <outlet property="cancelButton" destination="cancelButton" id="conn11"/>
                 <outlet property="okButton" destination="okButton" id="conn12"/>
+                <outlet property="pullProgressIndicator" destination="prg-ind2" id="conn13"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -209,6 +210,9 @@ DQ
                         <action selector="okClicked:" target="-2" id="act4"/>
                     </connections>
                 </button>
+                <progressIndicator hidden="YES" translatesAutoresizingMaskIntoConstraints="NO" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" style="bar" id="prg-ind2">
+                    <rect key="frame" x="20" y="19" width="375" height="20"/>
+                </progressIndicator>
             </subviews>
             <constraints>
                 <constraint firstItem="lbl1" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="24" id="c1"/>
@@ -241,6 +245,9 @@ DQ
                 <constraint firstAttribute="trailing" secondItem="okButton" secondAttribute="trailing" constant="20" id="c27"/>
                 <constraint firstItem="okButton" firstAttribute="leading" secondItem="cancelButton" secondAttribute="trailing" constant="12" id="c28"/>
                 <constraint firstItem="cancelButton" firstAttribute="centerY" secondItem="okButton" secondAttribute="centerY" id="c29"/>
+                <constraint firstItem="prg-ind2" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c30"/>
+                <constraint firstItem="prg-ind2" firstAttribute="centerY" secondItem="okButton" secondAttribute="centerY" id="c31"/>
+                <constraint firstItem="cancelButton" firstAttribute="leading" secondItem="prg-ind2" secondAttribute="trailing" constant="15" id="c32"/>
             </constraints>
         </customView>
     </objects>

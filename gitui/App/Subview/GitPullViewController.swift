@@ -19,7 +19,7 @@ class GitPullViewController: NSViewController {
     @IBOutlet weak var cancelButton: NSButton!
     @IBOutlet weak var okButton: NSButton!
 
-    private var pullProgressIndicator = NSProgressIndicator()
+    @IBOutlet weak var pullProgressIndicator: NSProgressIndicator!
 
     private let repoPath: String
     private let defaultBranch: String
@@ -53,18 +53,6 @@ class GitPullViewController: NSViewController {
         super.viewDidLoad()
         setupUI()
         loadData()
-        
-        pullProgressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        pullProgressIndicator.style = .bar
-        pullProgressIndicator.isIndeterminate = true
-        pullProgressIndicator.isDisplayedWhenStopped = false
-        view.addSubview(pullProgressIndicator)
-        
-        NSLayoutConstraint.activate([
-            pullProgressIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            pullProgressIndicator.centerYAnchor.constraint(equalTo: okButton.centerYAnchor),
-            pullProgressIndicator.trailingAnchor.constraint(equalTo: cancelButton.leadingAnchor, constant: -20)
-        ])
     }
 
     private func setupUI() {

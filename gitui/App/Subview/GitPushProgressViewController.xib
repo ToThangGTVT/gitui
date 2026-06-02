@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="GitPushProgressViewController" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+                <outlet property="headerIcon" destination="hdr-ic-on1" id="out-hd-1"/>
+                <outlet property="titleLabel" destination="ttl-lb-l11" id="out-tt-1"/>
+                <outlet property="subtitleLabel" destination="sub-lb-l11" id="out-su-1"/>
+                <outlet property="progressIndicator" destination="prg-in-dic" id="out-pr-1"/>
+                <outlet property="logScrollView" destination="log-sc-rl1" id="out-sc-1"/>
+                <outlet property="logTextView" destination="log-tx-tv1" id="out-tx-1"/>
+                <outlet property="actionButton" destination="act-bn-111" id="out-ac-1"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="Hz6-mo-xeY">
+            <rect key="frame" x="0.0" y="0.0" width="550" height="380"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="hdr-ic-on1">
+                    <rect key="frame" x="20" y="334" width="28" height="28"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="28" id="cW1"/>
+                        <constraint firstAttribute="height" constant="28" id="cH1"/>
+                    </constraints>
+                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyUpOrDown" id="icC1"/>
+                </imageView>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ttl-lb-l11">
+                    <rect key="frame" x="56" y="345" width="476" height="19"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Pushing to Remote..." id="tlC1">
+                        <font key="font" metaFont="systemBold" size="16"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="sub-lb-l11">
+                    <rect key="frame" x="56" y="327" width="476" height="15"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" title="Pushing branch '...' to '...'" id="slC1">
+                        <font key="font" metaFont="systemMedium" size="12"/>
+                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <progressIndicator translatesAutoresizingMaskIntoConstraints="NO" maxValue="100" indeterminate="YES" style="bar" id="prg-in-dic">
+                    <rect key="frame" x="20" y="294" width="510" height="20"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="18" id="cH2"/>
+                    </constraints>
+                </progressIndicator>
+                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" translatesAutoresizingMaskIntoConstraints="NO" id="log-sc-rl1">
+                    <rect key="frame" x="20" y="62" width="510" height="221"/>
+                    <clipView key="contentView" drawsBackground="NO" id="cv1">
+                        <rect key="frame" x="0.0" y="0.0" width="510" height="221"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" spellingCorrection="YES" smartInsertDelete="YES" id="log-tx-tv1">
+                                <rect key="frame" x="0.0" y="0.0" width="510" height="221"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <size key="minSize" width="510" height="221"/>
+                                <size key="maxSize" width="550" height="10000000"/>
+                                <color key="insertionPointColor" name="textColor" catalog="System" colorSpace="catalog"/>
+                            </textView>
+                        </subviews>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="hs1">
+                        <rect key="frame" x="-100" y="-100" width="240" height="16"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="vs1">
+                        <rect key="frame" x="494" y="0.0" width="16" height="221"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                </scrollView>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="act-bn-111">
+                    <rect key="frame" x="423" y="9" width="114" height="43"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="100" id="cW2"/>
+                        <constraint firstAttribute="height" constant="31" id="cH3"/>
+                    </constraints>
+                    <buttonCell key="cell" type="push" title="Pushing..." bezelStyle="rounded" alignment="center" enabled="NO" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="bc1">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="actionButtonClicked:" target="-2" id="actCb"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstItem="hdr-ic-on1" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" id="c1"/>
+                <constraint firstItem="hdr-ic-on1" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="18" id="c2"/>
+                
+                <constraint firstItem="ttl-lb-l11" firstAttribute="leading" secondItem="hdr-ic-on1" secondAttribute="trailing" constant="10" id="c3"/>
+                <constraint firstItem="ttl-lb-l11" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="16" id="c4"/>
+                <constraint firstAttribute="trailing" secondItem="ttl-lb-l11" secondAttribute="trailing" constant="20" id="c5"/>
+                
+                <constraint firstItem="sub-lb-l11" firstAttribute="leading" secondItem="ttl-lb-l11" secondAttribute="leading" id="c6"/>
+                <constraint firstItem="sub-lb-l11" firstAttribute="top" secondItem="ttl-lb-l11" secondAttribute="bottom" constant="3" id="c7"/>
+                <constraint firstAttribute="trailing" secondItem="sub-lb-l11" secondAttribute="trailing" constant="20" id="c8"/>
+                
+                <constraint firstItem="prg-in-dic" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" id="c9"/>
+                <constraint firstAttribute="trailing" secondItem="prg-in-dic" secondAttribute="trailing" constant="20" id="c10"/>
+                <constraint firstItem="prg-in-dic" firstAttribute="top" secondItem="sub-lb-l11" secondAttribute="bottom" constant="14" id="c11"/>
+                
+                <constraint firstItem="log-sc-rl1" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="20" id="c12"/>
+                <constraint firstAttribute="trailing" secondItem="log-sc-rl1" secondAttribute="trailing" constant="20" id="c13"/>
+                <constraint firstItem="log-sc-rl1" firstAttribute="top" secondItem="prg-in-dic" secondAttribute="bottom" constant="12" id="c14"/>
+                
+                <constraint firstAttribute="trailing" secondItem="act-bn-111" secondAttribute="trailing" constant="20" id="c15"/>
+                <constraint firstAttribute="bottom" secondItem="act-bn-111" secondAttribute="bottom" constant="16" id="c16"/>
+                <constraint firstItem="act-bn-111" firstAttribute="top" secondItem="log-sc-rl1" secondAttribute="bottom" constant="16" id="c17"/>
+            </constraints>
+        </customView>
+    </objects>
+</document>

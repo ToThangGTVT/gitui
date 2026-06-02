@@ -11,7 +11,7 @@ class GitFetchViewController: NSViewController {
     @IBOutlet weak var cancelButton: NSButton!
     @IBOutlet weak var okButton: NSButton!
 
-    private var fetchProgressIndicator = NSProgressIndicator()
+    @IBOutlet weak var fetchProgressIndicator: NSProgressIndicator!
     
     private let repoPath: String
     private var onFetch: ((_ options: [String]) async throws -> Void)?
@@ -39,18 +39,6 @@ class GitFetchViewController: NSViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-        
-        fetchProgressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        fetchProgressIndicator.style = .bar
-        fetchProgressIndicator.isIndeterminate = true
-        fetchProgressIndicator.isDisplayedWhenStopped = false
-        view.addSubview(fetchProgressIndicator)
-        
-        NSLayoutConstraint.activate([
-            fetchProgressIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
-            fetchProgressIndicator.centerYAnchor.constraint(equalTo: okButton.centerYAnchor),
-            fetchProgressIndicator.trailingAnchor.constraint(equalTo: cancelButton.leadingAnchor, constant: -20)
-        ])
     }
 
     private func setupUI() {
