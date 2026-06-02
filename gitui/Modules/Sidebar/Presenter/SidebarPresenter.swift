@@ -10,6 +10,7 @@ protocol SidebarPresenterProtocol: AnyObject {
     func didSelectBranch(_ branch: GitBranch, in repoPath: String)
     func didMoveRepository(from: Int, to: Int)
     func didClickRemoveRepository(at index: Int)
+    func didRenameRepository(_ bookmark: RepositoryBookmark, newName: String)
     func didClickOpen()
     func didClickInit()
     func didClickClone()
@@ -76,7 +77,11 @@ class SidebarPresenter: SidebarPresenterProtocol, SidebarInteractorOutputProtoco
     func didClickRemoveRepository(at index: Int) {
         interactor.removeRepository(at: index)
     }
-    
+
+    func didRenameRepository(_ bookmark: RepositoryBookmark, newName: String) {
+        interactor.renameRepository(path: bookmark.path, newName: newName)
+    }
+
     func didClickOpen() {
         router.showOpenPanel { [weak self] path in
             guard let path = path else { return }

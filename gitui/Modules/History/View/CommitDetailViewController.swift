@@ -144,6 +144,17 @@ class CommitDetailViewController: NSViewController,
         return tableView.rowHeight
     }
 
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        guard tableView === diffTableView else { return nil }
+        let id = NSUserInterfaceItemIdentifier("DiffRowView")
+        if let existing = tableView.makeView(withIdentifier: id, owner: self) as? NoHighlightRowView {
+            return existing
+        }
+        let rowView = NoHighlightRowView()
+        rowView.identifier = id
+        return rowView
+    }
+
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         tableView === diffTableView ? diffCellView(for: row) : fileCellView(for: row)
     }
@@ -208,14 +219,10 @@ class CommitDetailViewController: NSViewController,
             guard row < diffLines.count else { continue }
             let line = diffLines[row]
             switch line.kind {
-            case .context:
-                copiedText += " " + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
-            case .added:
-                copiedText += "+" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
-            case .removed:
-                copiedText += "-" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .context, .added, .removed:
+                copiedText += (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
             case .fileHeader, .hunkHeader:
-                copiedText += line.rawText + "\n"
+                break
             }
         }
         

@@ -55,6 +55,13 @@ class RepositoryStore {
         setActiveRepository(path: path)
     }
     
+    func renameBookmark(path: String, newName: String) {
+        var bookmarks = getBookmarks()
+        guard let index = bookmarks.firstIndex(where: { $0.path == path }) else { return }
+        bookmarks[index].name = newName
+        saveBookmarks(bookmarks)
+    }
+
     func removeBookmark(at index: Int) {
         var bookmarks = getBookmarks()
         guard index >= 0 && index < bookmarks.count else { return }

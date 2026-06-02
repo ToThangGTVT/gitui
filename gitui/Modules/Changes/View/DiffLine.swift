@@ -30,14 +30,12 @@ func buildDiffLines(from diffText: String, hunks: [DiffHunk]) -> [DiffLine] {
         if let hunk = hunkByStart[idx] {
             // Parse starting line numbers from @@ -oldStart[,count] +newStart[,count] @@
             let pattern = #"@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@"#
-            if let match = raw.range(of: pattern, options: .regularExpression) {
-                let nums = String(raw[match])
-                    .components(separatedBy: CharacterSet.decimalDigits.inverted)
-                    .filter { !$0.isEmpty }
-                if nums.count >= 2 {
-                    oldLine = Int(nums[0]) ?? 1
-                    newLine = Int(nums[1]) ?? 1
-                }
+            if let regex = try? NSRegularExpression(pattern: pattern),
+               let match = regex.firstMatch(in: raw, range: NSRange(raw.startIndex..., in: raw)),
+               let oldRange = Range(match.range(at: 1), in: raw),
+               let newRange = Range(match.range(at: 2), in: raw) {
+                oldLine = Int(raw[oldRange]) ?? 1
+                newLine = Int(raw[newRange]) ?? 1
             }
             result.append(DiffLine(kind: .hunkHeader(hunk: hunk), rawText: raw))
 

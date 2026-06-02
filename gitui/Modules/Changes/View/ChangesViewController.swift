@@ -964,16 +964,11 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         for row in selectedRows {
             guard row < diffLines.count else { continue }
             let line = diffLines[row]
-            // Format line content based on kind
             switch line.kind {
-            case .context:
-                copiedText += " " + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
-            case .added:
-                copiedText += "+" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
-            case .removed:
-                copiedText += "-" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .context, .added, .removed:
+                copiedText += (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
             case .fileHeader, .hunkHeader:
-                copiedText += line.rawText + "\n"
+                break
             }
         }
         
@@ -1083,6 +1078,17 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             return 18
         }
         return tableView.rowHeight
+    }
+
+    func tableView(_ tableView: NSTableView, rowViewForRow row: Int) -> NSTableRowView? {
+        guard tableView === diffTableView else { return nil }
+        let id = NSUserInterfaceItemIdentifier("DiffRowView")
+        if let existing = tableView.makeView(withIdentifier: id, owner: self) as? NoHighlightRowView {
+            return existing
+        }
+        let rowView = NoHighlightRowView()
+        rowView.identifier = id
+        return rowView
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {

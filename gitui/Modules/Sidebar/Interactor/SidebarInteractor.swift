@@ -8,6 +8,7 @@ protocol SidebarInteractorInputProtocol: AnyObject {
     func removeRepository(at index: Int)
     func moveRepository(from: Int, to: Int)
     func selectRepository(path: String)
+    func renameRepository(path: String, newName: String)
     func cloneRepository(url: String, targetPath: String)
     func initRepository(at path: String)
     func checkout(branchName: String, in repoPath: String, stashLocalChanges: Bool)
@@ -44,7 +45,12 @@ class SidebarInteractor: SidebarInteractorInputProtocol {
         RepositoryStore.shared.moveBookmark(from: from, to: to)
         loadBookmarks()
     }
-    
+
+    func renameRepository(path: String, newName: String) {
+        RepositoryStore.shared.renameBookmark(path: path, newName: newName)
+        loadBookmarks()
+    }
+
     func selectRepository(path: String) {
         RepositoryStore.shared.setActiveRepository(path: path)
         loadBookmarks()

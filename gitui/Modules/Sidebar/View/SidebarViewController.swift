@@ -42,18 +42,9 @@ class WorktreeGroupItem: NSObject {
 
 class CustomSelectionRowView: NSTableRowView {
     override func drawSelection(in dirtyRect: NSRect) {
-        if self.selectionHighlightStyle != .none {
-            let selectionRect = self.bounds.insetBy(dx: 6, dy: 0) // Standard macOS padding
-            
-            let bgColor = NSColor.systemBlue.withAlphaComponent(0.2)
-            bgColor.setFill()
-            
-            // Standard rounded corner, not a full pill
-            let path = NSBezierPath(roundedRect: selectionRect, xRadius: 4, yRadius: 4)
-            path.fill()
-        }
+        // Selection background is handled by the cell's own layer
     }
-    
+
     override var interiorBackgroundStyle: NSView.BackgroundStyle {
         return .normal
     }
@@ -69,7 +60,7 @@ class BranchItem: NSObject {
     }
 }
 
-class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSearchFieldDelegate {
+class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSearchFieldDelegate, NSMenuDelegate {
     
     var presenter: SidebarPresenterProtocol?
     private var isSelectingProgrammatically = false
@@ -144,6 +135,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         outlineView.backgroundColor = NSColor.clear
         outlineView.gridStyleMask = []
         outlineView.allowsMultipleSelection = false
+        outlineView.selectionHighlightStyle = .none
         outlineView.doubleAction = #selector(outlineDoubleClicked(_:))
         
         // Register drag & drop
@@ -156,6 +148,10 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         outlineView.dataSource = self
         outlineView.delegate = self
         scroll.documentView = outlineView
+
+        let contextMenu = NSMenu()
+        contextMenu.delegate = self
+        outlineView.menu = contextMenu
         
         // 3. Bottom Bar
         let bottomView = NSView()
@@ -231,8 +227,131 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         ])
     }
     
+    // MARK: - NSMenuDelegate
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let row = outlineView.clickedRow
+        guard row >= 0, let item = outlineView.item(atRow: row) else { return }
+
+        if let repoItem = item as? RepositoryItem {
+            let openTerminal = NSMenuItem(title: "Open in Terminal", action: #selector(contextOpenInTerminal(_:)), keyEquivalent: "")
+            openTerminal.target = self
+            openTerminal.representedObject = repoItem
+            menu.addItem(openTerminal)
+
+            let reveal = NSMenuItem(title: "Reveal in Finder", action: #selector(contextRevealInFinder(_:)), keyEquivalent: "")
+            reveal.target = self
+            reveal.representedObject = repoItem
+            menu.addItem(reveal)
+
+            let copyPath = NSMenuItem(title: "Copy Path", action: #selector(contextCopyPath(_:)), keyEquivalent: "")
+            copyPath.target = self
+            copyPath.representedObject = repoItem
+            menu.addItem(copyPath)
+
+            menu.addItem(.separator())
+
+            let rename = NSMenuItem(title: "Rename...", action: #selector(contextRenameRepo(_:)), keyEquivalent: "")
+            rename.target = self
+            rename.representedObject = repoItem
+            menu.addItem(rename)
+
+            menu.addItem(.separator())
+
+            let remove = NSMenuItem(title: "Remove from Sidebar", action: #selector(contextRemoveRepo(_:)), keyEquivalent: "")
+            remove.target = self
+            remove.representedObject = repoItem
+            menu.addItem(remove)
+
+        } else if let branchItem = item as? BranchItem {
+            if !branchItem.branch.isCurrent {
+                let switchBranch = NSMenuItem(title: "Switch to '\(branchItem.branch.shortName)'", action: #selector(contextSwitchBranch(_:)), keyEquivalent: "")
+                switchBranch.target = self
+                switchBranch.representedObject = branchItem
+                menu.addItem(switchBranch)
+                menu.addItem(.separator())
+            }
+
+            let copyName = NSMenuItem(title: "Copy Branch Name", action: #selector(contextCopyBranchName(_:)), keyEquivalent: "")
+            copyName.target = self
+            copyName.representedObject = branchItem
+            menu.addItem(copyName)
+        }
+    }
+
+    @objc private func contextOpenInTerminal(_ sender: NSMenuItem) {
+        guard let repoItem = sender.representedObject as? RepositoryItem else { return }
+        let url = URL(fileURLWithPath: repoItem.bookmark.path)
+        NSWorkspace.shared.openApplication(at: URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"),
+                                           configuration: NSWorkspace.OpenConfiguration(),
+                                           completionHandler: nil)
+        // Change Terminal's working directory via AppleScript
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "cd '\(repoItem.bookmark.path)'"
+        end tell
+        """
+        if let appleScript = NSAppleScript(source: script) {
+            appleScript.executeAndReturnError(nil)
+        }
+        _ = url
+    }
+
+    @objc private func contextRevealInFinder(_ sender: NSMenuItem) {
+        guard let repoItem = sender.representedObject as? RepositoryItem else { return }
+        NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: repoItem.bookmark.path)
+    }
+
+    @objc private func contextCopyPath(_ sender: NSMenuItem) {
+        guard let repoItem = sender.representedObject as? RepositoryItem else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(repoItem.bookmark.path, forType: .string)
+    }
+
+    @objc private func contextRenameRepo(_ sender: NSMenuItem) {
+        guard let repoItem = sender.representedObject as? RepositoryItem else { return }
+        guard let window = view.window else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Rename Repository"
+        alert.informativeText = "Enter a new display name for '\(repoItem.bookmark.name)':"
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 22))
+        field.stringValue = repoItem.bookmark.name
+        alert.accessoryView = field
+        alert.window.initialFirstResponder = field
+
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn else { return }
+            let newName = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !newName.isEmpty else { return }
+            self?.presenter?.didRenameRepository(repoItem.bookmark, newName: newName)
+        }
+    }
+
+    @objc private func contextRemoveRepo(_ sender: NSMenuItem) {
+        guard let repoItem = sender.representedObject as? RepositoryItem,
+              let index = repositoryItems.firstIndex(of: repoItem) else { return }
+        presenter?.didClickRemoveRepository(at: index)
+    }
+
+    @objc private func contextSwitchBranch(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem else { return }
+        presenter?.didSelectBranch(branchItem.branch, in: branchItem.repoPath)
+    }
+
+    @objc private func contextCopyBranchName(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(branchItem.branch.shortName, forType: .string)
+    }
+
     // MARK: - Actions
-    
+
     @objc private func plusClicked(_ sender: NSButton) {
         let menu = NSMenu()
         
@@ -389,21 +508,30 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             if cell == nil {
                 cell = NSTableCellView()
                 cell?.identifier = cellIdentifier
-                
 
-                
+                let icon = NSImageView()
+                if #available(macOS 11.0, *) {
+                    let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                    icon.image = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: "Repository")?.withSymbolConfiguration(config)
+                }
+                icon.imageScaling = .scaleProportionallyUpOrDown
+                icon.identifier = NSUserInterfaceItemIdentifier("repoIcon")
+                icon.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(icon)
+                cell?.imageView = icon
+
                 let label = NSTextField(labelWithString: "")
                 label.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(label)
                 cell?.textField = label
-                
+
                 let divider = NSView()
                 divider.wantsLayer = true
                 divider.layer?.backgroundColor = NSColor.gitFlowBorder.withAlphaComponent(0.4).cgColor
                 divider.identifier = NSUserInterfaceItemIdentifier("repoDivider")
                 divider.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(divider)
-                
+
                 let pathLabel = NSTextField(labelWithString: "")
                 pathLabel.font = NSFont.systemFont(ofSize: 10)
                 pathLabel.textColor = NSColor.secondaryLabelColor
@@ -411,36 +539,53 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 pathLabel.identifier = NSUserInterfaceItemIdentifier("pathLabel")
                 pathLabel.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(pathLabel)
-                
+
                 let statsLabel = NSTextField(labelWithString: "")
                 statsLabel.font = NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
                 statsLabel.identifier = NSUserInterfaceItemIdentifier("statsLabel")
                 statsLabel.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(statsLabel)
-                
+
                 NSLayoutConstraint.activate([
                     divider.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 16),
                     divider.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -16),
                     divider.topAnchor.constraint(equalTo: cell!.topAnchor),
                     divider.heightAnchor.constraint(equalToConstant: 1),
-                    
-                    label.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
-                    label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 16),
-                    
+
+                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 10),
+                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    icon.widthAnchor.constraint(equalToConstant: 15),
+                    icon.heightAnchor.constraint(equalToConstant: 15),
+
+                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 7),
+                    label.bottomAnchor.constraint(equalTo: cell!.centerYAnchor, constant: 1),
+
                     statsLabel.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 4),
                     statsLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
                     statsLabel.centerYAnchor.constraint(equalTo: label.centerYAnchor),
-                    
-                    pathLabel.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
+
+                    pathLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 7),
                     pathLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
                     pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 2)
                 ])
             }
             
+            cell?.wantsLayer = true
+            cell?.layer?.cornerRadius = 6
+            if isActive {
+                cell?.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
+            } else {
+                cell?.layer?.backgroundColor = NSColor.clear.cgColor
+            }
+
+            if #available(macOS 11.0, *),
+               let icon = cell?.subviews.first(where: { $0.identifier?.rawValue == "repoIcon" }) as? NSImageView {
+                icon.contentTintColor = isActive ? NSColor.gitFlowAccent : NSColor.secondaryLabelColor
+            }
+
             if let textField = cell?.textField {
                 textField.stringValue = bookmark.name
                 if isActive {
-                    // M3 'On Secondary Container' equivalent (bold, distinct color)
                     textField.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
                     textField.textColor = NSColor.m3Primary
                 } else {
@@ -664,6 +809,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         if let selectedItem = outlineView.item(atRow: selectedRow) {
             if let repoItem = selectedItem as? RepositoryItem {
                 removeButton.isEnabled = true
+                outlineView.expandItem(repoItem, expandChildren: true)
                 presenter?.didSelectRepository(repoItem.bookmark)
             } else if let branchItem = selectedItem as? BranchItem {
                 removeButton.isEnabled = false
@@ -838,17 +984,20 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             
                             targetItem.groups = updatedGroups
                             self.outlineView.reloadItem(targetItem, reloadChildren: true)
-                            
-                            // Re-expand groups
-                            for group in updatedGroups {
-                                let title: String?
-                                if let bGroup = group as? BranchGroupItem { title = bGroup.title }
-                                else if let sGroup = group as? SubmoduleGroupItem { title = sGroup.title }
-                                else if let wGroup = group as? WorktreeGroupItem { title = wGroup.title }
-                                else { title = nil }
-                                
-                                if let t = title, expandedGroups.contains(t) {
-                                    self.outlineView.expandItem(group)
+
+                            if path == self.activePath {
+                                self.outlineView.expandItem(targetItem, expandChildren: true)
+                            } else {
+                                for group in updatedGroups {
+                                    let title: String?
+                                    if let bGroup = group as? BranchGroupItem { title = bGroup.title }
+                                    else if let sGroup = group as? SubmoduleGroupItem { title = sGroup.title }
+                                    else if let wGroup = group as? WorktreeGroupItem { title = wGroup.title }
+                                    else { title = nil }
+
+                                    if let t = title, expandedGroups.contains(t) {
+                                        self.outlineView.expandItem(group)
+                                    }
                                 }
                             }
                             
@@ -894,6 +1043,10 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             
                             targetItem.groups = newGroups
                             self.outlineView.reloadItem(targetItem, reloadChildren: true)
+
+                            if path == self.activePath {
+                                self.outlineView.expandItem(targetItem, expandChildren: true)
+                            }
                         }
                     }
                 } catch {

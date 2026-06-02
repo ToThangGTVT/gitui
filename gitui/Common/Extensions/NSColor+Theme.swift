@@ -118,6 +118,24 @@ extension NSColor {
         }
     }
     
+    // MARK: - Diff Colors
+
+    static var gitFlowDiffContextText: NSColor {
+        return NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(white: 0.82, alpha: 1.0)
+                : NSColor.m3OnSurfaceVariant
+        }
+    }
+
+    static var gitFlowDiffLineNum: NSColor {
+        return NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(white: 0.45, alpha: 1.0)
+                : NSColor.m3OnSurfaceFaint
+        }
+    }
+
     static var gitFlowText: NSColor {
         return NSColor(name: nil) { appearance in
             appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? NSColor.labelColor : NSColor.m3OnSurface

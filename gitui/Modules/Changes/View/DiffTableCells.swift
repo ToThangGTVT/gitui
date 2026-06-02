@@ -2,6 +2,16 @@
 
 import Cocoa
 
+// MARK: - NoHighlightRowView
+
+class NoHighlightRowView: NSTableRowView {
+    override func drawSelection(in dirtyRect: NSRect) {
+        NSColor.selectedContentBackgroundColor.withAlphaComponent(0.25).setFill()
+        bounds.fill()
+    }
+    override var interiorBackgroundStyle: NSView.BackgroundStyle { .normal }
+}
+
 // MARK: - HunkHeaderCellView
 
 class HunkHeaderCellView: NSView {
@@ -39,7 +49,7 @@ class HunkHeaderCellView: NSView {
         hunkLabel.textColor = .secondaryLabelColor
         hunkLabel.lineBreakMode = .byTruncatingTail
         hunkLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        hunkLabel.isSelectable = true
+        hunkLabel.isSelectable = false
 
         for (btn, title, sel) in [
             (stageButton,   "Stage Hunk",   #selector(stageTapped)),
@@ -118,10 +128,39 @@ class HunkHeaderCellView: NSView {
 
 class DiffLineCellView: NSView {
 
-    private let oldLineNumLabel = NSTextField(labelWithString: "")
-    private let newLineNumLabel = NSTextField(labelWithString: "")
+    private let lineNumLabel = NSTextField(labelWithString: "")
     private let sep = NSView()
     private let contentLabel = NSTextField(labelWithString: "")
+    private var currentLine: DiffLine?
+
+    private static var addedBg: NSColor {
+        NSColor(name: nil) { trait in
+            trait.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.04, green: 0.18, blue: 0.04, alpha: 1.0)
+                : NSColor(hex: "#E6F4EA")
+        }
+    }
+    private static var addedText: NSColor {
+        NSColor(name: nil) { trait in
+            trait.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.42, green: 0.88, blue: 0.42, alpha: 1.0)
+                : NSColor(hex: "#0B5B27")
+        }
+    }
+    private static var removedBg: NSColor {
+        NSColor(name: nil) { trait in
+            trait.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.22, green: 0.04, blue: 0.04, alpha: 1.0)
+                : NSColor(hex: "#FCE8E6")
+        }
+    }
+    private static var removedText: NSColor {
+        NSColor(name: nil) { trait in
+            trait.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.96, green: 0.46, blue: 0.46, alpha: 1.0)
+                : NSColor(hex: "#A50E0E")
+        }
+    }
 
     override init(frame: NSRect) {
         super.init(frame: frame)
@@ -133,91 +172,73 @@ class DiffLineCellView: NSView {
     private func setup() {
         wantsLayer = true
 
-        oldLineNumLabel.font = NSFont.m3Mono
-        oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
-        oldLineNumLabel.alignment = .right
-        oldLineNumLabel.translatesAutoresizingMaskIntoConstraints = false
-        oldLineNumLabel.isSelectable = true
-        addSubview(oldLineNumLabel)
-        
-        newLineNumLabel.font = NSFont.m3Mono
-        newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
-        newLineNumLabel.alignment = .right
-        newLineNumLabel.translatesAutoresizingMaskIntoConstraints = false
-        newLineNumLabel.isSelectable = true
-        addSubview(newLineNumLabel)
+        lineNumLabel.font = NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+        lineNumLabel.textColor = .gitFlowDiffLineNum
+        lineNumLabel.alignment = .right
+        lineNumLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(lineNumLabel)
 
-        sep.wantsLayer = true
-        sep.layer?.backgroundColor = NSColor.m3OutlineFaint.cgColor
-        sep.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(sep)
-
-        contentLabel.font = NSFont.m3Mono
+        contentLabel.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
         contentLabel.lineBreakMode = .byClipping
         contentLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentLabel.isSelectable = true
         addSubview(contentLabel)
 
         NSLayoutConstraint.activate([
-            oldLineNumLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
-            oldLineNumLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            oldLineNumLabel.widthAnchor.constraint(equalToConstant: 42),
-            
-            newLineNumLabel.leadingAnchor.constraint(equalTo: oldLineNumLabel.trailingAnchor, constant: 4),
-            newLineNumLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            newLineNumLabel.widthAnchor.constraint(equalToConstant: 42),
+            lineNumLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            lineNumLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            lineNumLabel.widthAnchor.constraint(equalToConstant: 44),
 
-            sep.leadingAnchor.constraint(equalTo: newLineNumLabel.trailingAnchor, constant: 4),
-            sep.centerYAnchor.constraint(equalTo: centerYAnchor),
-            sep.widthAnchor.constraint(equalToConstant: 1),
-            sep.heightAnchor.constraint(equalTo: heightAnchor),
-
-            contentLabel.leadingAnchor.constraint(equalTo: sep.trailingAnchor, constant: 12),
+            contentLabel.leadingAnchor.constraint(equalTo: lineNumLabel.trailingAnchor, constant: 8),
             contentLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             contentLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
         ])
     }
 
     func configure(with line: DiffLine) {
+        currentLine = line
+        applyColors(for: line)
+    }
+
+    private func applyColors(for line: DiffLine) {
         let contentStr = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
-        
+
         switch line.kind {
-        case .context(let oldLn, let newLn):
-            oldLineNumLabel.stringValue = "\(oldLn)"
-            newLineNumLabel.stringValue = "\(newLn)"
-            oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
-            newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+        case .context(_, let newLn):
+            lineNumLabel.stringValue = "\(newLn)"
+            lineNumLabel.textColor = .gitFlowDiffLineNum
             contentLabel.stringValue = " " + contentStr
-            contentLabel.textColor = NSColor.m3OnSurfaceVariant
+            contentLabel.textColor = .gitFlowDiffContextText
             layer?.backgroundColor = NSColor.clear.cgColor
 
         case .added(let newLn):
-            oldLineNumLabel.stringValue = ""
-            newLineNumLabel.stringValue = "\(newLn)"
-            oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
-            newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            lineNumLabel.stringValue = "\(newLn)"
+            lineNumLabel.textColor = DiffLineCellView.addedText
             contentLabel.stringValue = "+" + contentStr
-            contentLabel.textColor = NSColor(hex: "#0B5B27")
-            layer?.backgroundColor = NSColor(hex: "#E6F4EA").cgColor
+            contentLabel.textColor = DiffLineCellView.addedText
+            layer?.backgroundColor = DiffLineCellView.addedBg.cgColor
 
         case .removed(let oldLn):
-            oldLineNumLabel.stringValue = "\(oldLn)"
-            newLineNumLabel.stringValue = ""
-            oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
-            newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            lineNumLabel.stringValue = "\(oldLn)"
+            lineNumLabel.textColor = DiffLineCellView.removedText
             contentLabel.stringValue = "-" + contentStr
-            contentLabel.textColor = NSColor(hex: "#A50E0E")
-            layer?.backgroundColor = NSColor(hex: "#FCE8E6").cgColor
+            contentLabel.textColor = DiffLineCellView.removedText
+            layer?.backgroundColor = DiffLineCellView.removedBg.cgColor
 
         case .fileHeader:
-            oldLineNumLabel.stringValue = ""
-            newLineNumLabel.stringValue = ""
+            lineNumLabel.stringValue = ""
             contentLabel.stringValue = line.rawText
-            contentLabel.textColor = NSColor.m3OnSurfaceVariant
-            layer?.backgroundColor = NSColor.m3SurfaceContainerHigh.cgColor
+            contentLabel.textColor = .gitFlowDiffContextText
+            layer?.backgroundColor = NSColor.clear.cgColor
 
         case .hunkHeader:
-            break // rendered by HunkHeaderCellView
+            break
+        }
+    }
+
+    override func updateLayer() {
+        super.updateLayer()
+        if let line = currentLine {
+            applyColors(for: line)
         }
     }
 }
