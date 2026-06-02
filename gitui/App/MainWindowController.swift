@@ -765,12 +765,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     
     private func showToolbarAlert(title: String, message: String, isError: Bool) {
         guard let window = self.window else { return }
+        
+        var targetWindow = window
+        while let sheet = targetWindow.attachedSheet {
+            targetWindow = sheet
+        }
+        
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = isError ? .warning : .informational
         alert.addButton(withTitle: "OK")
-        alert.beginSheetModal(for: window, completionHandler: nil)
+        alert.beginSheetModal(for: targetWindow, completionHandler: nil)
     }
     
     private func refreshCurrentTab() {

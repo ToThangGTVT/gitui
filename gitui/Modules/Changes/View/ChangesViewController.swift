@@ -119,6 +119,13 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
         stagedTableView.reloadData()
         unstagedTableView.reloadData()
+        
+        if stagedCheckbox != nil {
+            stagedCheckbox.title = stagedFiles.isEmpty ? "Staged Changes" : "Staged Changes (\(stagedFiles.count))"
+        }
+        if unstagedCheckbox != nil {
+            unstagedCheckbox.title = unstagedFiles.isEmpty ? "Unstaged Changes" : "Unstaged Changes (\(unstagedFiles.count))"
+        }
     }
     
     override func viewDidAppear() {
