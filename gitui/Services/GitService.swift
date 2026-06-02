@@ -799,20 +799,19 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
     func pushTag(remote: String, name: String, in repoPath: String) async throws {
         _ = try await runGit(["push", remote, name], in: repoPath)
     }
-    
+
     func cherryPick(hash: String, in repoPath: String) async throws {
         _ = try await runGit(["cherry-pick", hash], in: repoPath)
     }
-    
+
     func revert(hash: String, in repoPath: String) async throws {
-        _ = try await runGit(["revert", "--no-edit", hash], in: repoPath)
+        _ = try await runGit(["revert", hash], in: repoPath)
     }
-    
+
     func clone(url: String, to path: String) async throws {
-        // Clone is run outside a specific repo folder, we use `/` or empty parent folder
-        _ = try await runGit(["clone", url, path], in: "/")
+        _ = try await runGit(["clone", url, path], in: "") // run in root or anywhere
     }
-    
+
     func initRepository(at path: String) async throws {
         _ = try await runGit(["init"], in: path)
     }

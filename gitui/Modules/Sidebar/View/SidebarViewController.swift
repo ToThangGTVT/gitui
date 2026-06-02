@@ -10,9 +10,9 @@ protocol SidebarViewProtocol: AnyObject {
 // Wrapper classes to preserve pointer identity for NSOutlineView
 class RepositoryItem: NSObject {
     var bookmark: RepositoryBookmark
-    var groups: [BranchGroupItem]
+    var groups: [Any]
     
-    init(bookmark: RepositoryBookmark, groups: [BranchGroupItem] = []) {
+    init(bookmark: RepositoryBookmark, groups: [Any] = []) {
         self.bookmark = bookmark
         self.groups = groups
     }
@@ -26,6 +26,18 @@ class BranchGroupItem: NSObject {
         self.title = title
         self.branches = branches
     }
+}
+
+class SubmoduleGroupItem: NSObject {
+    let title = "Submodules"
+    var items: [GitSubmodule]
+    init(items: [GitSubmodule]) { self.items = items }
+}
+
+class WorktreeGroupItem: NSObject {
+    let title = "Worktrees"
+    var items: [GitWorktree]
+    init(items: [GitWorktree]) { self.items = items }
 }
 
 class CustomSelectionRowView: NSTableRowView {
@@ -278,6 +290,18 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 } else {
                     sender.animator().expandItem(groupItem)
                 }
+            } else if let subGroup = clickedItem as? SubmoduleGroupItem {
+                if sender.isItemExpanded(subGroup) {
+                    sender.animator().collapseItem(subGroup)
+                } else {
+                    sender.animator().expandItem(subGroup)
+                }
+            } else if let wtGroup = clickedItem as? WorktreeGroupItem {
+                if sender.isItemExpanded(wtGroup) {
+                    sender.animator().collapseItem(wtGroup)
+                } else {
+                    sender.animator().expandItem(wtGroup)
+                }
             } else if let branchItem = clickedItem as? BranchItem {
                 presenter?.didSelectBranch(branchItem.branch, in: branchItem.repoPath)
             }
@@ -293,6 +317,10 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             return repoItem.groups.count
         } else if let groupItem = item as? BranchGroupItem {
             return groupItem.branches.count
+        } else if let subGroup = item as? SubmoduleGroupItem {
+            return subGroup.items.count
+        } else if let wtGroup = item as? WorktreeGroupItem {
+            return wtGroup.items.count
         }
         return 0
     }
@@ -304,6 +332,10 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             return repoItem.groups[index]
         } else if let groupItem = item as? BranchGroupItem {
             return groupItem.branches[index]
+        } else if let subGroup = item as? SubmoduleGroupItem {
+            return subGroup.items[index]
+        } else if let wtGroup = item as? WorktreeGroupItem {
+            return wtGroup.items[index]
         }
         fatalError("Requested child out of bounds")
     }
@@ -311,7 +343,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
         if item is RepositoryItem {
             return true
-        } else if item is BranchGroupItem {
+        } else if item is BranchGroupItem || item is SubmoduleGroupItem || item is WorktreeGroupItem {
             return true
         }
         return false
@@ -320,7 +352,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     // MARK: - NSOutlineViewDelegate
     
     func outlineView(_ outlineView: NSOutlineView, shouldSelectItem item: Any) -> Bool {
-        if item is BranchGroupItem {
+        if item is BranchGroupItem || item is SubmoduleGroupItem || item is WorktreeGroupItem {
             return false
         }
         return true
@@ -339,7 +371,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
         if item is RepositoryItem {
             return 58
-        } else if item is BranchGroupItem {
+        } else if item is BranchGroupItem || item is SubmoduleGroupItem || item is WorktreeGroupItem {
             return 24
         } else {
             return 28
@@ -457,7 +489,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             }
             
             return cell
-        } else if let groupItem = item as? BranchGroupItem {
+        } else if item is BranchGroupItem || item is SubmoduleGroupItem || item is WorktreeGroupItem {
             let cellIdentifier = NSUserInterfaceItemIdentifier("GroupCell")
             var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
             if cell == nil {
@@ -474,7 +506,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                     label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
                 ])
             }
-            cell?.textField?.stringValue = groupItem.title.uppercased()
+            if let groupItem = item as? BranchGroupItem {
+                cell?.textField?.stringValue = groupItem.title.uppercased()
+            } else if let subGroup = item as? SubmoduleGroupItem {
+                cell?.textField?.stringValue = subGroup.title.uppercased()
+            } else if let wtGroup = item as? WorktreeGroupItem {
+                cell?.textField?.stringValue = wtGroup.title.uppercased()
+            }
             return cell
         } else if let branchItem = item as? BranchItem {
             let branch = branchItem.branch
@@ -532,6 +570,82 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 }
             }
             
+            return cell
+        } else if let subItem = item as? GitSubmodule {
+            let cellIdentifier = NSUserInterfaceItemIdentifier("SubmoduleCell")
+            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+            
+            if cell == nil {
+                cell = NSTableCellView()
+                cell?.identifier = cellIdentifier
+                
+                let icon = NSImageView()
+                if #available(macOS 11.0, *) {
+                    icon.image = NSImage(systemSymbolName: "shippingbox", accessibilityDescription: "Submodule")?.withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 10, weight: .medium))
+                    icon.contentTintColor = NSColor.secondaryLabelColor
+                }
+                icon.imageScaling = .scaleProportionallyUpOrDown
+                icon.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(icon)
+                cell?.imageView = icon
+                
+                let label = NSTextField(labelWithString: "")
+                label.font = NSFont.systemFont(ofSize: 12)
+                label.textColor = NSColor.labelColor
+                label.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(label)
+                cell?.textField = label
+                
+                NSLayoutConstraint.activate([
+                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
+                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    icon.widthAnchor.constraint(equalToConstant: 12),
+                    icon.heightAnchor.constraint(equalToConstant: 12),
+                    
+                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
+                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8)
+                ])
+            }
+            cell?.textField?.stringValue = subItem.path
+            return cell
+        } else if let wtItem = item as? GitWorktree {
+            let cellIdentifier = NSUserInterfaceItemIdentifier("WorktreeCell")
+            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+            
+            if cell == nil {
+                cell = NSTableCellView()
+                cell?.identifier = cellIdentifier
+                
+                let icon = NSImageView()
+                if #available(macOS 11.0, *) {
+                    icon.image = NSImage(systemSymbolName: "folder.badge.gearshape", accessibilityDescription: "Worktree")?.withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 10, weight: .medium))
+                    icon.contentTintColor = NSColor.secondaryLabelColor
+                }
+                icon.imageScaling = .scaleProportionallyUpOrDown
+                icon.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(icon)
+                cell?.imageView = icon
+                
+                let label = NSTextField(labelWithString: "")
+                label.font = NSFont.systemFont(ofSize: 12)
+                label.textColor = NSColor.labelColor
+                label.translatesAutoresizingMaskIntoConstraints = false
+                cell?.addSubview(label)
+                cell?.textField = label
+                
+                NSLayoutConstraint.activate([
+                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
+                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    icon.widthAnchor.constraint(equalToConstant: 12),
+                    icon.heightAnchor.constraint(equalToConstant: 12),
+                    
+                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
+                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                    label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8)
+                ])
+            }
+            cell?.textField?.stringValue = (wtItem.path as NSString).lastPathComponent + " (" + wtItem.branch + ")"
             return cell
         }
         
@@ -648,6 +762,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         removeButton.isEnabled = false
         fetchLineStatsForAll()
         fetchBranchesForAll()
+        fetchSubmodulesAndWorktreesForAll()
     }
     
     private func fetchLineStatsForAll() {
@@ -684,7 +799,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             var newGroups: [BranchGroupItem] = []
                             
                             if !localBranches.isEmpty {
-                                if let existingLocal = targetItem.groups.first(where: { $0.title == "Local Branches" }) {
+                                if let existingLocal = targetItem.groups.first(where: { ($0 as? BranchGroupItem)?.title == "Local Branches" }) as? BranchGroupItem {
                                     existingLocal.branches = localBranches
                                     newGroups.append(existingLocal)
                                 } else {
@@ -693,7 +808,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             }
                             
                             if !remoteBranches.isEmpty {
-                                if let existingRemote = targetItem.groups.first(where: { $0.title == "Remote Branches" }) {
+                                if let existingRemote = targetItem.groups.first(where: { ($0 as? BranchGroupItem)?.title == "Remote Branches" }) as? BranchGroupItem {
                                     existingRemote.branches = remoteBranches
                                     newGroups.append(existingRemote)
                                 } else {
@@ -710,14 +825,29 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             }
                             
                             // Save expansion states of the groups before reloading
-                            let expandedGroups = targetItem.groups.filter { self.outlineView.isItemExpanded($0) }.map { $0.title }
+                            let expandedGroups = targetItem.groups.compactMap { group -> String? in
+                                if let branchGroup = group as? BranchGroupItem { return branchGroup.title }
+                                if let subGroup = group as? SubmoduleGroupItem { return subGroup.title }
+                                if let wtGroup = group as? WorktreeGroupItem { return wtGroup.title }
+                                return nil
+                            }.filter { self.outlineView.isItemExpanded($0) }
                             
-                            targetItem.groups = newGroups
+                            // Keep submodules/worktrees, replace branch groups
+                            var updatedGroups: [Any] = newGroups
+                            updatedGroups.append(contentsOf: targetItem.groups.filter { $0 is SubmoduleGroupItem || $0 is WorktreeGroupItem })
+                            
+                            targetItem.groups = updatedGroups
                             self.outlineView.reloadItem(targetItem, reloadChildren: true)
                             
                             // Re-expand groups
-                            for group in newGroups {
-                                if expandedGroups.contains(group.title) {
+                            for group in updatedGroups {
+                                let title: String?
+                                if let bGroup = group as? BranchGroupItem { title = bGroup.title }
+                                else if let sGroup = group as? SubmoduleGroupItem { title = sGroup.title }
+                                else if let wGroup = group as? WorktreeGroupItem { title = wGroup.title }
+                                else { title = nil }
+                                
+                                if let t = title, expandedGroups.contains(t) {
                                     self.outlineView.expandItem(group)
                                 }
                             }
@@ -739,6 +869,35 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                     }
                 } catch {
                     // Ignore error - folder might not exist or not be a git repo
+                }
+            }
+        }
+    }
+    func fetchSubmodulesAndWorktreesForAll() {
+        for item in repositoryItems {
+            let path = item.bookmark.path
+            Task {
+                do {
+                    let submodules = try await GitSubmoduleService.shared.getSubmodules(in: path)
+                    let worktrees = try await GitWorktreeService.shared.getWorktrees(in: path)
+                    await MainActor.run {
+                        if let targetItem = self.repositoryItems.first(where: { $0.bookmark.path == path }) {
+                            // Keep branches, add submodules/worktrees
+                            var newGroups: [Any] = targetItem.groups.filter { $0 is BranchGroupItem }
+                            
+                            if !submodules.isEmpty {
+                                newGroups.append(SubmoduleGroupItem(items: submodules))
+                            }
+                            if !worktrees.isEmpty {
+                                newGroups.append(WorktreeGroupItem(items: worktrees))
+                            }
+                            
+                            targetItem.groups = newGroups
+                            self.outlineView.reloadItem(targetItem, reloadChildren: true)
+                        }
+                    }
+                } catch {
+                    // Ignore
                 }
             }
         }
