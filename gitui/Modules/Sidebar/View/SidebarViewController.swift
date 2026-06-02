@@ -31,15 +31,13 @@ class BranchGroupItem: NSObject {
 class CustomSelectionRowView: NSTableRowView {
     override func drawSelection(in dirtyRect: NSRect) {
         if self.selectionHighlightStyle != .none {
-            let selectionRect = self.bounds.insetBy(dx: 12, dy: 2) // M3 horizontal padding and vertical inset
+            let selectionRect = self.bounds.insetBy(dx: 6, dy: 0) // Standard macOS padding
             
-            // Material 3 Secondary Container color (light blue)
-            let bgColor = NSColor.systemBlue.withAlphaComponent(0.15)
+            let bgColor = NSColor.systemBlue.withAlphaComponent(0.2)
             bgColor.setFill()
             
-            // Fully rounded pill shape
-            let radius = selectionRect.height / 2
-            let path = NSBezierPath(roundedRect: selectionRect, xRadius: radius, yRadius: radius)
+            // Standard rounded corner, not a full pill
+            let path = NSBezierPath(roundedRect: selectionRect, xRadius: 4, yRadius: 4)
             path.fill()
         }
     }
@@ -58,6 +56,7 @@ class BranchItem: NSObject {
 class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineViewDataSource, NSOutlineViewDelegate, NSSearchFieldDelegate {
     
     var presenter: SidebarPresenterProtocol?
+    private var isSelectingProgrammatically = false
     
     private var repositoryItems: [RepositoryItem] = []
     private var activePath: String?
@@ -526,6 +525,8 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     }
     
     func outlineViewSelectionDidChange(_ notification: Notification) {
+        if isSelectingProgrammatically { return }
+        
         let selectedRow = outlineView.selectedRow
         guard selectedRow >= 0 else {
             removeButton.isEnabled = false
@@ -538,8 +539,10 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 presenter?.didSelectRepository(repoItem.bookmark)
             } else if let branchItem = selectedItem as? BranchItem {
                 removeButton.isEnabled = false
-                if let parentRepo = repositoryItems.first(where: { $0.bookmark.path == branchItem.repoPath }) {
-                    presenter?.didSelectRepository(parentRepo.bookmark)
+                if branchItem.repoPath != activePath {
+                    if let parentRepo = repositoryItems.first(where: { $0.bookmark.path == branchItem.repoPath }) {
+                        presenter?.didSelectRepository(parentRepo.bookmark)
+                    }
                 }
             }
         }
@@ -597,7 +600,37 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             }
         }
         
+        // Save currently selected item
+        var itemToSelect: Any?
+        if outlineView.selectedRow >= 0 {
+            itemToSelect = outlineView.item(atRow: outlineView.selectedRow)
+        }
+        
         outlineView.reloadData()
+        
+        // Restore selection if exists, else select active repo
+        var didRestore = false
+        if let item = itemToSelect {
+            let row = outlineView.row(forItem: item)
+            if row >= 0 {
+                isSelectingProgrammatically = true
+                outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+                isSelectingProgrammatically = false
+                didRestore = true
+            }
+        }
+        
+        // Natively select the active item so CustomSelectionRowView can draw the background
+        if !didRestore, let active = activePath,
+           let targetItem = repositoryItems.first(where: { $0.bookmark.path == active }) {
+            let row = outlineView.row(forItem: targetItem)
+            if row >= 0 {
+                isSelectingProgrammatically = true
+                outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+                isSelectingProgrammatically = false
+            }
+        }
+        
         removeButton.isEnabled = false
         fetchLineStatsForAll()
         fetchBranchesForAll()
@@ -654,6 +687,14 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                                 }
                             }
                             
+                            // Save currently selected branch in this repo if any
+                            var selectedBranchItem: BranchItem?
+                            if self.outlineView.selectedRow >= 0,
+                               let currentItem = self.outlineView.item(atRow: self.outlineView.selectedRow) as? BranchItem,
+                               currentItem.repoPath == path {
+                                selectedBranchItem = currentItem
+                            }
+                            
                             // Save expansion states of the groups before reloading
                             let expandedGroups = targetItem.groups.filter { self.outlineView.isItemExpanded($0) }.map { $0.title }
                             
@@ -664,6 +705,20 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             for group in newGroups {
                                 if expandedGroups.contains(group.title) {
                                     self.outlineView.expandItem(group)
+                                }
+                            }
+                            
+                            // Restore branch selection
+                            if let oldBranch = selectedBranchItem {
+                                // Find equivalent new branch
+                                if let newGroup = newGroups.first(where: { group in group.branches.contains(where: { $0.branch.name == oldBranch.branch.name }) }),
+                                   let newBranch = newGroup.branches.first(where: { $0.branch.name == oldBranch.branch.name }) {
+                                    let row = self.outlineView.row(forItem: newBranch)
+                                    if row >= 0 {
+                                        self.isSelectingProgrammatically = true
+                                        self.outlineView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+                                        self.isSelectingProgrammatically = false
+                                    }
                                 }
                             }
                         }

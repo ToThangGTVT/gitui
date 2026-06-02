@@ -62,7 +62,11 @@ class SidebarPresenter: SidebarPresenterProtocol, SidebarInteractorOutputProtoco
     }
     
     func didSelectBranch(_ branch: GitBranch, in repoPath: String) {
-        interactor.checkout(branchName: branch.name, in: repoPath)
+        router.showBranchSwitchConfirmation(branchName: branch.shortName) { [weak self] shouldSwitch, stashLocalChanges in
+            if shouldSwitch {
+                self?.interactor.checkout(branchName: branch.name, in: repoPath, stashLocalChanges: stashLocalChanges)
+            }
+        }
     }
     
     func didMoveRepository(from: Int, to: Int) {

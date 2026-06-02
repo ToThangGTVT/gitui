@@ -6,6 +6,7 @@ protocol SidebarRouterProtocol: AnyObject {
     func showAlert(title: String, message: String, isError: Bool)
     func showOpenPanel(completion: @escaping (String?) -> Void)
     func showClonePrompt(completion: @escaping (String?, String?) -> Void)
+    func showBranchSwitchConfirmation(branchName: String, completion: @escaping (Bool, Bool) -> Void)
 }
 
 class SidebarRouter: SidebarRouterProtocol {
@@ -95,6 +96,35 @@ class SidebarRouter: SidebarRouterProtocol {
                 }
             } else {
                 completion(nil, nil)
+            }
+        }
+    }
+    
+    func showBranchSwitchConfirmation(branchName: String, completion: @escaping (Bool, Bool) -> Void) {
+        guard let window = viewController?.view.window else { return }
+        
+        let alert = NSAlert()
+        alert.messageText = "Confirm Branch Switch"
+        alert.informativeText = "Are you sure you want to switch your working copy to the branch '\(branchName)'?"
+        alert.alertStyle = .informational
+        
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+        
+        let stashCheckbox = NSButton(checkboxWithTitle: "Stash local changes", target: nil, action: nil)
+        stashCheckbox.frame = NSRect(x: 0, y: 0, width: 250, height: 22)
+        
+        let accessoryView = NSView(frame: NSRect(x: 0, y: 0, width: 250, height: 30))
+        stashCheckbox.frame.origin.y = 8
+        accessoryView.addSubview(stashCheckbox)
+        
+        alert.accessoryView = accessoryView
+        
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn {
+                completion(true, stashCheckbox.state == .on)
+            } else {
+                completion(false, false)
             }
         }
     }

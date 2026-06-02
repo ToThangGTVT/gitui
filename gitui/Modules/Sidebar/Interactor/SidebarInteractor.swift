@@ -10,7 +10,7 @@ protocol SidebarInteractorInputProtocol: AnyObject {
     func selectRepository(path: String)
     func cloneRepository(url: String, targetPath: String)
     func initRepository(at path: String)
-    func checkout(branchName: String, in repoPath: String)
+    func checkout(branchName: String, in repoPath: String, stashLocalChanges: Bool)
 }
 
 protocol SidebarInteractorOutputProtocol: AnyObject {
@@ -84,9 +84,13 @@ class SidebarInteractor: SidebarInteractorInputProtocol {
         }
     }
     
-    func checkout(branchName: String, in repoPath: String) {
+    func checkout(branchName: String, in repoPath: String, stashLocalChanges: Bool) {
         Task {
             do {
+                if stashLocalChanges {
+                    try await GitService.shared.stashSave(message: "Stash before switching to \(branchName)", in: repoPath)
+                }
+                
                 try await GitService.shared.checkout(branch: branchName, in: repoPath)
                 await MainActor.run {
                     RepositoryStore.shared.setActiveRepository(path: repoPath)
