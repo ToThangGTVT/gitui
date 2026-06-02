@@ -28,6 +28,49 @@ private enum FilesSplitKey {
     static let divider1 = "gitflow.changes.files.divider1"
 }
 
+class CommitTextView: NSTextView {
+    var placeholderString: String = "Commit message..." {
+        didSet { needsDisplay = true }
+    }
+    
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        
+        if string.isEmpty && !placeholderString.isEmpty {
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: self.font ?? NSFont.systemFont(ofSize: 13),
+                .foregroundColor: NSColor.placeholderTextColor
+            ]
+            
+            let padding = self.textContainer?.lineFragmentPadding ?? 0
+            let inset = self.textContainerInset
+            let rect = NSRect(x: inset.width + padding, 
+                              y: inset.height, 
+                              width: bounds.width - inset.width * 2 - padding * 2, 
+                              height: bounds.height)
+            
+            (placeholderString as NSString).draw(in: rect, withAttributes: attributes)
+        }
+    }
+    
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        needsDisplay = true
+        return result
+    }
+    
+    override func resignFirstResponder() -> Bool {
+        let result = super.resignFirstResponder()
+        needsDisplay = true
+        return result
+    }
+    
+    override func didChangeText() {
+        super.didChangeText()
+        needsDisplay = true
+    }
+}
+
 class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate, NSMenuDelegate {
 
     var presenter: ChangesPresenterProtocol?
@@ -65,7 +108,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private var currentBinaryFilePath: String?
 
     // Commit Box Components
-    private var commitTextView: NSTextView!
+    private var commitTextView: CommitTextView!
     private var commitButton: NSButton!
     private var amendCheckbox: NSButton!
     private var stageAllButton: NSButton!
@@ -431,7 +474,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         scroll.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(scroll)
         
-        commitTextView = NSTextView()
+        commitTextView = CommitTextView()
         commitTextView.isRichText = false
         commitTextView.isEditable = true
         commitTextView.font = NSFont.systemFont(ofSize: 13)
@@ -442,19 +485,6 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         commitTextView.textContainerInset = NSSize(width: 8, height: 8)
         commitTextView.backgroundColor = .clear
         scroll.documentView = commitTextView
-        
-        // Placeholder label overlay
-        let placeholder = NSTextField(labelWithString: "Commit message...")
-        placeholder.font = NSFont.systemFont(ofSize: 13)
-        placeholder.textColor = NSColor.placeholderTextColor
-        placeholder.identifier = NSUserInterfaceItemIdentifier("commitPlaceholder")
-        placeholder.translatesAutoresizingMaskIntoConstraints = false
-        placeholder.isSelectable = false
-        scroll.addSubview(placeholder)
-        NSLayoutConstraint.activate([
-            placeholder.topAnchor.constraint(equalTo: scroll.topAnchor, constant: 8),
-            placeholder.leadingAnchor.constraint(equalTo: scroll.leadingAnchor, constant: 12)
-        ])
         
         amendCheckbox = NSButton(checkboxWithTitle: "Amend last commit", target: self, action: #selector(amendCheckboxChanged(_:)))
         amendCheckbox.translatesAutoresizingMaskIntoConstraints = false
@@ -825,7 +855,6 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         presenter?.didClickCommit(message: message, amend: amend)
         commitTextView.string = ""
         amendCheckbox.state = .off
-        updateCommitPlaceholder()
     }
 
     @objc private func amendCheckboxChanged(_ sender: NSButton) {
@@ -1209,14 +1238,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     // MARK: - NSTextViewDelegate
     
     func textDidChange(_ notification: Notification) {
-        updateCommitPlaceholder()
-    }
-    
-    private func updateCommitPlaceholder() {
-        let isEmpty = commitTextView.string.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        if let placeholder = commitTextView.enclosingScrollView?.subviews.first(where: { $0.identifier?.rawValue == "commitPlaceholder" }) {
-            placeholder.isHidden = !isEmpty
-        }
+        // Redraw will be handled by CommitTextView subclass
     }
     
     // MARK: - ChangesViewProtocol
@@ -1328,7 +1350,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
 
     func showLastCommitMessage(_ message: String) {
         commitTextView.string = message
-        updateCommitPlaceholder()
+        amendCheckbox.state = .on
     }
 
     func showConflictBanner(_ hasConflicts: Bool) {
