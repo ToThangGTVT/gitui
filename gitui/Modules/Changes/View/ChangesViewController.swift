@@ -114,6 +114,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private var stageAllButton: NSButton!
     private var stagedCheckbox: NSButton!
     private var unstagedCheckbox: NSButton!
+    private var undoButton: NSButton!
     private var progressIndicator: NSProgressIndicator!
     private var diffEmptyStateView: NSView!
     
@@ -515,6 +516,11 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         commitButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(commitButton)
 
+        undoButton = NSButton(title: "Undo", target: self, action: #selector(undoClicked(_:)))
+        undoButton.bezelStyle = .push
+        undoButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(undoButton)
+
         NSLayoutConstraint.activate([
             scroll.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
             scroll.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
@@ -529,7 +535,11 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
 
             commitButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
             commitButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
-            commitButton.widthAnchor.constraint(equalToConstant: 85)
+            commitButton.widthAnchor.constraint(equalToConstant: 85),
+            
+            undoButton.trailingAnchor.constraint(equalTo: commitButton.leadingAnchor, constant: -8),
+            undoButton.centerYAnchor.constraint(equalTo: commitButton.centerYAnchor),
+            undoButton.widthAnchor.constraint(equalToConstant: 60)
         ])
         
         return container
@@ -788,6 +798,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     }
     
     // MARK: - Actions
+    
+    @objc private func undoClicked(_ sender: NSButton) {
+        presenter?.didClickUndoLastCommit()
+    }
     
     @objc private func openBinaryBeforeFile() {
         // "Before" doesn't have a working tree file natively in exactly the same path, 

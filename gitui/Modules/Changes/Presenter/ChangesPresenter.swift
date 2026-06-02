@@ -18,6 +18,7 @@ protocol ChangesPresenterProtocol: AnyObject {
     func didClickRemoveFile(_ file: GitFileStatus)
     func didClickIgnoreFile(_ file: GitFileStatus)
     func didClickShowInFinder(_ file: GitFileStatus)
+    func didClickUndoLastCommit()
 }
 
 class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtocol {
@@ -150,6 +151,12 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
         guard let path = activePath else { return }
         let fullPath = (path as NSString).appendingPathComponent(file.path)
         NSWorkspace.shared.selectFile(fullPath, inFileViewerRootedAtPath: path)
+    }
+
+    func didClickUndoLastCommit() {
+        guard let path = activePath else { return }
+        view?.showLoading(true)
+        interactor.undoLastCommit(repoPath: path)
     }
 
     // MARK: - ChangesInteractorOutputProtocol

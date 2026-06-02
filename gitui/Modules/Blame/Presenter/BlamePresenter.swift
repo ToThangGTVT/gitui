@@ -2,7 +2,7 @@ import Foundation
 
 protocol BlamePresenterProtocol: AnyObject {
     func viewDidLoad()
-    func loadBlame(for filePath: String)
+    func loadBlame(for filePath: String, at commitHash: String?)
 }
 
 protocol BlameInteractorOutputProtocol: AnyObject {
@@ -15,7 +15,8 @@ class BlamePresenter: BlamePresenterProtocol, BlameInteractorOutputProtocol {
     var interactor: BlameInteractorProtocol
     var router: BlameRouterProtocol
     
-    private var currentFilePath: String?
+    var currentFilePath: String?
+    var currentCommitHash: String?
     
     init(view: BlameViewProtocol, interactor: BlameInteractorProtocol, router: BlameRouterProtocol) {
         self.view = view
@@ -25,14 +26,15 @@ class BlamePresenter: BlamePresenterProtocol, BlameInteractorOutputProtocol {
     
     func viewDidLoad() {
         if let path = currentFilePath {
-            loadBlame(for: path)
+            loadBlame(for: path, at: currentCommitHash)
         }
     }
     
-    func loadBlame(for filePath: String) {
+    func loadBlame(for filePath: String, at commitHash: String?) {
         self.currentFilePath = filePath
+        self.currentCommitHash = commitHash
         view?.showLoading(true)
-        interactor.fetchBlame(for: filePath, repoPath: RepositoryStore.shared.getActiveRepositoryPath() ?? "")
+        interactor.fetchBlame(for: filePath, at: commitHash, repoPath: RepositoryStore.shared.getActiveRepositoryPath() ?? "")
     }
     
     func didLoadBlame(_ lines: [GitBlameLine]) {
@@ -42,6 +44,6 @@ class BlamePresenter: BlamePresenterProtocol, BlameInteractorOutputProtocol {
     
     func didFailToLoadBlame(error: Error) {
         view?.showLoading(false)
-        // Router should show error
+        router.showAlert(title: "Failed to load Blame", message: error.localizedDescription, isError: true)
     }
 }

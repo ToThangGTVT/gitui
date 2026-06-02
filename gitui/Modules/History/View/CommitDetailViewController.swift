@@ -3,7 +3,7 @@
 import Cocoa
 
 class CommitDetailViewController: NSViewController,
-    NSTableViewDataSource, NSTableViewDelegate, NSSplitViewDelegate {
+    NSTableViewDataSource, NSTableViewDelegate, NSSplitViewDelegate, NSMenuDelegate {
 
     // MARK: Files pane
     private var changedFilesTableView = NSTableView()
@@ -95,6 +95,10 @@ class CommitDetailViewController: NSViewController,
         changedFilesTableView.allowsMultipleSelection = false
         changedFilesTableView.dataSource = self
         changedFilesTableView.delegate = self
+        
+        let menu = NSMenu()
+        menu.delegate = self
+        changedFilesTableView.menu = menu
 
         let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("fileCol"))
         col.resizingMask = .autoresizingMask
@@ -295,6 +299,41 @@ class CommitDetailViewController: NSViewController,
         let row = table.selectedRow
         guard row >= 0 && row < changedFiles.count else { return }
         loadDiff(for: changedFiles[row])
+    }
+    
+    // MARK: - NSMenuDelegate
+    
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+        let row = changedFilesTableView.clickedRow
+        guard row >= 0 && row < changedFiles.count else { return }
+        
+        if row != changedFilesTableView.selectedRow {
+            changedFilesTableView.selectRowIndexes(IndexSet(integer: row), byExtendingSelection: false)
+        }
+        
+        let file = changedFiles[row]
+        let blameItem = NSMenuItem(title: "Git Blame: \(file.path)", action: #selector(showBlame), keyEquivalent: "")
+        blameItem.target = self
+        menu.addItem(blameItem)
+    }
+    
+    @objc private func showBlame() {
+        let row = changedFilesTableView.selectedRow
+        guard row >= 0 && row < changedFiles.count else { return }
+        let file = changedFiles[row]
+        
+        let blameVC = BlameModule.build(filePath: file.path, commitHash: self.commitHash)
+        // Configure frame
+        blameVC.view.frame = NSRect(x: 0, y: 0, width: 800, height: 600)
+        
+        // Present as modal window
+        let window = NSWindow(contentViewController: blameVC)
+        window.title = "Git Blame: \(file.path)"
+        window.styleMask = [.titled, .closable, .resizable]
+        
+        let windowController = NSWindowController(window: window)
+        windowController.showWindow(nil)
     }
 
     // MARK: - Cell builders

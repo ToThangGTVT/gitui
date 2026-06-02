@@ -114,6 +114,14 @@ class HistoryRouter: HistoryRouterProtocol {
         let finderItem = NSMenuItem(title: "Show in Finder", action: #selector(showInFinderClicked(_:)), keyEquivalent: "")
         finderItem.target = self
         menu.addItem(finderItem)
+        
+        menu.addItem(NSMenuItem.separator())
+        
+        // 11. Interactive Rebase
+        let rebaseItem = NSMenuItem(title: "Interactive Rebase from here...", action: #selector(interactiveRebaseClicked(_:)), keyEquivalent: "")
+        rebaseItem.target = self
+        rebaseItem.representedObject = hash
+        menu.addItem(rebaseItem)
     }
     
     @objc private func handleMenuAction(_ sender: NSMenuItem) {
@@ -132,6 +140,20 @@ class HistoryRouter: HistoryRouterProtocol {
     @objc private func showInFinderClicked(_ sender: NSMenuItem) {
         guard let path = RepositoryStore.shared.getActiveRepositoryPath() else { return }
         NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+    }
+    
+    @objc private func interactiveRebaseClicked(_ sender: NSMenuItem) {
+        guard let hash = sender.representedObject as? String else { return }
+        guard let window = viewController?.view.window else { return }
+        
+        let rebaseVC = InteractiveRebaseModule.build(ontoHash: hash)
+        
+        let sheetWindow = NSWindow(contentViewController: rebaseVC)
+        sheetWindow.title = "Interactive Rebase (from \(String(hash.prefix(7))))"
+        sheetWindow.styleMask = [.titled, .closable, .resizable]
+        sheetWindow.setContentSize(NSSize(width: 600, height: 400))
+        
+        window.beginSheet(sheetWindow, completionHandler: nil)
     }
     
     private func promptForBranch(at hash: String) {

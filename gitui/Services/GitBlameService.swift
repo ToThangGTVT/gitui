@@ -10,7 +10,7 @@ struct GitBlameLine: Identifiable, Equatable {
 }
 
 protocol GitBlameServiceProtocol: Sendable {
-    func getBlame(for filePath: String, in repoPath: String) async throws -> [GitBlameLine]
+    func getBlame(for filePath: String, at commitHash: String?, in repoPath: String) async throws -> [GitBlameLine]
     func getFileHistory(for filePath: String, in repoPath: String) async throws -> [GitCommit]
 }
 
@@ -18,9 +18,15 @@ final class GitBlameService: GitBlameServiceProtocol, @unchecked Sendable {
     static let shared = GitBlameService()
     private init() {}
     
-    func getBlame(for filePath: String, in repoPath: String) async throws -> [GitBlameLine] {
-        // Run git blame -p <file> or git blame --line-porcelain <file>
-        let output = try await GitService.shared.runGit(["blame", "--line-porcelain", filePath], in: repoPath)
+    func getBlame(for filePath: String, at commitHash: String?, in repoPath: String) async throws -> [GitBlameLine] {
+        var args = ["blame", "--line-porcelain"]
+        if let hash = commitHash, !hash.isEmpty {
+            args.append(hash)
+        }
+        args.append("--")
+        args.append(filePath)
+        
+        let output = try await GitService.shared.runGit(args, in: repoPath)
         
         var blameLines: [GitBlameLine] = []
         let lines = output.components(separatedBy: .newlines)

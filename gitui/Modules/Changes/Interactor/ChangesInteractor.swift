@@ -17,6 +17,7 @@ protocol ChangesInteractorInputProtocol: AnyObject {
     func discardFile(repoPath: String, file: GitFileStatus)
     func removeFile(repoPath: String, file: GitFileStatus)
     func ignoreFile(repoPath: String, file: GitFileStatus)
+    func undoLastCommit(repoPath: String)
 }
 
 protocol ChangesInteractorOutputProtocol: AnyObject {
@@ -232,6 +233,19 @@ class ChangesInteractor: ChangesInteractorInputProtocol {
         Task {
             do {
                 try GitService.shared.addToGitignore(file.path, in: repoPath)
+                self.loadStatus(repoPath: repoPath)
+            } catch {
+                await MainActor.run {
+                    self.presenter?.didOperationError(error)
+                }
+            }
+        }
+    }
+
+    func undoLastCommit(repoPath: String) {
+        Task {
+            do {
+                try await GitUndoService.shared.undoLastCommit(in: repoPath)
                 self.loadStatus(repoPath: repoPath)
             } catch {
                 await MainActor.run {

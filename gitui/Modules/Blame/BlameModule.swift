@@ -1,8 +1,8 @@
 import Cocoa
 
 enum BlameModule {
-    static func build() -> NSViewController {
-        let view = BlameViewController(nibName: "BlameViewController", bundle: nil)
+    static func build(filePath: String, commitHash: String?) -> NSViewController {
+        let view = BlameViewController()
         let interactor = BlameInteractor()
         let router = BlameRouter()
         let presenter = BlamePresenter(
@@ -10,6 +10,8 @@ enum BlameModule {
             interactor: interactor,
             router: router
         )
+        presenter.currentFilePath = filePath
+        presenter.currentCommitHash = commitHash
         
         view.presenter = presenter
         interactor.presenter = presenter

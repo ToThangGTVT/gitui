@@ -1,8 +1,8 @@
 import Cocoa
 
 enum InteractiveRebaseModule {
-    static func build() -> NSViewController {
-        let view = InteractiveRebaseViewController(nibName: "InteractiveRebaseViewController", bundle: nil)
+    static func build(ontoHash: String) -> NSViewController {
+        let view = InteractiveRebaseViewController()
         let interactor = InteractiveRebaseInteractor()
         let router = InteractiveRebaseRouter()
         let presenter = InteractiveRebasePresenter(
@@ -10,6 +10,7 @@ enum InteractiveRebaseModule {
             interactor: interactor,
             router: router
         )
+        presenter.ontoHash = ontoHash
         
         view.presenter = presenter
         interactor.presenter = presenter
