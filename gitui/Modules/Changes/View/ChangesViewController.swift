@@ -203,16 +203,18 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         let stagedContainer = stagedView
         stagedTableView = stagedTable
         stagedCheckbox = sCheck
+        stagedCheckbox.state = .on
         stagedCheckbox.target = self
-        stagedCheckbox.action = #selector(unstageAllFromCheckbox(_:))
+        stagedCheckbox.action = #selector(stagedCheckboxToggled(_:))
         stagedContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
         
         let (unstagedView, unstagedTable, uCheck) = createListSection(title: "Unstaged Changes")
         let unstagedContainer = unstagedView
         unstagedTableView = unstagedTable
         unstagedCheckbox = uCheck
+        unstagedCheckbox.state = .off
         unstagedCheckbox.target = self
-        unstagedCheckbox.action = #selector(stageAllFromCheckbox(_:))
+        unstagedCheckbox.action = #selector(unstagedCheckboxToggled(_:))
         unstagedContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
         
         let commitBox = createCommitSection()
@@ -589,17 +591,23 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         presenter?.didDoubleClickFile(unstagedFiles[row])
     }
     
-    @objc private func stageAllFromCheckbox(_ sender: NSButton) {
+    @objc private func unstagedCheckboxToggled(_ sender: NSButton) {
+        // Automatically becomes .on when clicked natively.
+        // Wait 0.1s for visual feedback
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            // Revert back to .off because this is the Unstaged header
             sender.state = .off
             guard let self = self, !self.unstagedFiles.isEmpty else { return }
             self.presenter?.didClickStageAll()
         }
     }
     
-    @objc private func unstageAllFromCheckbox(_ sender: NSButton) {
+    @objc private func stagedCheckboxToggled(_ sender: NSButton) {
+        // Automatically becomes .off when clicked natively.
+        // Wait 0.1s for visual feedback
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            sender.state = .off
+            // Revert back to .on because this is the Staged header
+            sender.state = .on
             guard let self = self, !self.stagedFiles.isEmpty else { return }
             self.presenter?.didClickUnstageAll()
         }

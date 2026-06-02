@@ -153,41 +153,58 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
     
     // Execute a git command asynchronously in the background
     func runGit(_ args: [String], in repoPath: String) async throws -> String {
-        return try await Task.detached(priority: .userInitiated) {
-            let process = Process()
-            process.executableURL = await URL(fileURLWithPath: self.resolveGitPath())
-            process.arguments = args
-            process.currentDirectoryURL = URL(fileURLWithPath: repoPath)
-            
-            // Set standard output and standard error pipes
-            let outPipe = Pipe()
-            let errPipe = Pipe()
-            process.standardOutput = outPipe
-            process.standardError = errPipe
-            
-            try process.run()
-            
-            // Read stdout and stderr concurrently to prevent pipe buffer deadlocks
-            let outTask = Task { outPipe.fileHandleForReading.readDataToEndOfFile() }
-            let errTask = Task { errPipe.fileHandleForReading.readDataToEndOfFile() }
-            
-            let outData = await outTask.value
-            let errData = await errTask.value
-            
-            process.waitUntilExit()
-            
-            let outString = String(data: outData, encoding: .utf8) ?? ""
-            
-            if process.terminationStatus != 0 {
-                let errString = String(data: errData, encoding: .utf8) ?? "Unknown Git error"
-                let cleanErrString = errString.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !cleanErrString.isEmpty {
-                    throw NSError(domain: "GitErrorDomain", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: cleanErrString])
+        let maxRetries = 3
+        for attempt in 1...maxRetries {
+            do {
+                return try await Task.detached(priority: .userInitiated) {
+                    let process = Process()
+                    process.executableURL = await URL(fileURLWithPath: self.resolveGitPath())
+                    process.arguments = args
+                    process.currentDirectoryURL = URL(fileURLWithPath: repoPath)
+                    
+                    // Set standard output and standard error pipes
+                    let outPipe = Pipe()
+                    let errPipe = Pipe()
+                    process.standardOutput = outPipe
+                    process.standardError = errPipe
+                    
+                    try process.run()
+                    
+                    // Read stdout and stderr concurrently to prevent pipe buffer deadlocks
+                    let outTask = Task { outPipe.fileHandleForReading.readDataToEndOfFile() }
+                    let errTask = Task { errPipe.fileHandleForReading.readDataToEndOfFile() }
+                    
+                    let outData = await outTask.value
+                    let errData = await errTask.value
+                    
+                    process.waitUntilExit()
+                    
+                    let outString = String(data: outData, encoding: .utf8) ?? ""
+                    
+                    if process.terminationStatus != 0 {
+                        let errString = String(data: errData, encoding: .utf8) ?? "Unknown Git error"
+                        let cleanErrString = errString.trimmingCharacters(in: .whitespacesAndNewlines)
+                        if !cleanErrString.isEmpty {
+                            throw NSError(domain: "GitErrorDomain", code: Int(process.terminationStatus), userInfo: [NSLocalizedDescriptionKey: cleanErrString])
+                        }
+                    }
+                    
+                    return outString
+                }.value
+            } catch let error as NSError {
+                let errDesc = error.userInfo[NSLocalizedDescriptionKey] as? String ?? error.localizedDescription
+                let isLockError = errDesc.contains("index.lock") || errDesc.contains("File exists") || errDesc.contains("Another git process seems to be running")
+                
+                if isLockError && attempt < maxRetries {
+                    // Wait 0.5s and try again
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    continue
                 }
+                throw error
             }
-            
-            return outString
-        }.value
+        }
+        
+        throw NSError(domain: "GitErrorDomain", code: -1, userInfo: [NSLocalizedDescriptionKey: "Failed after retries"])
     }
     
     // Execute a git command and stream output in real-time
