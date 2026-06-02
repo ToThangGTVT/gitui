@@ -6,6 +6,7 @@ protocol ChangesViewProtocol: AnyObject {
     func showStagedFiles(_ files: [GitFileStatus])
     func showUnstagedFiles(_ files: [GitFileStatus])
     func showDiffText(_ text: String, for file: String, isStaged: Bool)
+    func showBinaryDiff(file: String, beforeSize: Int, afterSize: Int)
     func showConflictResolution(for filePath: String, repoPath: String)
     func clearDiff()
     func showLoading(_ loading: Bool)
@@ -54,6 +55,14 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private var diffTitleLabel: NSTextField!
     private var diffLines: [DiffLine] = []
     private var isShowingUnstagedDiff: Bool = true
+    
+    // Binary Diff View Components
+    private var diffBinaryView: NSView!
+    private var binaryBeforeSizeLabel: NSTextField!
+    private var binaryAfterSizeLabel: NSTextField!
+    private var binaryBeforeOpenButton: NSButton!
+    private var binaryAfterOpenButton: NSButton!
+    private var currentBinaryFilePath: String?
 
     // Commit Box Components
     private var commitTextView: NSTextView!
@@ -577,15 +586,189 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             iconView.centerXAnchor.constraint(equalTo: diffEmptyStateView.centerXAnchor),
             iconView.centerYAnchor.constraint(equalTo: diffEmptyStateView.centerYAnchor, constant: -20),
             
-            emptyLabel.centerXAnchor.constraint(equalTo: diffEmptyStateView.centerXAnchor),
+            emptyLabel.centerXAnchor.constraint(equalTo: iconView.centerXAnchor),
             emptyLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 16)
         ])
         
         diffEmptyStateView.isHidden = false
         diffScrollView.isHidden = true
+        
+        setupBinaryDiffContainer(in: container, below: border)
+    }
+    
+    private func setupBinaryDiffContainer(in container: NSView, below border: NSView) {
+        diffBinaryView = NSView()
+        diffBinaryView.translatesAutoresizingMaskIntoConstraints = false
+        diffBinaryView.wantsLayer = true
+        diffBinaryView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        container.addSubview(diffBinaryView)
+        
+        NSLayoutConstraint.activate([
+            diffBinaryView.topAnchor.constraint(equalTo: border.bottomAnchor),
+            diffBinaryView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            diffBinaryView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            diffBinaryView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        // Header Label & Control
+        let headerContainer = NSView()
+        headerContainer.translatesAutoresizingMaskIntoConstraints = false
+        headerContainer.wantsLayer = true
+        headerContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
+        diffBinaryView.addSubview(headerContainer)
+        
+        let headerLabel = NSTextField(labelWithString: "Modified binary file, diff suppressed (file size or pattern)")
+        headerLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        headerLabel.textColor = NSColor.tertiaryLabelColor
+        headerLabel.translatesAutoresizingMaskIntoConstraints = false
+        headerContainer.addSubview(headerLabel)
+        
+        let sideBySideButton = NSPopUpButton(frame: .zero, pullsDown: false)
+        sideBySideButton.translatesAutoresizingMaskIntoConstraints = false
+        sideBySideButton.addItem(withTitle: "Side-by-side")
+        sideBySideButton.font = NSFont.systemFont(ofSize: 12)
+        sideBySideButton.bezelStyle = .rounded
+        sideBySideButton.isEnabled = false
+        headerContainer.addSubview(sideBySideButton)
+        
+        // Left (Before)
+        let leftContainer = NSView()
+        leftContainer.translatesAutoresizingMaskIntoConstraints = false
+        diffBinaryView.addSubview(leftContainer)
+        
+        let beforeLabel = NSTextField(labelWithString: "Before")
+        beforeLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        beforeLabel.textColor = NSColor.systemRed
+        beforeLabel.translatesAutoresizingMaskIntoConstraints = false
+        leftContainer.addSubview(beforeLabel)
+        
+        let beforeNoPreview = NSTextField(labelWithString: "No Preview Available")
+        beforeNoPreview.font = NSFont.systemFont(ofSize: 13)
+        beforeNoPreview.textColor = NSColor.labelColor
+        beforeNoPreview.translatesAutoresizingMaskIntoConstraints = false
+        leftContainer.addSubview(beforeNoPreview)
+        
+        binaryBeforeSizeLabel = NSTextField(labelWithString: "0 bytes")
+        binaryBeforeSizeLabel.font = NSFont.systemFont(ofSize: 13)
+        binaryBeforeSizeLabel.textColor = NSColor.secondaryLabelColor
+        binaryBeforeSizeLabel.translatesAutoresizingMaskIntoConstraints = false
+        leftContainer.addSubview(binaryBeforeSizeLabel)
+        
+        binaryBeforeOpenButton = NSButton(title: "Open", target: self, action: #selector(openBinaryBeforeFile))
+        binaryBeforeOpenButton.bezelStyle = .rounded
+        binaryBeforeOpenButton.translatesAutoresizingMaskIntoConstraints = false
+        leftContainer.addSubview(binaryBeforeOpenButton)
+        
+        // Right (After)
+        let rightContainer = NSView()
+        rightContainer.translatesAutoresizingMaskIntoConstraints = false
+        diffBinaryView.addSubview(rightContainer)
+        
+        let afterLabel = NSTextField(labelWithString: "After")
+        afterLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+        afterLabel.textColor = NSColor.systemGreen
+        afterLabel.translatesAutoresizingMaskIntoConstraints = false
+        rightContainer.addSubview(afterLabel)
+        
+        let afterNoPreview = NSTextField(labelWithString: "No Preview Available")
+        afterNoPreview.font = NSFont.systemFont(ofSize: 13)
+        afterNoPreview.textColor = NSColor.labelColor
+        afterNoPreview.translatesAutoresizingMaskIntoConstraints = false
+        rightContainer.addSubview(afterNoPreview)
+        
+        binaryAfterSizeLabel = NSTextField(labelWithString: "0 bytes")
+        binaryAfterSizeLabel.font = NSFont.systemFont(ofSize: 13)
+        binaryAfterSizeLabel.textColor = NSColor.secondaryLabelColor
+        binaryAfterSizeLabel.translatesAutoresizingMaskIntoConstraints = false
+        rightContainer.addSubview(binaryAfterSizeLabel)
+        
+        binaryAfterOpenButton = NSButton(title: "Open", target: self, action: #selector(openBinaryAfterFile))
+        binaryAfterOpenButton.bezelStyle = .rounded
+        binaryAfterOpenButton.translatesAutoresizingMaskIntoConstraints = false
+        rightContainer.addSubview(binaryAfterOpenButton)
+        
+        let centerDivider = NSView()
+        centerDivider.wantsLayer = true
+        centerDivider.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
+        centerDivider.translatesAutoresizingMaskIntoConstraints = false
+        diffBinaryView.addSubview(centerDivider)
+        
+        NSLayoutConstraint.activate([
+            headerContainer.topAnchor.constraint(equalTo: diffBinaryView.topAnchor),
+            headerContainer.leadingAnchor.constraint(equalTo: diffBinaryView.leadingAnchor),
+            headerContainer.trailingAnchor.constraint(equalTo: diffBinaryView.trailingAnchor),
+            headerContainer.heightAnchor.constraint(equalToConstant: 32),
+            
+            headerLabel.leadingAnchor.constraint(equalTo: headerContainer.leadingAnchor, constant: 12),
+            headerLabel.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            
+            sideBySideButton.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -12),
+            sideBySideButton.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            
+            leftContainer.topAnchor.constraint(equalTo: headerContainer.bottomAnchor),
+            leftContainer.leadingAnchor.constraint(equalTo: diffBinaryView.leadingAnchor),
+            leftContainer.bottomAnchor.constraint(equalTo: diffBinaryView.bottomAnchor),
+            leftContainer.trailingAnchor.constraint(equalTo: centerDivider.leadingAnchor),
+            
+            rightContainer.topAnchor.constraint(equalTo: headerContainer.bottomAnchor),
+            rightContainer.trailingAnchor.constraint(equalTo: diffBinaryView.trailingAnchor),
+            rightContainer.bottomAnchor.constraint(equalTo: diffBinaryView.bottomAnchor),
+            rightContainer.leadingAnchor.constraint(equalTo: centerDivider.trailingAnchor),
+            
+            centerDivider.centerXAnchor.constraint(equalTo: diffBinaryView.centerXAnchor),
+            centerDivider.topAnchor.constraint(equalTo: headerContainer.bottomAnchor, constant: 32),
+            centerDivider.bottomAnchor.constraint(equalTo: diffBinaryView.bottomAnchor, constant: -32),
+            centerDivider.widthAnchor.constraint(equalToConstant: 1),
+            
+            // Left Content
+            beforeLabel.centerXAnchor.constraint(equalTo: leftContainer.centerXAnchor),
+            beforeLabel.topAnchor.constraint(equalTo: leftContainer.topAnchor, constant: 32),
+            
+            beforeNoPreview.centerXAnchor.constraint(equalTo: leftContainer.centerXAnchor),
+            beforeNoPreview.topAnchor.constraint(equalTo: beforeLabel.bottomAnchor, constant: 64),
+            
+            binaryBeforeSizeLabel.centerXAnchor.constraint(equalTo: leftContainer.centerXAnchor),
+            binaryBeforeSizeLabel.topAnchor.constraint(equalTo: beforeNoPreview.bottomAnchor, constant: 8),
+            
+            binaryBeforeOpenButton.centerXAnchor.constraint(equalTo: leftContainer.centerXAnchor),
+            binaryBeforeOpenButton.topAnchor.constraint(equalTo: binaryBeforeSizeLabel.bottomAnchor, constant: 16),
+            
+            // Right Content
+            afterLabel.centerXAnchor.constraint(equalTo: rightContainer.centerXAnchor),
+            afterLabel.topAnchor.constraint(equalTo: rightContainer.topAnchor, constant: 32),
+            
+            afterNoPreview.centerXAnchor.constraint(equalTo: rightContainer.centerXAnchor),
+            afterNoPreview.topAnchor.constraint(equalTo: afterLabel.bottomAnchor, constant: 64),
+            
+            binaryAfterSizeLabel.centerXAnchor.constraint(equalTo: rightContainer.centerXAnchor),
+            binaryAfterSizeLabel.topAnchor.constraint(equalTo: afterNoPreview.bottomAnchor, constant: 8),
+            
+            binaryAfterOpenButton.centerXAnchor.constraint(equalTo: rightContainer.centerXAnchor),
+            binaryAfterOpenButton.topAnchor.constraint(equalTo: binaryAfterSizeLabel.bottomAnchor, constant: 16)
+        ])
+        
+        diffBinaryView.isHidden = true
     }
     
     // MARK: - Actions
+    
+    @objc private func openBinaryBeforeFile() {
+        // "Before" doesn't have a working tree file natively in exactly the same path, 
+        // usually it requires extracting from git index.
+        // For now, we can just attempt to show it via GitService or alert user it's read-only
+        let alert = NSAlert()
+        alert.messageText = "Not Available"
+        alert.informativeText = "Viewing the previous version directly from the index is not fully supported yet."
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
+    }
+    
+    @objc private func openBinaryAfterFile() {
+        guard let path = currentBinaryFilePath,
+              let activePath = RepositoryStore.shared.getActiveRepositoryPath() else { return }
+        let fullPath = (activePath as NSString).appendingPathComponent(path)
+        NSWorkspace.shared.open(URL(fileURLWithPath: fullPath))
+    }
     
     @objc private func stagedTableDoubleClicked(_ sender: NSTableView) {
         let row = sender.clickedRow
@@ -1089,6 +1272,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         
         diffEmptyStateView.isHidden = true
         diffScrollView.isHidden = false
+        diffBinaryView.isHidden = true
         let hunks = parseDiffHunks(from: text)
         diffLines = buildDiffLines(from: text, hunks: hunks)
         
@@ -1102,6 +1286,37 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         if !diffLines.isEmpty {
             diffTableView.scrollRowToVisible(0)
         }
+    }
+    
+    private func formatSize(_ bytes: Int) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useAll]
+        formatter.countStyle = .file
+        let formattedString = formatter.string(fromByteCount: Int64(bytes))
+        
+        let numberFormatter = NumberFormatter()
+        numberFormatter.numberStyle = .decimal
+        numberFormatter.groupingSeparator = "."
+        let bytesString = numberFormatter.string(from: NSNumber(value: bytes)) ?? "\(bytes)"
+        
+        return "\(formattedString) (\(bytesString) bytes)"
+    }
+    
+    func showBinaryDiff(file: String, beforeSize: Int, afterSize: Int) {
+        removeConflictUI()
+        diffTitleLabel.stringValue = file
+        self.currentBinaryFilePath = file
+        
+        diffEmptyStateView.isHidden = true
+        diffScrollView.isHidden = true
+        diffBinaryView.isHidden = false
+        
+        binaryBeforeSizeLabel.stringValue = formatSize(beforeSize)
+        binaryAfterSizeLabel.stringValue = formatSize(afterSize)
+        
+        // Ensure "After" open button works if size > 0
+        binaryAfterOpenButton.isEnabled = afterSize > 0
+        binaryBeforeOpenButton.isEnabled = beforeSize > 0
     }
 
     func showLastCommitMessage(_ message: String) {
@@ -1154,6 +1369,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         
         diffEmptyStateView.isHidden = false
         diffScrollView.isHidden = true
+        diffBinaryView.isHidden = true
     }
     
     func showLoading(_ loading: Bool) {

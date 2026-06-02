@@ -118,6 +118,7 @@ class CustomToolbarView: NSView {
             
             btn.attributedTitle = result
             btn.imagePosition = .imageAbove
+            btn.imageScaling = .scaleNone
             btn.isBordered = false
         }
     }

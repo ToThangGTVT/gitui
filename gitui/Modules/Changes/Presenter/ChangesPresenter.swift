@@ -177,8 +177,19 @@ class ChangesPresenter: ChangesPresenterProtocol, ChangesInteractorOutputProtoco
     }
 
     func didLoadDiff(text: String, filePath: String, isStaged: Bool) {
-        view?.showLoading(false)
-        view?.showDiffText(text, for: filePath, isStaged: isStaged)
+        if text.hasPrefix("Binary files ") || text.contains("\nBinary files ") {
+            view?.showLoading(true)
+            Task { @MainActor in
+                if let path = self.activePath {
+                    let sizes = await GitService.shared.getBinaryFileSizes(path: filePath, isStaged: isStaged, in: path)
+                    self.view?.showLoading(false)
+                    self.view?.showBinaryDiff(file: filePath, beforeSize: sizes.before, afterSize: sizes.after)
+                }
+            }
+        } else {
+            view?.showLoading(false)
+            view?.showDiffText(text, for: filePath, isStaged: isStaged)
+        }
     }
 
     func didLoadLastCommitMessage(_ message: String) {

@@ -113,6 +113,8 @@ protocol GitServiceProtocol: Sendable {
     
     func getLineStats(in repoPath: String) async throws -> (added: Int, removed: Int)
     
+    func getBinaryFileSizes(path: String, isStaged: Bool, in repoPath: String) async -> (before: Int, after: Int)
+    
     func fetch(remote: String?, options: [String], in repoPath: String) async throws
     func pull(remote: String, branch: String, options: [String], in repoPath: String) async throws
     func push(remote: String, branch: String, in repoPath: String) async throws
@@ -315,6 +317,53 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
             }
         }
         return (staged, unstaged)
+    }
+    
+    func getBinaryFileSizes(path: String, isStaged: Bool, in repoPath: String) async -> (before: Int, after: Int) {
+        var beforeSize = 0
+        var afterSize = 0
+        
+        do {
+            if isStaged {
+                // Before: HEAD
+                let headOutput = try? await runGit(["ls-tree", "-l", "HEAD", path], in: repoPath)
+                if let headOutput = headOutput {
+                    let parts = headOutput.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+                    if parts.count >= 4 { beforeSize = Int(parts[3]) ?? 0 }
+                }
+                
+                // After: index
+                let indexOutput = try? await runGit(["ls-files", "-s", path], in: repoPath)
+                if let indexOutput = indexOutput {
+                    let parts = indexOutput.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+                    if parts.count >= 2 {
+                        let hash = parts[1]
+                        let sizeOutput = try? await runGit(["cat-file", "-s", hash], in: repoPath)
+                        afterSize = Int(sizeOutput?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "") ?? 0
+                    }
+                }
+            } else {
+                // Before: index
+                let indexOutput = try? await runGit(["ls-files", "-s", path], in: repoPath)
+                if let indexOutput = indexOutput {
+                    let parts = indexOutput.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+                    if parts.count >= 2 {
+                        let hash = parts[1]
+                        let sizeOutput = try? await runGit(["cat-file", "-s", hash], in: repoPath)
+                        beforeSize = Int(sizeOutput?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "") ?? 0
+                    }
+                }
+                
+                // After: working tree
+                let fullPath = (repoPath as NSString).appendingPathComponent(path)
+                if let attr = try? FileManager.default.attributesOfItem(atPath: fullPath),
+                   let size = attr[.size] as? Int {
+                    afterSize = size
+                }
+            }
+        }
+        
+        return (beforeSize, afterSize)
     }
     
     func getDiff(in repoPath: String, file: String, staged: Bool) async throws -> String {
