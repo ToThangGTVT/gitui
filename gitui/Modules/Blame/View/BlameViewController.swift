@@ -8,74 +8,20 @@ protocol BlameViewProtocol: AnyObject {
 class BlameViewController: NSViewController, BlameViewProtocol, NSTableViewDataSource, NSTableViewDelegate {
     var presenter: BlamePresenterProtocol!
     
-    private var scrollView: NSScrollView!
-    private var tableView: NSTableView!
-    private var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var tableView: NSTableView!
+    @IBOutlet private weak var progressIndicator: NSProgressIndicator!
     
     private var blameLines: [GitBlameLine] = []
     
-    override func loadView() {
-        self.view = NSView()
-        self.view.wantsLayer = true
-        self.view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
-        presenter.viewDidLoad()
-    }
-    
-    private func setupUI() {
-        scrollView = NSScrollView()
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = true
-        scrollView.autohidesScrollers = true
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(scrollView)
-        
-        NSLayoutConstraint.activate([
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-        
-        tableView = NSTableView()
-        tableView.headerView = nil // No header needed, just side by side
-        tableView.gridStyleMask = .solidHorizontalGridLineMask
-        tableView.gridColor = NSColor.gridColor.withAlphaComponent(0.2)
-        tableView.rowHeight = 22
-        tableView.intercellSpacing = NSSize(width: 0, height: 0)
-        tableView.backgroundColor = NSColor.textBackgroundColor
-        tableView.allowsMultipleSelection = false
-        
-        // Info Column
-        let infoCol = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("InfoColumn"))
-        infoCol.width = 250
-        infoCol.minWidth = 200
-        infoCol.maxWidth = 350
-        tableView.addTableColumn(infoCol)
-        
-        // Code Column
-        let codeCol = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("CodeColumn"))
-        codeCol.resizingMask = .autoresizingMask
-        tableView.addTableColumn(codeCol)
+        self.view.wantsLayer = true
+        self.view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         
         tableView.dataSource = self
         tableView.delegate = self
-        scrollView.documentView = tableView
         
-        progressIndicator = NSProgressIndicator()
-        progressIndicator.style = .spinning
-        progressIndicator.isDisplayedWhenStopped = false
-        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(progressIndicator)
-        
-        NSLayoutConstraint.activate([
-            progressIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            progressIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor)
-        ])
+        presenter.viewDidLoad()
     }
     
     func showBlameLines(_ lines: [GitBlameLine]) {
@@ -133,9 +79,8 @@ class BlameViewController: NSViewController, BlameViewProtocol, NSTableViewDataS
             let author = line.author.prefix(12).padding(toLength: 12, withPad: " ", startingAt: 0)
             cell?.textField?.stringValue = "\(shortHash)  \(author)  \(line.date)"
             
-            // Highlight background slightly for info column
             cell?.wantsLayer = true
-            cell?.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+            cell?.layer?.backgroundColor = NSColor.clear.cgColor
         } else {
             cell?.textField?.font = NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
             cell?.textField?.textColor = .labelColor

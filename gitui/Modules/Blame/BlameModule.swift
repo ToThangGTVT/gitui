@@ -2,7 +2,7 @@ import Cocoa
 
 enum BlameModule {
     static func build(filePath: String, commitHash: String?) -> NSViewController {
-        let view = BlameViewController()
+        let view = BlameViewController(nibName: "BlameViewController", bundle: nil)
         let interactor = BlameInteractor()
         let router = BlameRouter()
         let presenter = BlamePresenter(

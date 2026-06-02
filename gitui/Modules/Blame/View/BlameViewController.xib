@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="21507" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="21507"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="BlameViewController" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="progressIndicator" destination="prg-in-dic" id="out-id-1"/>
+                <outlet property="tableView" destination="tab-le-viw" id="out-id-2"/>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="Hz6-mo-xeY">
+            <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <scrollView autohidesScrollers="YES" horizontalLineScroll="22" horizontalPageScroll="10" verticalLineScroll="22" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="scr-ll-viw">
+                    <rect key="frame" x="0.0" y="0.0" width="800" height="600"/>
+                    <clipView key="contentView" id="clp-vw-1">
+                        <rect key="frame" x="1" y="1" width="798" height="598"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" multipleSelection="NO" autosaveColumns="NO" rowHeight="22" rowSizeStyle="automatic" viewBased="YES" id="tab-le-viw">
+                                <rect key="frame" x="0.0" y="0.0" width="798" height="598"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <size key="intercellSpacing" width="0.0" height="0.0"/>
+                                <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                <tableColumns>
+                                    <tableColumn identifier="InfoColumn" width="250" minWidth="200" maxWidth="350" id="col-in-fo1">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Info">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="txt-in-fo1">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView identifier="InfoCell" id="cll-in-fo1">
+                                                <rect key="frame" x="0.0" y="0.0" width="250" height="22"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-in-fo1">
+                                                        <rect key="frame" x="6" y="3" width="238" height="16"/>
+                                                        <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="cll-tx-fo1">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="lbl-in-fo1" firstAttribute="leading" secondItem="cll-in-fo1" secondAttribute="leading" constant="8" id="cns-in-fo1"/>
+                                                    <constraint firstItem="lbl-in-fo1" firstAttribute="centerY" secondItem="cll-in-fo1" secondAttribute="centerY" id="cns-in-fo2"/>
+                                                    <constraint firstAttribute="trailing" secondItem="lbl-in-fo1" secondAttribute="trailing" constant="8" id="cns-in-fo3"/>
+                                                </constraints>
+                                                <connections>
+                                                    <outlet property="textField" destination="lbl-in-fo1" id="out-in-fo1"/>
+                                                </connections>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                    <tableColumn identifier="CodeColumn" width="548" minWidth="40" maxWidth="1000" id="col-co-de1">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" alignment="left" title="Code">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="txt-co-de1">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                        <prototypeCellViews>
+                                            <tableCellView identifier="CodeCell" id="cll-co-de1">
+                                                <rect key="frame" x="250" y="0.0" width="548" height="22"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                                <subviews>
+                                                    <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" translatesAutoresizingMaskIntoConstraints="NO" id="lbl-co-de1">
+                                                        <rect key="frame" x="2" y="3" width="544" height="16"/>
+                                                        <textFieldCell key="cell" lineBreakMode="truncatingTail" selectable="YES" sendsActionOnEndEditing="YES" title="Table View Cell" id="cll-tx-de1">
+                                                            <font key="font" metaFont="system"/>
+                                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                        </textFieldCell>
+                                                    </textField>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="lbl-co-de1" firstAttribute="leading" secondItem="cll-co-de1" secondAttribute="leading" constant="4" id="cns-co-de1"/>
+                                                    <constraint firstItem="lbl-co-de1" firstAttribute="centerY" secondItem="cll-co-de1" secondAttribute="centerY" id="cns-co-de2"/>
+                                                    <constraint firstAttribute="trailing" secondItem="lbl-co-de1" secondAttribute="trailing" constant="4" id="cns-co-de3"/>
+                                                </constraints>
+                                                <connections>
+                                                    <outlet property="textField" destination="lbl-co-de1" id="out-co-de1"/>
+                                                </connections>
+                                            </tableCellView>
+                                        </prototypeCellViews>
+                                    </tableColumn>
+                                </tableColumns>
+                                <connections>
+                                    <outlet property="dataSource" destination="-2" id="out-ds-1"/>
+                                    <outlet property="delegate" destination="-2" id="out-dl-1"/>
+                                </connections>
+                            </tableView>
+                        </subviews>
+                    </clipView>
+                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="hsc-ll-viw">
+                        <rect key="frame" x="1" y="583" width="798" height="16"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="vsc-ll-viw">
+                        <rect key="frame" x="224" y="17" width="15" height="102"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                </scrollView>
+                <progressIndicator translatesAutoresizingMaskIntoConstraints="NO" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" style="spinning" id="prg-in-dic">
+                    <rect key="frame" x="384" y="284" width="32" height="32"/>
+                </progressIndicator>
+            </subviews>
+            <constraints>
+                <constraint firstAttribute="bottom" secondItem="scr-ll-viw" secondAttribute="bottom" id="cns-ma-in1"/>
+                <constraint firstItem="scr-ll-viw" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" id="cns-ma-in2"/>
+                <constraint firstAttribute="trailing" secondItem="scr-ll-viw" secondAttribute="trailing" id="cns-ma-in3"/>
+                <constraint firstItem="scr-ll-viw" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" id="cns-ma-in4"/>
+                <constraint firstItem="prg-in-dic" firstAttribute="centerX" secondItem="Hz6-mo-xeY" secondAttribute="centerX" id="cns-ma-in5"/>
+                <constraint firstItem="prg-in-dic" firstAttribute="centerY" secondItem="Hz6-mo-xeY" secondAttribute="centerY" id="cns-ma-in6"/>
+            </constraints>
+            <point key="canvasLocation" x="139" y="154"/>
+        </customView>
+    </objects>
+</document>
