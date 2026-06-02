@@ -22,6 +22,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     @IBOutlet weak var branchButton: NSButton!
     @IBOutlet weak var branchContainer: NSView!
     @IBOutlet weak var syncStatusLabel: NSTextField!
+    private var syncStatusContainer: NSView!
     @IBOutlet weak var tabContentContainer: NSView!
     @IBOutlet weak var headerBorder: NSView!
     @IBOutlet weak var customToolbar: CustomToolbarView!
@@ -159,7 +160,24 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             syncStatusLabel.removeFromSuperview()
             
             // Create a horizontal stack view
-            let titleStack = NSStackView(views: [repoTitleLabel, branchContainer, syncStatusLabel])
+            // Create wrapper container for sync status
+            syncStatusContainer = NSView()
+            syncStatusContainer.translatesAutoresizingMaskIntoConstraints = false
+            syncStatusContainer.wantsLayer = true
+            syncStatusContainer.layer?.cornerRadius = 8
+            syncStatusContainer.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15).cgColor
+            
+            syncStatusLabel.translatesAutoresizingMaskIntoConstraints = false
+            syncStatusContainer.addSubview(syncStatusLabel)
+            
+            NSLayoutConstraint.activate([
+                syncStatusLabel.leadingAnchor.constraint(equalTo: syncStatusContainer.leadingAnchor, constant: 8),
+                syncStatusLabel.trailingAnchor.constraint(equalTo: syncStatusContainer.trailingAnchor, constant: -8),
+                syncStatusLabel.centerYAnchor.constraint(equalTo: syncStatusContainer.centerYAnchor),
+                syncStatusContainer.heightAnchor.constraint(equalToConstant: 22)
+            ])
+            
+            let titleStack = NSStackView(views: [repoTitleLabel, branchContainer, syncStatusContainer])
             titleStack.orientation = .horizontal
             titleStack.alignment = .centerY
             titleStack.spacing = 8
@@ -370,11 +388,19 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
         Task {
             let currentBranch = await detectCurrentBranch(in: path)
-            await MainActor.run { self.showPushDialog(defaultBranch: currentBranch ?? "main", repoPath: path) }
+            let remotes = (try? await GitService.shared.getRemotes(in: path)) ?? []
+            let branches = (try? await GitService.shared.getBranches(in: path)) ?? []
+            
+            let remoteNames = remotes.isEmpty ? ["origin"] : remotes.map { $0.name }
+            let branchNames = branches.isEmpty ? [currentBranch ?? "main"] : branches.map { $0.name }
+            
+            await MainActor.run { 
+                self.showPushDialog(defaultBranch: currentBranch ?? "main", remotes: remoteNames, branches: branchNames, repoPath: path) 
+            }
         }
     }
 
-    private func showPushDialog(defaultBranch: String, repoPath: String) {
+    private func showPushDialog(defaultBranch: String, remotes: [String], branches: [String], repoPath: String) {
         guard let window = self.window else { return }
         let alert = NSAlert()
         alert.messageText = "Push to Remote"
@@ -383,8 +409,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
 
         let container = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 84))
 
-        let remoteField = labeledField("Remote:", value: "origin",    y: 58, in: container)
-        let branchField = labeledField("Branch:", value: defaultBranch, y: 32, in: container)
+        let remoteField = popupField("Remote:", items: remotes, selectedValue: remotes.first ?? "origin", y: 58, in: container)
+        let branchField = popupField("Branch:", items: branches, selectedValue: defaultBranch, y: 32, in: container)
 
         let forceBox = NSButton(checkboxWithTitle: "Force push (--force-with-lease)", target: nil, action: nil)
         forceBox.frame = NSRect(x: 65, y: 4, width: 230, height: 22)
@@ -394,8 +420,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         alert.accessoryView = container
         alert.beginSheetModal(for: window) { [weak self] response in
             guard let self = self, response == .alertFirstButtonReturn else { return }
-            let remote = remoteField.stringValue.trimmingCharacters(in: .whitespaces)
-            let branch = branchField.stringValue.trimmingCharacters(in: .whitespaces)
+            let remote = remoteField.titleOfSelectedItem?.trimmingCharacters(in: .whitespaces) ?? ""
+            let branch = branchField.titleOfSelectedItem?.trimmingCharacters(in: .whitespaces) ?? ""
             guard !remote.isEmpty && !branch.isEmpty else { return }
             GitPushProgressViewController.show(remote: remote, branch: branch,
                                                force: forceBox.state == .on,
@@ -422,6 +448,27 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         field.font = NSFont.systemFont(ofSize: 13)
         parent.addSubview(field)
         return field
+    }
+
+    // Helper: creates a label+popup row at a given y offset
+    @discardableResult
+    private func popupField(_ label: String, items: [String], selectedValue: String, y: CGFloat, in parent: NSView) -> NSPopUpButton {
+        let lbl = NSTextField(labelWithString: label)
+        lbl.frame = NSRect(x: 0, y: y, width: 60, height: 22)
+        lbl.font = NSFont.systemFont(ofSize: 13)
+        parent.addSubview(lbl)
+
+        let popup = NSPopUpButton(frame: NSRect(x: 65, y: y, width: 230, height: 22), pullsDown: false)
+        popup.addItems(withTitles: items)
+        if items.contains(selectedValue) {
+            popup.selectItem(withTitle: selectedValue)
+        } else if !selectedValue.isEmpty {
+            popup.addItem(withTitle: selectedValue)
+            popup.selectItem(withTitle: selectedValue)
+        }
+        popup.font = NSFont.systemFont(ofSize: 13)
+        parent.addSubview(popup)
+        return popup
     }
 
 
@@ -457,15 +504,18 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                     self.updateSyncStatus(ahead: aheadBehind.ahead, behind: aheadBehind.behind)
                 } else {
                     self.branchButton.superview?.isHidden = true
-                    self.syncStatusLabel.isHidden = true
+                    self.syncStatusContainer?.isHidden = true
                 }
             }
         }
     }
     
     private func updateSyncStatus(ahead: Int, behind: Int) {
+        customToolbar.setPushBadge(count: ahead)
+        customToolbar.setPullBadge(count: behind)
+        
         guard ahead > 0 || behind > 0 else {
-            syncStatusLabel.isHidden = true
+            syncStatusContainer?.isHidden = true
             return
         }
         
@@ -473,7 +523,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         if ahead > 0 {
             result.append(NSAttributedString(string: "↑\(ahead)", attributes: [
-                .foregroundColor: NSColor.systemGreen,
+                .foregroundColor: NSColor.m3Primary,
                 .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
             ]))
         }
@@ -484,13 +534,13 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
         if behind > 0 {
             result.append(NSAttributedString(string: "↓\(behind)", attributes: [
-                .foregroundColor: NSColor.systemOrange,
+                .foregroundColor: NSColor.m3Primary,
                 .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
             ]))
         }
         
         syncStatusLabel.attributedStringValue = result
-        syncStatusLabel.isHidden = false
+        syncStatusContainer?.isHidden = false
     }
     
     @objc private func branchButtonClicked(_ sender: NSButton) {

@@ -167,4 +167,46 @@ class CustomToolbarView: NSView {
     @IBAction func settingsClicked(_ sender: Any) {
         delegate?.toolbarDidClickSettings()
     }
+    
+    // MARK: - Badges
+    
+    private func updateBadge(for button: NSButton, count: Int, identifier: String, color: NSColor) {
+        if count > 0 {
+            var badgeLabel: NSTextField!
+            if let existing = button.subviews.first(where: { $0.identifier?.rawValue == identifier }) as? NSTextField {
+                badgeLabel = existing
+            } else {
+                badgeLabel = NSTextField(labelWithString: "")
+                badgeLabel.identifier = NSUserInterfaceItemIdentifier(identifier)
+                badgeLabel.wantsLayer = true
+                badgeLabel.layer?.cornerRadius = 6
+                badgeLabel.layer?.masksToBounds = true
+                badgeLabel.alignment = .center
+                badgeLabel.font = NSFont.systemFont(ofSize: 8, weight: .bold)
+                badgeLabel.textColor = .white
+                badgeLabel.translatesAutoresizingMaskIntoConstraints = false
+                
+                button.addSubview(badgeLabel)
+                
+                NSLayoutConstraint.activate([
+                    badgeLabel.topAnchor.constraint(equalTo: button.topAnchor, constant: -6),
+                    badgeLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: 4),
+                    badgeLabel.heightAnchor.constraint(equalToConstant: 12),
+                    badgeLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 12)
+                ])
+            }
+            badgeLabel.layer?.backgroundColor = color.cgColor
+            badgeLabel.stringValue = "\(count)"
+        } else {
+            button.subviews.first(where: { $0.identifier?.rawValue == identifier })?.removeFromSuperview()
+        }
+    }
+    
+    func setPullBadge(count: Int) {
+        updateBadge(for: pullButton, count: count, identifier: "pullBadge", color: NSColor.systemOrange)
+    }
+    
+    func setPushBadge(count: Int) {
+        updateBadge(for: pushButton, count: count, identifier: "pushBadge", color: NSColor.systemGreen)
+    }
 }

@@ -355,11 +355,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell = NSTableCellView()
                 cell?.identifier = cellIdentifier
                 
-                let icon = NSImageView()
-                icon.image = NSImage(named: NSImage.folderName)
-                icon.imageScaling = .scaleProportionallyUpOrDown
-                icon.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(icon)
+
                 
                 let label = NSTextField(labelWithString: "")
                 label.translatesAutoresizingMaskIntoConstraints = false
@@ -381,19 +377,14 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.addSubview(statsLabel)
                 
                 NSLayoutConstraint.activate([
-                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
-                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    icon.widthAnchor.constraint(equalToConstant: 16),
-                    icon.heightAnchor.constraint(equalToConstant: 16),
-                    
-                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
-                    label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 4),
+                    label.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
+                    label.topAnchor.constraint(equalTo: cell!.topAnchor, constant: 8),
                     
                     statsLabel.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 4),
                     statsLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
                     statsLabel.centerYAnchor.constraint(equalTo: label.centerYAnchor),
                     
-                    pathLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 8),
+                    pathLabel.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
                     pathLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
                     pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 2)
                 ])
@@ -404,7 +395,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 if isActive {
                     // M3 'On Secondary Container' equivalent (bold, distinct color)
                     textField.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
-                    textField.textColor = NSColor.systemBlue
+                    textField.textColor = NSColor.m3Primary
                 } else {
                     textField.font = NSFont.systemFont(ofSize: 13, weight: .medium)
                     textField.textColor = NSColor.labelColor
