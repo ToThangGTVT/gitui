@@ -56,7 +56,13 @@ class GitPullViewController: NSViewController {
     }
 
     private func setupUI() {
+        refreshProgressIndicator.style = .spinning
         refreshProgressIndicator.isDisplayedWhenStopped = false
+        
+        pullProgressIndicator.style = .bar
+        pullProgressIndicator.isIndeterminate = true
+        pullProgressIndicator.isDisplayedWhenStopped = false
+        
         localBranchLabel.stringValue = defaultBranch
         commitMergedCheckbox.state = .on // Default checked
     }

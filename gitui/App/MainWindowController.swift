@@ -354,10 +354,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             do {
                 try await GitService.shared.fetch(remote: nil, options: options, in: path)
                 await MainActor.run {
-                    self?.showToolbarAlert(title: "Fetch Complete", message: "Successfully fetched.", isError: false)
                     let repoName = URL(fileURLWithPath: path).lastPathComponent
                     self?.updateBranchLabel(for: path, repoName: repoName)
                     self?.refreshCurrentTab()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        self?.showToolbarAlert(title: "Fetch Complete", message: "Successfully fetched.", isError: false)
+                    }
                 }
             } catch {
                 await MainActor.run {
@@ -690,10 +692,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         do {
             try await GitService.shared.pull(remote: remote, branch: branch, options: options, in: repoPath)
             await MainActor.run {
-                self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
                 let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
                 self.updateBranchLabel(for: repoPath, repoName: repoName)
                 self.refreshCurrentTab()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                    self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
+                }
             }
         } catch {
             await MainActor.run {

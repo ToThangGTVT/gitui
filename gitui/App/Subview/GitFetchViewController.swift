@@ -45,6 +45,10 @@ class GitFetchViewController: NSViewController {
         allRemotesCheckbox.state = .on
         pruneCheckbox.state = .on
         tagsCheckbox.state = .off
+        
+        fetchProgressIndicator.style = .bar
+        fetchProgressIndicator.isIndeterminate = true
+        fetchProgressIndicator.isDisplayedWhenStopped = false
     }
 
     @IBAction func cancelClicked(_ sender: Any?) {

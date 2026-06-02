@@ -39,6 +39,7 @@ class HunkHeaderCellView: NSView {
         hunkLabel.textColor = .secondaryLabelColor
         hunkLabel.lineBreakMode = .byTruncatingTail
         hunkLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        hunkLabel.isSelectable = true
 
         for (btn, title, sel) in [
             (stageButton,   "Stage Hunk",   #selector(stageTapped)),
@@ -136,12 +137,14 @@ class DiffLineCellView: NSView {
         oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
         oldLineNumLabel.alignment = .right
         oldLineNumLabel.translatesAutoresizingMaskIntoConstraints = false
+        oldLineNumLabel.isSelectable = true
         addSubview(oldLineNumLabel)
         
         newLineNumLabel.font = NSFont.m3Mono
         newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
         newLineNumLabel.alignment = .right
         newLineNumLabel.translatesAutoresizingMaskIntoConstraints = false
+        newLineNumLabel.isSelectable = true
         addSubview(newLineNumLabel)
 
         sep.wantsLayer = true
@@ -152,6 +155,7 @@ class DiffLineCellView: NSView {
         contentLabel.font = NSFont.m3Mono
         contentLabel.lineBreakMode = .byClipping
         contentLabel.translatesAutoresizingMaskIntoConstraints = false
+        contentLabel.isSelectable = true
         addSubview(contentLabel)
 
         NSLayoutConstraint.activate([

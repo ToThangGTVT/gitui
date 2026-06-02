@@ -522,7 +522,8 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         diffTableView.rowHeight = 18
         diffTableView.gridStyleMask = []
         diffTableView.intercellSpacing = NSSize(width: 0, height: 0)
-        diffTableView.selectionHighlightStyle = .none
+        diffTableView.allowsMultipleSelection = true
+        diffTableView.selectionHighlightStyle = .regular
         diffTableView.usesAlternatingRowBackgroundColors = false
 
         let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("diffCol"))
@@ -938,6 +939,41 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     @objc private func contextShowInFinder(_ sender: NSMenuItem) {
         guard let file = sender.representedObject as? GitFileStatus else { return }
         presenter?.didClickShowInFinder(file)
+    }
+    
+    @objc func copy(_ sender: Any?) {
+        guard let window = view.window, window.firstResponder == diffTableView else {
+            if let next = self.nextResponder {
+                next.tryToPerform(#selector(copy(_:)), with: sender)
+            }
+            return
+        }
+        
+        let selectedRows = diffTableView.selectedRowIndexes
+        guard !selectedRows.isEmpty else { return }
+        
+        var copiedText = ""
+        for row in selectedRows {
+            guard row < diffLines.count else { continue }
+            let line = diffLines[row]
+            // Format line content based on kind
+            switch line.kind {
+            case .context:
+                copiedText += " " + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .added:
+                copiedText += "+" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .removed:
+                copiedText += "-" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .fileHeader, .hunkHeader:
+                copiedText += line.rawText + "\n"
+            }
+        }
+        
+        if !copiedText.isEmpty {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(copiedText, forType: .string)
+        }
     }
     
     // MARK: - NSSplitViewDelegate

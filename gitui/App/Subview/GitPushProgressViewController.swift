@@ -57,6 +57,18 @@ class GitPushProgressViewController: NSViewController {
         
         logTextView.textContainer?.containerSize = NSSize(width: logScrollView.contentSize.width, height: CGFloat.greatestFiniteMagnitude)
         logTextView.textContainer?.widthTracksTextView = true
+        
+        // Move progressIndicator next to actionButton
+        progressIndicator.removeFromSuperview()
+        view.addSubview(progressIndicator)
+        
+        logScrollView.topAnchor.constraint(equalTo: subtitleLabel.bottomAnchor, constant: 14).isActive = true
+        
+        NSLayoutConstraint.activate([
+            progressIndicator.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20),
+            progressIndicator.centerYAnchor.constraint(equalTo: actionButton.centerYAnchor),
+            progressIndicator.trailingAnchor.constraint(equalTo: actionButton.leadingAnchor, constant: -15)
+        ])
     }
     
     private func appendLog(_ text: String) {

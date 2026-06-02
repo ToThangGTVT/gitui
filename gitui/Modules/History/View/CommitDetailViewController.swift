@@ -53,6 +53,8 @@ class CommitDetailViewController: NSViewController,
         
         diffTableView.dataSource = self
         diffTableView.delegate = self
+        diffTableView.allowsMultipleSelection = true
+        diffTableView.selectionHighlightStyle = .regular
     }
 
     // MARK: - Public
@@ -187,6 +189,41 @@ class CommitDetailViewController: NSViewController,
         
         let windowController = NSWindowController(window: window)
         windowController.showWindow(nil)
+    }
+
+    @objc func copy(_ sender: Any?) {
+        guard let window = view.window, window.firstResponder == diffTableView else {
+            // Forward to the next responder or let the system handle it if we are not the target
+            if let next = self.nextResponder {
+                next.tryToPerform(#selector(copy(_:)), with: sender)
+            }
+            return
+        }
+        
+        let selectedRows = diffTableView.selectedRowIndexes
+        guard !selectedRows.isEmpty else { return }
+        
+        var copiedText = ""
+        for row in selectedRows {
+            guard row < diffLines.count else { continue }
+            let line = diffLines[row]
+            switch line.kind {
+            case .context:
+                copiedText += " " + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .added:
+                copiedText += "+" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .removed:
+                copiedText += "-" + (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
+            case .fileHeader, .hunkHeader:
+                copiedText += line.rawText + "\n"
+            }
+        }
+        
+        if !copiedText.isEmpty {
+            let pasteboard = NSPasteboard.general
+            pasteboard.clearContents()
+            pasteboard.setString(copiedText, forType: .string)
+        }
     }
 
     // MARK: - Cell builders
