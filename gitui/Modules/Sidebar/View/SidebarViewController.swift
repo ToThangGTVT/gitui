@@ -31,19 +31,16 @@ class BranchGroupItem: NSObject {
 class CustomSelectionRowView: NSTableRowView {
     override func drawSelection(in dirtyRect: NSRect) {
         if self.selectionHighlightStyle != .none {
-            let selectionRect = self.bounds.insetBy(dx: 8, dy: 0) // Margin from edges
+            let selectionRect = self.bounds.insetBy(dx: 12, dy: 2) // M3 horizontal padding and vertical inset
             
-            // Light blue background
+            // Material 3 Secondary Container color (light blue)
             let bgColor = NSColor.systemBlue.withAlphaComponent(0.15)
             bgColor.setFill()
-            let path = NSBezierPath(roundedRect: selectionRect, xRadius: 6, yRadius: 6)
-            path.fill()
             
-            // Blue border
-            let borderColor = NSColor.systemBlue.withAlphaComponent(0.5)
-            borderColor.setStroke()
-            path.lineWidth = 1.0
-            path.stroke()
+            // Fully rounded pill shape
+            let radius = selectionRect.height / 2
+            let path = NSBezierPath(roundedRect: selectionRect, xRadius: radius, yRadius: radius)
+            path.fill()
         }
     }
 }
@@ -406,8 +403,9 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             if let textField = cell?.textField {
                 textField.stringValue = bookmark.name
                 if isActive {
-                    textField.font = NSFont.systemFont(ofSize: 13, weight: .bold)
-                    textField.textColor = NSColor.gitFlowAccent
+                    // M3 'On Secondary Container' equivalent (bold, distinct color)
+                    textField.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+                    textField.textColor = NSColor.systemBlue
                 } else {
                     textField.font = NSFont.systemFont(ofSize: 13, weight: .medium)
                     textField.textColor = NSColor.labelColor

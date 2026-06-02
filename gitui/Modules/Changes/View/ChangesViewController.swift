@@ -60,8 +60,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     private var commitButton: NSButton!
     private var amendCheckbox: NSButton!
     private var stageAllButton: NSButton!
-    private var unstageAllButton: NSButton!
+    private var stagedCheckbox: NSButton!
+    private var unstagedCheckbox: NSButton!
     private var progressIndicator: NSProgressIndicator!
+    private var diffEmptyStateView: NSView!
     
     private var conflictBanner: NSView!
     private var conflictBannerHeight: NSLayoutConstraint!
@@ -159,6 +161,8 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         mainSplitPersistence = SplitViewPersistence(splitView: mainSplitView, key: "gitflow.split.changes")
         
         let leftContainer = NSView()
+        leftContainer.wantsLayer = true
+        leftContainer.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         leftContainer.autoresizingMask = [.width, .height]
         leftContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 500) // Crucial for NSSplitView initial layout
         
@@ -195,21 +199,27 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             leftSplitView.bottomAnchor.constraint(equalTo: leftContainer.bottomAnchor),
         ])
         
-        let stagedResult = createListSection(title: "Staged Changes")
-        let stagedBox = stagedResult.view
-        stagedBox.frame = NSRect(x: 0, y: 0, width: 200, height: 100) // Crucial for NSSplitView initial layout
-        stagedTableView = stagedResult.tableView
+        let (stagedView, stagedTable, sCheck) = createListSection(title: "Staged Changes")
+        let stagedContainer = stagedView
+        stagedTableView = stagedTable
+        stagedCheckbox = sCheck
+        stagedCheckbox.target = self
+        stagedCheckbox.action = #selector(unstageAllFromCheckbox(_:))
+        stagedContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
         
-        let unstagedResult = createListSection(title: "Unstaged Changes")
-        let unstagedBox = unstagedResult.view
-        unstagedBox.frame = NSRect(x: 0, y: 0, width: 200, height: 100) // Crucial for NSSplitView initial layout
-        unstagedTableView = unstagedResult.tableView
+        let (unstagedView, unstagedTable, uCheck) = createListSection(title: "Unstaged Changes")
+        let unstagedContainer = unstagedView
+        unstagedTableView = unstagedTable
+        unstagedCheckbox = uCheck
+        unstagedCheckbox.target = self
+        unstagedCheckbox.action = #selector(stageAllFromCheckbox(_:))
+        unstagedContainer.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
         
         let commitBox = createCommitSection()
-        commitBox.frame = NSRect(x: 0, y: 0, width: 200, height: 100) // Crucial for NSSplitView initial layout
+        commitBox.frame = NSRect(x: 0, y: 0, width: 200, height: 100)
         
-        leftSplitView.addArrangedSubview(stagedBox)
-        leftSplitView.addArrangedSubview(unstagedBox)
+        leftSplitView.addArrangedSubview(stagedContainer)
+        leftSplitView.addArrangedSubview(unstagedContainer)
         leftSplitView.addArrangedSubview(commitBox)
         
         // Set holding priorities so NSSplitView knows which panes to resize first when the window shrinks.
@@ -313,27 +323,27 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     
     // MARK: - Section builders
     
-    private func createListSection(title: String) -> (view: NSView, tableView: NSTableView) {
+    private func createListSection(title: String) -> (view: NSView, tableView: NSTableView, checkbox: NSButton) {
         let container = NSView()
-        // MUST NOT be false for NSSplitView manual subview frame layout!
         container.translatesAutoresizingMaskIntoConstraints = true
         container.autoresizingMask = [.width, .height]
+        container.wantsLayer = true
+        container.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         
         let headerBar = NSView()
         headerBar.wantsLayer = true
-        headerBar.layer?.backgroundColor = NSColor.windowBackgroundColor.withAlphaComponent(0.6).cgColor
+        headerBar.layer?.backgroundColor = NSColor.clear.cgColor
         headerBar.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(headerBar)
         
-        let label = NSTextField(labelWithString: title.uppercased())
-        label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
-        label.textColor = NSColor.secondaryLabelColor
-        label.translatesAutoresizingMaskIntoConstraints = false
-        headerBar.addSubview(label)
+        let checkbox = NSButton(checkboxWithTitle: title, target: nil, action: nil)
+        checkbox.font = NSFont.systemFont(ofSize: 12, weight: .bold)
+        checkbox.translatesAutoresizingMaskIntoConstraints = false
+        headerBar.addSubview(checkbox)
         
         let headerBorder = NSView()
         headerBorder.wantsLayer = true
-        headerBorder.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        headerBorder.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
         headerBorder.translatesAutoresizingMaskIntoConstraints = false
         headerBar.addSubview(headerBorder)
         
@@ -347,10 +357,11 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         
         let table = NSTableView()
         table.headerView = nil
-        table.backgroundColor = NSColor.controlBackgroundColor
-        table.gridColor = NSColor.separatorColor
-        table.gridStyleMask = .solidHorizontalGridLineMask
+        table.backgroundColor = NSColor.clear
+        table.gridStyleMask = []
         table.allowsMultipleSelection = false
+        table.intercellSpacing = NSSize(width: 0, height: 0)
+        table.rowHeight = 28
         
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("fileColumn"))
         column.width = 300
@@ -365,10 +376,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             headerBar.topAnchor.constraint(equalTo: container.topAnchor),
             headerBar.leadingAnchor.constraint(equalTo: container.leadingAnchor),
             headerBar.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            headerBar.heightAnchor.constraint(equalToConstant: 26),
+            headerBar.heightAnchor.constraint(equalToConstant: 32),
             
-            label.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
-            label.leadingAnchor.constraint(equalTo: headerBar.leadingAnchor, constant: 12),
+            checkbox.centerYAnchor.constraint(equalTo: headerBar.centerYAnchor),
+            checkbox.leadingAnchor.constraint(equalTo: headerBar.leadingAnchor, constant: 12),
             
             headerBorder.leadingAnchor.constraint(equalTo: headerBar.leadingAnchor),
             headerBorder.trailingAnchor.constraint(equalTo: headerBar.trailingAnchor),
@@ -381,26 +392,24 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             scroll.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
         
-        return (container, table)
+        return (container, table, checkbox)
     }
     
     private func createCommitSection() -> NSView {
         let container = NSView()
-        // MUST NOT be false for NSSplitView manual subview frame layout!
         container.translatesAutoresizingMaskIntoConstraints = true
         container.autoresizingMask = [.width, .height]
         container.wantsLayer = true
         container.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
         
-        let border = NSView()
-        border.wantsLayer = true
-        border.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
-        border.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(border)
-        
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
-        scroll.borderType = .lineBorder
+        scroll.borderType = .noBorder
+        scroll.wantsLayer = true
+        scroll.layer?.cornerRadius = 8
+        scroll.layer?.borderColor = NSColor.gitFlowBorder.cgColor
+        scroll.layer?.borderWidth = 1
+        scroll.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         scroll.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(scroll)
         
@@ -412,6 +421,8 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         commitTextView.delegate = self
         commitTextView.insertionPointColor = NSColor.labelColor
         commitTextView.string = ""
+        commitTextView.textContainerInset = NSSize(width: 8, height: 8)
+        commitTextView.backgroundColor = .clear
         scroll.documentView = commitTextView
         
         // Placeholder label overlay
@@ -423,8 +434,8 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         placeholder.isSelectable = false
         scroll.addSubview(placeholder)
         NSLayoutConstraint.activate([
-            placeholder.topAnchor.constraint(equalTo: scroll.topAnchor, constant: 1),
-            placeholder.leadingAnchor.constraint(equalTo: scroll.leadingAnchor, constant: 5)
+            placeholder.topAnchor.constraint(equalTo: scroll.topAnchor, constant: 8),
+            placeholder.leadingAnchor.constraint(equalTo: scroll.leadingAnchor, constant: 12)
         ])
         
         amendCheckbox = NSButton(checkboxWithTitle: "Amend last commit", target: self, action: #selector(amendCheckboxChanged(_:)))
@@ -436,24 +447,19 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         stageAllButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(stageAllButton)
 
-        unstageAllButton = NSButton(title: "Unstage All", target: self, action: #selector(unstageAllClicked(_:)))
-        unstageAllButton.bezelStyle = .push
-        unstageAllButton.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(unstageAllButton)
-
         commitButton = NSButton(title: "Commit", target: self, action: #selector(commitClicked(_:)))
         commitButton.bezelStyle = .push
+        if #available(macOS 11.0, *) {
+            commitButton.hasDestructiveAction = true
+            commitButton.bezelColor = NSColor.systemBlue
+            commitButton.contentTintColor = .white
+        }
         commitButton.keyEquivalent = "\r"
         commitButton.keyEquivalentModifierMask = .command
         commitButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(commitButton)
 
         NSLayoutConstraint.activate([
-            border.topAnchor.constraint(equalTo: container.topAnchor),
-            border.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            border.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            border.heightAnchor.constraint(equalToConstant: 1),
-
             scroll.topAnchor.constraint(equalTo: container.topAnchor, constant: 12),
             scroll.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
             scroll.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
@@ -464,9 +470,6 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
 
             stageAllButton.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 12),
             stageAllButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
-
-            unstageAllButton.leadingAnchor.constraint(equalTo: stageAllButton.trailingAnchor, constant: 8),
-            unstageAllButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
 
             commitButton.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -12),
             commitButton.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -10),
@@ -533,6 +536,43 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             diffScrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
             diffScrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
         ])
+        
+        diffEmptyStateView = NSView()
+        diffEmptyStateView.translatesAutoresizingMaskIntoConstraints = false
+        diffEmptyStateView.wantsLayer = true
+        diffEmptyStateView.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        container.addSubview(diffEmptyStateView)
+        
+        let emptyLabel = NSTextField(labelWithString: "No file selected")
+        emptyLabel.font = NSFont.systemFont(ofSize: 14, weight: .medium)
+        emptyLabel.textColor = NSColor.secondaryLabelColor
+        emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        diffEmptyStateView.addSubview(emptyLabel)
+        
+        let iconView = NSImageView()
+        if #available(macOS 11.0, *) {
+            let config = NSImage.SymbolConfiguration(pointSize: 48, weight: .regular)
+            iconView.image = NSImage(systemSymbolName: "doc.text.viewfinder", accessibilityDescription: "Empty Diff")?.withSymbolConfiguration(config)
+            iconView.contentTintColor = NSColor.tertiaryLabelColor
+        }
+        iconView.translatesAutoresizingMaskIntoConstraints = false
+        diffEmptyStateView.addSubview(iconView)
+        
+        NSLayoutConstraint.activate([
+            diffEmptyStateView.topAnchor.constraint(equalTo: border.bottomAnchor),
+            diffEmptyStateView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            diffEmptyStateView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            diffEmptyStateView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            
+            iconView.centerXAnchor.constraint(equalTo: diffEmptyStateView.centerXAnchor),
+            iconView.centerYAnchor.constraint(equalTo: diffEmptyStateView.centerYAnchor, constant: -20),
+            
+            emptyLabel.centerXAnchor.constraint(equalTo: diffEmptyStateView.centerXAnchor),
+            emptyLabel.topAnchor.constraint(equalTo: iconView.bottomAnchor, constant: 16)
+        ])
+        
+        diffEmptyStateView.isHidden = false
+        diffScrollView.isHidden = true
     }
     
     // MARK: - Actions
@@ -549,7 +589,23 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         presenter?.didDoubleClickFile(unstagedFiles[row])
     }
     
-    @objc private func stageAllClicked(_ sender: NSButton) {
+    @objc private func stageAllFromCheckbox(_ sender: NSButton) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            sender.state = .off
+            guard let self = self, !self.unstagedFiles.isEmpty else { return }
+            self.presenter?.didClickStageAll()
+        }
+    }
+    
+    @objc private func unstageAllFromCheckbox(_ sender: NSButton) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            sender.state = .off
+            guard let self = self, !self.stagedFiles.isEmpty else { return }
+            self.presenter?.didClickUnstageAll()
+        }
+    }
+
+    @objc private func stageAllClicked(_ sender: Any) {
         presenter?.didClickStageAll()
     }
     
@@ -725,7 +781,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     
     func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
         if splitView === mainSplitView {
-            return splitView.bounds.width - 300 // Right pane (diff) min width
+            return splitView.bounds.width - 400 // Right pane (diff) min width
         }
         if splitView === leftSplitView {
             let panes = splitView.subviews
@@ -1008,12 +1064,15 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             vc.removeFromParent()
             self.conflictVC = nil
         }
-        diffScrollView.isHidden = false
     }
-
+    
     func showDiffText(_ text: String, for file: String, isStaged: Bool) {
         removeConflictUI()
+        diffTitleLabel.stringValue = file
         self.isShowingUnstagedDiff = !isStaged
+        
+        diffEmptyStateView.isHidden = true
+        diffScrollView.isHidden = false
         let hunks = parseDiffHunks(from: text)
         diffLines = buildDiffLines(from: text, hunks: hunks)
         
@@ -1076,6 +1135,9 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         diffTitleLabel.stringValue = "No file selected"
         diffLines.removeAll()
         diffTableView.reloadData()
+        
+        diffEmptyStateView.isHidden = false
+        diffScrollView.isHidden = true
     }
     
     func showLoading(_ loading: Bool) {

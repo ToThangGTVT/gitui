@@ -60,12 +60,13 @@ class CustomToolbarView: NSView {
                 self.addSubview(view)
                 self.contentView = view
                 
-                // Styling (macOS 26 glassmorphism)
+                // Styling matching the screenshot design
                 self.wantsLayer = true
                 self.layer?.backgroundColor = NSColor.clear.cgColor
                 
                 borderView.wantsLayer = true
-                borderView.layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.2).cgColor
+                borderView.layer?.backgroundColor = NSColor.m3OutlineFaint.cgColor
+                borderView.layer?.backgroundColor = NSColor.clear.cgColor
                 
                 configureButtonIcons()
             }
@@ -73,7 +74,7 @@ class CustomToolbarView: NSView {
     }
     
     private func configureButtonIcons() {
-        let buttons: [(NSButton?, String, String)] = [
+        let configs: [(NSButton?, String, String)] = [
             (commitButton, "Commit", "plus.circle"),
             (pullButton, "Pull", "arrow.down.circle"),
             (pushButton, "Push", "arrow.up.circle"),
@@ -87,47 +88,37 @@ class CustomToolbarView: NSView {
             (settingsButton, "Settings", "gearshape")
         ]
         
-        func createAttributedTitle(_ title: String) -> NSAttributedString {
-            let result = NSMutableAttributedString()
+        for (idx, (btn, title, iconName)) in configs.enumerated() {
+            guard let btn = btn else { continue }
+            let isCommit = (idx == 0)
             
-            // 1. Spacing character (newline with font size 3)
-            let spacer = NSAttributedString(string: "\n", attributes: [
-                .font: NSFont.systemFont(ofSize: 4)
-            ])
+            if #available(macOS 11.0, *) {
+                let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
+                var image = NSImage(systemSymbolName: iconName, accessibilityDescription: title)
+                if isCommit {
+                    image = image?.withSymbolConfiguration(config.applying(.init(paletteColors: [NSColor.systemBlue])))
+                } else {
+                    image = image?.withSymbolConfiguration(config)
+                }
+                btn.image = image
+            }
+            
+            let result = NSMutableAttributedString()
+            let spacer = NSAttributedString(string: "\n", attributes: [.font: NSFont.systemFont(ofSize: 4)])
             result.append(spacer)
             
-            // 2. Title text
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .center
             let textAttr = NSAttributedString(string: title, attributes: [
-                .font: NSFont.systemFont(ofSize: 12),
-                .foregroundColor: NSColor.controlAccentColor,
+                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .foregroundColor: isCommit ? NSColor.systemBlue : NSColor.labelColor,
                 .paragraphStyle: paragraphStyle
             ])
             result.append(textAttr)
             
-            return result
-        }
-        
-        if #available(macOS 11.0, *) {
-            let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
-            for (btn, title, symbol) in buttons {
-                if let button = btn {
-                    button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: title)?.withSymbolConfiguration(config)
-                    button.imagePosition = .imageAbove
-                    button.imageScaling = .scaleNone
-                    button.attributedTitle = createAttributedTitle(title)
-                }
-            }
-        } else {
-            for (btn, title, _) in buttons {
-                if let button = btn {
-                    button.image = NSImage(named: NSImage.actionTemplateName)
-                    button.imagePosition = .imageAbove
-                    button.imageScaling = .scaleNone
-                    button.attributedTitle = createAttributedTitle(title)
-                }
-            }
+            btn.attributedTitle = result
+            btn.imagePosition = .imageAbove
+            btn.isBordered = false
         }
     }
     

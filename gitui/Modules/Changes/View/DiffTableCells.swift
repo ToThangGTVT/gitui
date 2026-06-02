@@ -88,6 +88,9 @@ class HunkHeaderCellView: NSView {
         }
         
         hunkLabel.stringValue = friendlyText
+        hunkLabel.font = NSFont.m3Mono
+        hunkLabel.textColor = NSColor.m3Primary
+        self.layer?.backgroundColor = NSColor.m3Primary.withAlphaComponent(0.08).cgColor
         
         if isReadOnly {
             stageButton.isHidden   = true
@@ -102,7 +105,7 @@ class HunkHeaderCellView: NSView {
 
     override func updateLayer() {
         super.updateLayer()
-        layer?.backgroundColor = HunkHeaderCellView.background.cgColor
+        layer?.backgroundColor = NSColor.m3Primary.withAlphaComponent(0.08).cgColor
     }
 
     @objc private func stageTapped()   { onStageHunk?() }
@@ -114,8 +117,8 @@ class HunkHeaderCellView: NSView {
 
 class DiffLineCellView: NSView {
 
-    private let lineNumLabel = NSTextField(labelWithString: "")
-    private let signLabel = NSTextField(labelWithString: "")
+    private let oldLineNumLabel = NSTextField(labelWithString: "")
+    private let newLineNumLabel = NSTextField(labelWithString: "")
     private let sep = NSView()
     private let contentLabel = NSTextField(labelWithString: "")
 
@@ -129,86 +132,85 @@ class DiffLineCellView: NSView {
     private func setup() {
         wantsLayer = true
 
-        let gutterFont  = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-        let contentFont = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
-
-        lineNumLabel.font = gutterFont
-        lineNumLabel.textColor = .secondaryLabelColor
-        lineNumLabel.alignment = .right
-        lineNumLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(lineNumLabel)
+        oldLineNumLabel.font = NSFont.m3Mono
+        oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+        oldLineNumLabel.alignment = .right
+        oldLineNumLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(oldLineNumLabel)
         
-        signLabel.font = gutterFont
-        signLabel.textColor = .secondaryLabelColor
-        signLabel.alignment = .center
-        signLabel.translatesAutoresizingMaskIntoConstraints = false
-        addSubview(signLabel)
+        newLineNumLabel.font = NSFont.m3Mono
+        newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+        newLineNumLabel.alignment = .right
+        newLineNumLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(newLineNumLabel)
 
         sep.wantsLayer = true
-        sep.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        sep.layer?.backgroundColor = NSColor.m3OutlineFaint.cgColor
         sep.translatesAutoresizingMaskIntoConstraints = false
         addSubview(sep)
 
-        contentLabel.font = contentFont
+        contentLabel.font = NSFont.m3Mono
         contentLabel.lineBreakMode = .byClipping
         contentLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(contentLabel)
 
         NSLayoutConstraint.activate([
-            lineNumLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
-            lineNumLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            lineNumLabel.widthAnchor.constraint(equalToConstant: 40),
+            oldLineNumLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            oldLineNumLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            oldLineNumLabel.widthAnchor.constraint(equalToConstant: 42),
             
-            signLabel.leadingAnchor.constraint(equalTo: lineNumLabel.trailingAnchor, constant: 2),
-            signLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
-            signLabel.widthAnchor.constraint(equalToConstant: 10),
+            newLineNumLabel.leadingAnchor.constraint(equalTo: oldLineNumLabel.trailingAnchor, constant: 4),
+            newLineNumLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            newLineNumLabel.widthAnchor.constraint(equalToConstant: 42),
 
-            sep.leadingAnchor.constraint(equalTo: signLabel.trailingAnchor, constant: 2),
+            sep.leadingAnchor.constraint(equalTo: newLineNumLabel.trailingAnchor, constant: 4),
             sep.centerYAnchor.constraint(equalTo: centerYAnchor),
             sep.widthAnchor.constraint(equalToConstant: 1),
             sep.heightAnchor.constraint(equalTo: heightAnchor),
 
-            contentLabel.leadingAnchor.constraint(equalTo: sep.trailingAnchor, constant: 6),
+            contentLabel.leadingAnchor.constraint(equalTo: sep.trailingAnchor, constant: 12),
             contentLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
             contentLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
         ])
     }
 
     func configure(with line: DiffLine) {
+        let contentStr = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
+        
         switch line.kind {
-        case .context(_, let new):
-            lineNumLabel.stringValue = "\(new)"
-            signLabel.stringValue = ""
-            lineNumLabel.textColor = .tertiaryLabelColor
-            signLabel.textColor = .tertiaryLabelColor
-            contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
-            contentLabel.textColor = .labelColor
+        case .context(let oldLn, let newLn):
+            oldLineNumLabel.stringValue = "\(oldLn)"
+            newLineNumLabel.stringValue = "\(newLn)"
+            oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            contentLabel.stringValue = " " + contentStr
+            contentLabel.textColor = NSColor.m3OnSurfaceVariant
             layer?.backgroundColor = NSColor.clear.cgColor
 
-        case .added(let ln):
-            lineNumLabel.stringValue = "\(ln)"
-            signLabel.stringValue = "+"
-            lineNumLabel.textColor = .gitFlowStagedAddText
-            signLabel.textColor = .gitFlowStagedAddText
-            contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
-            contentLabel.textColor = .labelColor
-            layer?.backgroundColor = NSColor.gitFlowStagedAdd.cgColor
+        case .added(let newLn):
+            oldLineNumLabel.stringValue = ""
+            newLineNumLabel.stringValue = "\(newLn)"
+            oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            contentLabel.stringValue = "+" + contentStr
+            contentLabel.textColor = NSColor(hex: "#0B5B27")
+            layer?.backgroundColor = NSColor(hex: "#E6F4EA").cgColor
 
-        case .removed(let ln):
-            lineNumLabel.stringValue = "\(ln)"
-            signLabel.stringValue = "-"
-            lineNumLabel.textColor = .gitFlowStagedDeleteText
-            signLabel.textColor = .gitFlowStagedDeleteText
-            contentLabel.stringValue = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
-            contentLabel.textColor = .labelColor
-            layer?.backgroundColor = NSColor.gitFlowStagedDelete.cgColor
+        case .removed(let oldLn):
+            oldLineNumLabel.stringValue = "\(oldLn)"
+            newLineNumLabel.stringValue = ""
+            oldLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            newLineNumLabel.textColor = NSColor.m3OnSurfaceFaint
+            contentLabel.stringValue = "-" + contentStr
+            contentLabel.textColor = NSColor(hex: "#A50E0E")
+            layer?.backgroundColor = NSColor(hex: "#FCE8E6").cgColor
 
         case .fileHeader:
-            lineNumLabel.stringValue = ""
-            signLabel.stringValue = ""
+            oldLineNumLabel.stringValue = ""
+            newLineNumLabel.stringValue = ""
             contentLabel.stringValue = line.rawText
-            contentLabel.textColor = .secondaryLabelColor
-            layer?.backgroundColor = NSColor.separatorColor.withAlphaComponent(0.2).cgColor
+            contentLabel.textColor = NSColor.m3OnSurfaceVariant
+            layer?.backgroundColor = NSColor.m3SurfaceContainerHigh.cgColor
 
         case .hunkHeader:
             break // rendered by HunkHeaderCellView

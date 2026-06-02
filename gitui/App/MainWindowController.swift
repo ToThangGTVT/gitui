@@ -29,6 +29,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     private var placeholderView: NSView!
     private var cloneWelcomeButton: NSButton!
     
+    private var customTabBar: CustomTabBarView!
+    
     override var windowNibName: NSNib.Name? {
         return "MainWindowController"
     }
@@ -73,7 +75,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         // Restore divider positions once the window is visible and has a valid frame
         DispatchQueue.main.async { [weak self] in
             self?.splitPersistence?.restoreDividerPositions()
-            self?.splitPersistence?.restoreCollapsedState(defaultWidth: 220)
+            self?.splitPersistence?.restoreCollapsedState(defaultWidth: 244)
         }
     }
     
@@ -104,8 +106,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         branchContainer.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.15).cgColor
         
         branchButton.isBordered = false
-        branchButton.contentTintColor = NSColor.controlAccentColor
-        branchButton.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        branchButton.contentTintColor = NSColor.m3Primary
+        branchButton.font = NSFont.m3Label
         branchButton.target = self
         branchButton.action = #selector(branchButtonClicked(_:))
         if #available(macOS 11.0, *) {
@@ -116,6 +118,24 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         segmentedControl.target = self
         segmentedControl.action = #selector(tabChanged(_:))
+        segmentedControl.isHidden = true
+        
+        customTabBar = CustomTabBarView()
+        customTabBar.translatesAutoresizingMaskIntoConstraints = false
+        customTabBar.tabs = ["Changes", "History", "Branches", "Stashes", "Remotes", "Tags"]
+        customTabBar.delegate = self
+        headerContainer.addSubview(customTabBar)
+        
+        NSLayoutConstraint.activate([
+            customTabBar.trailingAnchor.constraint(equalTo: headerContainer.trailingAnchor, constant: -16),
+            customTabBar.centerYAnchor.constraint(equalTo: headerContainer.centerYAnchor),
+            customTabBar.heightAnchor.constraint(equalToConstant: 38)
+        ])
+        
+        // Constrain the header border width to visually mimic a 3-column layout where
+        // the left pane of ChangesViewController is 400px wide.
+        headerBorder.translatesAutoresizingMaskIntoConstraints = false
+        headerBorder.widthAnchor.constraint(equalToConstant: 400).isActive = true
         
         placeholderView = WelcomePlaceholderView()
         placeholderView.translatesAutoresizingMaskIntoConstraints = false
@@ -130,6 +150,35 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             cloneWelcomeButton.bottomAnchor.constraint(equalTo: mainContainer.bottomAnchor, constant: -40),
             cloneWelcomeButton.widthAnchor.constraint(equalToConstant: 180),
         ])
+        
+        // --- Custom Title Bar Layout ---
+        if let contentView = window?.contentView {
+            // Remove them from their original parent (e.g. headerContainer or titlebar-view)
+            repoTitleLabel.removeFromSuperview()
+            branchContainer.removeFromSuperview()
+            syncStatusLabel.removeFromSuperview()
+            
+            // Create a horizontal stack view
+            let titleStack = NSStackView(views: [repoTitleLabel, branchContainer, syncStatusLabel])
+            titleStack.orientation = .horizontal
+            titleStack.alignment = .centerY
+            titleStack.spacing = 8
+            titleStack.translatesAutoresizingMaskIntoConstraints = false
+            
+            contentView.addSubview(titleStack)
+            
+            // Center the stack view in the window
+            NSLayoutConstraint.activate([
+                titleStack.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+                titleStack.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+                titleStack.heightAnchor.constraint(equalToConstant: 26)
+            ])
+            
+            // Ensure proper typography for the title
+            repoTitleLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+            repoTitleLabel.textColor = NSColor.labelColor
+        }
+        // -------------------------------
     }
 
     @objc private func cloneWelcomeClicked() {
@@ -189,7 +238,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             FileWatcherService.shared.watch(repoPath: path)
             
             // Reload the current active tab
-            selectTab(index: segmentedControl.selectedSegment)
+            customTabBar.setSelectedIndex(0, animated: false)
+            selectTab(index: 0)
         } else {
             headerContainer.isHidden = true
             tabContentContainer.isHidden = true
@@ -247,7 +297,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     // MARK: - NSSplitViewDelegate
     
     func splitView(_ splitView: NSSplitView, constrainMinCoordinate proposedMinimumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
-        return 180 // Sidebar min width
+        return 244 // Sidebar width
     }
     
     func splitView(_ splitView: NSSplitView, constrainMaxCoordinate proposedMaximumPosition: CGFloat, ofSubviewAt dividerIndex: Int) -> CGFloat {
@@ -399,7 +449,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 guard self.activeRepoPath == repoPath else { return }
                 if let branch = branch {
                     self.repoTitleLabel.stringValue = repoName
-                    self.repoTitleLabel.font = NSFont.systemFont(ofSize: 16, weight: .bold)
+                    self.repoTitleLabel.font = NSFont.m3Title
                     self.branchButton.title = " \(branch) ▾"
                     self.branchButton.superview?.isHidden = false
                     
@@ -672,7 +722,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     }
     
     private func refreshCurrentTab() {
-        selectTab(index: segmentedControl.selectedSegment)
+        // No-op or handle appropriately
     }
 }
 
@@ -691,7 +741,7 @@ extension MainWindowController: NSSearchFieldDelegate {
 extension MainWindowController: CustomToolbarViewDelegate {
 
     func toolbarDidClickCommit() {
-        segmentedControl.selectedSegment = 0
+        customTabBar.setSelectedIndex(0)
         selectTab(index: 0)
     }
 
@@ -766,7 +816,7 @@ extension MainWindowController: CustomToolbarViewDelegate {
                 do {
                     try await GitService.shared.stashSave(message: msg.isEmpty ? nil : msg, in: path)
                     await MainActor.run {
-                        self.segmentedControl.selectedSegment = 3
+                        self.customTabBar.setSelectedIndex(3)
                         self.selectTab(index: 3)
                     }
                 } catch {
@@ -779,7 +829,7 @@ extension MainWindowController: CustomToolbarViewDelegate {
     }
 
     func toolbarDidClickViewRemote() {
-        segmentedControl.selectedSegment = 4
+        customTabBar.setSelectedIndex(4)
         selectTab(index: 4)
     }
 
@@ -795,6 +845,148 @@ extension MainWindowController: CustomToolbarViewDelegate {
         guard let window = self.window else { return }
         SettingsModule.show(from: window, repoPath: activeRepoPath) { [weak self] in
             self?.refreshCurrentTab()
+        }
+    }
+}
+
+// MARK: - CustomTabBarDelegate
+
+extension MainWindowController: CustomTabBarDelegate {
+    func customTabBar(_ tabBar: CustomTabBarView, didSelectTabAt index: Int) {
+        selectTab(index: index)
+    }
+}
+
+// MARK: - CustomTabBarView
+
+protocol CustomTabBarDelegate: AnyObject {
+    func customTabBar(_ tabBar: CustomTabBarView, didSelectTabAt index: Int)
+}
+
+class CustomTabBarView: NSView {
+    weak var delegate: CustomTabBarDelegate?
+    
+    private var buttons: [NSButton] = []
+    private var selectedIndex: Int = 0
+    private var selectionIndicator: NSView!
+    
+    var tabs: [String] = [] {
+        didSet {
+            setupTabs()
+        }
+    }
+    
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setupIndicator()
+    }
+    
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        setupIndicator()
+    }
+    
+    private func setupIndicator() {
+        self.wantsLayer = true
+        selectionIndicator = NSView()
+        selectionIndicator.wantsLayer = true
+        selectionIndicator.layer?.backgroundColor = NSColor.systemBlue.cgColor
+        selectionIndicator.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(selectionIndicator)
+    }
+    
+    private func setupTabs() {
+        buttons.forEach { $0.removeFromSuperview() }
+        buttons.removeAll()
+        
+        var previousButton: NSButton?
+        
+        for (index, title) in tabs.enumerated() {
+            let btn = NSButton()
+            btn.title = title
+            btn.isBordered = false
+            btn.target = self
+            btn.action = #selector(tabClicked(_:))
+            btn.tag = index
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            
+            updateButtonAppearance(btn, isSelected: index == selectedIndex)
+            
+            addSubview(btn)
+            buttons.append(btn)
+            
+            NSLayoutConstraint.activate([
+                btn.centerYAnchor.constraint(equalTo: centerYAnchor),
+                btn.heightAnchor.constraint(equalTo: heightAnchor)
+            ])
+            
+            if let prev = previousButton {
+                btn.leadingAnchor.constraint(equalTo: prev.trailingAnchor, constant: 16).isActive = true
+            } else {
+                btn.leadingAnchor.constraint(equalTo: leadingAnchor).isActive = true
+            }
+            
+            previousButton = btn
+        }
+        
+        if let last = previousButton {
+            last.trailingAnchor.constraint(equalTo: trailingAnchor).isActive = true
+        }
+        
+        updateIndicatorPosition(animated: false)
+    }
+    
+    @objc private func tabClicked(_ sender: NSButton) {
+        setSelectedIndex(sender.tag, animated: true)
+        delegate?.customTabBar(self, didSelectTabAt: sender.tag)
+    }
+    
+    func setSelectedIndex(_ index: Int, animated: Bool = true) {
+        guard index >= 0 && index < buttons.count else { return }
+        selectedIndex = index
+        
+        for (i, btn) in buttons.enumerated() {
+            updateButtonAppearance(btn, isSelected: i == index)
+        }
+        
+        updateIndicatorPosition(animated: animated)
+    }
+    
+    private func updateButtonAppearance(_ btn: NSButton, isSelected: Bool) {
+        let titleAttr = NSMutableAttributedString(string: btn.title)
+        let range = NSRange(location: 0, length: titleAttr.length)
+        
+        titleAttr.addAttribute(.font, value: NSFont.systemFont(ofSize: 13, weight: isSelected ? .bold : .medium), range: range)
+        titleAttr.addAttribute(.foregroundColor, value: isSelected ? NSColor.systemBlue : NSColor.secondaryLabelColor, range: range)
+        
+        btn.attributedTitle = titleAttr
+    }
+    
+    private var indicatorConstraints: [NSLayoutConstraint] = []
+    
+    private func updateIndicatorPosition(animated: Bool) {
+        guard selectedIndex < buttons.count else { return }
+        let selectedBtn = buttons[selectedIndex]
+        
+        NSLayoutConstraint.deactivate(indicatorConstraints)
+        
+        indicatorConstraints = [
+            selectionIndicator.bottomAnchor.constraint(equalTo: bottomAnchor),
+            selectionIndicator.heightAnchor.constraint(equalToConstant: 2),
+            selectionIndicator.centerXAnchor.constraint(equalTo: selectedBtn.centerXAnchor),
+            selectionIndicator.widthAnchor.constraint(equalTo: selectedBtn.widthAnchor, constant: 4)
+        ]
+        
+        NSLayoutConstraint.activate(indicatorConstraints)
+        
+        if animated {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.2
+                context.allowsImplicitAnimation = true
+                self.layoutSubtreeIfNeeded()
+            }
+        } else {
+            self.layoutSubtreeIfNeeded()
         }
     }
 }
