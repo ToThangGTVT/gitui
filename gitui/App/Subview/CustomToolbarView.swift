@@ -110,7 +110,7 @@ class CustomToolbarView: NSView {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .center
             let textAttr = NSAttributedString(string: title, attributes: [
-                .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
                 .foregroundColor: isCommit ? NSColor.systemBlue : NSColor.labelColor,
                 .paragraphStyle: paragraphStyle
             ])
@@ -118,7 +118,7 @@ class CustomToolbarView: NSView {
             
             btn.attributedTitle = result
             btn.imagePosition = .imageAbove
-            btn.imageScaling = .scaleNone
+            btn.imageScaling = .scaleProportionallyDown
             btn.isBordered = false
         }
     }

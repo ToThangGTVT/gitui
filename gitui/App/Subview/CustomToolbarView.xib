@@ -34,7 +34,7 @@
                     <subviews>
                         <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-commit">
                             <rect key="frame" x="0.0" y="0.0" width="45" height="14"/>
-                            <buttonCell key="cell" type="square" title="Commit" bezelStyle="shadowlessSquare" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-commit">
+                            <buttonCell key="cell" type="square" title="Commit" bezelStyle="shadowlessSquare" imagePosition="overlaps" alignment="center" imageScaling="proportionallyDown" inset="2" id="cell-commit">
                                 <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                 <font key="font" metaFont="smallSystem"/>
                             </buttonCell>
@@ -206,7 +206,7 @@
                 <constraint firstItem="right-stack" firstAttribute="centerY" secondItem="c22-O7-iKe" secondAttribute="centerY" id="rstk-cy"/>
                 <constraint firstItem="right-stack" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-20" id="rstk-r"/>
             </constraints>
-            <point key="canvasLocation" x="74" y="154"/>
+            <point key="canvasLocation" x="410" y="84"/>
         </customView>
     </objects>
 </document>

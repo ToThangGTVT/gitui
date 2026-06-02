@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
@@ -18,12 +17,12 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customView id="c22-O7-iKe">
-            <rect key="frame" x="0.0" y="0.0" width="360" height="420"/>
+        <customView misplaced="YES" id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="353" height="440"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="title-lbl">
-                    <rect key="frame" x="18" y="381" width="107" height="19"/>
+                    <rect key="frame" x="18" y="390" width="116" height="19"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" title="Switch Branch" id="title-cell">
                         <font key="font" metaFont="systemBold" size="16"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -31,31 +30,31 @@
                     </textFieldCell>
                 </textField>
                 <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="current-lbl">
-                    <rect key="frame" x="242" y="383" width="100" height="15"/>
+                    <rect key="frame" x="225" y="392" width="105" height="15"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Current: unknown" id="current-cell">
-                        <font key="font" metaFont="system" size="12"/>
+                        <font key="font" metaFont="cellTitle"/>
                         <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <searchField focusRingType="none" verticalHuggingPriority="750" textCharacterSet="normal" translatesAutoresizingMaskIntoConstraints="NO" id="search-fld">
-                    <rect key="frame" x="20" y="347" width="320" height="22"/>
+                <searchField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="search-fld">
+                    <rect key="frame" x="20" y="354" width="308" height="24"/>
                     <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Filter branches..." bezelStyle="round" id="search-cell"/>
                 </searchField>
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="sep-1">
-                    <rect key="frame" x="0.0" y="334" width="360" height="1"/>
+                    <rect key="frame" x="0.0" y="341" width="348" height="1"/>
                     <constraints>
                         <constraint firstAttribute="height" constant="1" id="sep1-h"/>
                     </constraints>
                 </customView>
-                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="32" horizontalPageScroll="10" verticalLineScroll="32" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="scroll-view">
-                    <rect key="frame" x="0.0" y="58" width="360" height="276"/>
+                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="33" horizontalPageScroll="10" verticalLineScroll="33" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="scroll-view">
+                    <rect key="frame" x="0.0" y="53" width="348" height="288"/>
                     <clipView key="contentView" drawsBackground="NO" id="clip-view">
-                        <rect key="frame" x="0.0" y="0.0" width="360" height="276"/>
+                        <rect key="frame" x="0.0" y="0.0" width="348" height="271"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnReordering="NO" columnResizing="NO" multipleSelection="NO" emptySelection="NO" autosaveColumns="NO" rowHeight="32" viewBased="YES" id="table-view">
-                                <rect key="frame" x="0.0" y="0.0" width="360" height="276"/>
+                                <rect key="frame" x="0.0" y="0.0" width="372" height="271"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <size key="intercellSpacing" width="0.0" height="1"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -63,34 +62,33 @@
                                 <tableColumns>
                                     <tableColumn identifier="branch" width="340" minWidth="40" maxWidth="1000" id="branch-col">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border" title="Branch">
-                                            <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
                                         </tableHeaderCell>
                                         <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="data-cell"/>
                                         <prototypeCellViews>
                                             <tableCellView identifier="BranchCell" id="cell-view-1">
-                                                <rect key="frame" x="0.0" y="0.0" width="340" height="32"/>
+                                                <rect key="frame" x="10" y="0.0" width="352" height="32"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="cell-icon">
-                                                        <rect key="frame" x="12" y="7" width="18" height="18"/>
+                                                        <rect key="frame" x="12" y="2" width="18" height="29"/>
                                                         <constraints>
-                                                            <constraint firstAttribute="width" constant="18" id="cell-icon-w"/>
                                                             <constraint firstAttribute="height" constant="18" id="cell-icon-h"/>
+                                                            <constraint firstAttribute="width" constant="18" id="cell-icon-w"/>
                                                         </constraints>
                                                         <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="NSActionTemplate" id="cell-icon-cell"/>
                                                     </imageView>
-                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cell-label">
-                                                        <rect key="frame" x="36" y="8" width="274" height="17"/>
+                                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cell-label">
+                                                        <rect key="frame" x="36" y="8" width="286" height="17"/>
                                                         <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Label" id="cell-label-cell">
                                                             <font key="font" metaFont="system" size="14"/>
                                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                         </textFieldCell>
                                                     </textField>
-                                                    <textField identifier="checkmark" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cell-check">
-                                                        <rect key="frame" x="310" y="8" width="22" height="17"/>
+                                                    <textField identifier="checkmark" focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cell-check">
+                                                        <rect key="frame" x="322" y="8" width="22" height="17"/>
                                                         <constraints>
                                                             <constraint firstAttribute="width" constant="18" id="cell-check-w"/>
                                                         </constraints>
@@ -102,16 +100,13 @@
                                                     </textField>
                                                 </subviews>
                                                 <constraints>
-                                                    <constraint firstItem="cell-icon" firstAttribute="leading" secondItem="cell-view-1" secondAttribute="leading" constant="12" id="c-icon-l"/>
-                                                    <constraint firstItem="cell-icon" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-icon-cy"/>
-                                                    
-                                                    <constraint firstItem="cell-label" firstAttribute="leading" secondItem="cell-icon" secondAttribute="trailing" constant="8" id="c-label-l"/>
-                                                    <constraint firstItem="cell-label" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-label-cy"/>
-                                                    
-                                                    <constraint firstItem="cell-check" firstAttribute="leading" secondItem="cell-label" secondAttribute="trailing" constant="4" id="c-label-r"/>
-                                                    
-                                                    <constraint firstAttribute="trailing" secondItem="cell-check" secondAttribute="trailing" constant="10" id="c-check-r"/>
                                                     <constraint firstItem="cell-check" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-check-cy"/>
+                                                    <constraint firstAttribute="trailing" secondItem="cell-check" secondAttribute="trailing" constant="10" id="c-check-r"/>
+                                                    <constraint firstItem="cell-icon" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-icon-cy"/>
+                                                    <constraint firstItem="cell-icon" firstAttribute="leading" secondItem="cell-view-1" secondAttribute="leading" constant="12" id="c-icon-l"/>
+                                                    <constraint firstItem="cell-label" firstAttribute="centerY" secondItem="cell-view-1" secondAttribute="centerY" id="c-label-cy"/>
+                                                    <constraint firstItem="cell-label" firstAttribute="leading" secondItem="cell-icon" secondAttribute="trailing" constant="8" id="c-label-l"/>
+                                                    <constraint firstItem="cell-check" firstAttribute="leading" secondItem="cell-label" secondAttribute="trailing" constant="4" id="c-label-r"/>
                                                 </constraints>
                                                 <connections>
                                                     <outlet property="imageView" destination="cell-icon" id="conn-img"/>
@@ -123,21 +118,24 @@
                                 </tableColumns>
                             </tableView>
                         </subviews>
+                        <nil key="backgroundColor"/>
                     </clipView>
-                    <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scroller"/>
-                    <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scroller"/>
+                    <scroller key="horizontalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="h-scroller">
+                        <rect key="frame" x="0.0" y="271" width="348" height="17"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="v-scroller">
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    </scroller>
                 </scrollView>
                 <customView translatesAutoresizingMaskIntoConstraints="NO" id="sep-2">
-                    <rect key="frame" x="0.0" y="57" width="360" height="1"/>
+                    <rect key="frame" x="0.0" y="52" width="348" height="1"/>
                     <constraints>
                         <constraint firstAttribute="height" constant="1" id="sep2-h"/>
                     </constraints>
                 </customView>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="cancel-btn">
-                    <rect key="frame" x="169" y="12" width="78" height="32"/>
-                    <constraints>
-                        <constraint firstAttribute="width" constant="64" id="cancel-w"/>
-                    </constraints>
+                    <rect key="frame" x="170" y="16" width="64" height="24"/>
                     <buttonCell key="cell" type="push" title="Cancel" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cancel-cell">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
@@ -145,15 +143,15 @@
 Gw
 </string>
                     </buttonCell>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="64" id="cancel-w"/>
+                    </constraints>
                     <connections>
                         <action selector="cancelClicked:" target="-2" id="conn-cancel"/>
                     </connections>
                 </button>
-                <button verticalHuggingPriority="750" enabled="NO" translatesAutoresizingMaskIntoConstraints="NO" id="checkout-btn">
-                    <rect key="frame" x="251" y="12" width="96" height="32"/>
-                    <constraints>
-                        <constraint firstAttribute="width" constant="82" id="checkout-w"/>
-                    </constraints>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="checkout-btn">
+                    <rect key="frame" x="246" y="16" width="82" height="24"/>
                     <buttonCell key="cell" type="push" title="Checkout" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="checkout-cell">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
@@ -161,34 +159,41 @@ Gw
 DQ
 </string>
                     </buttonCell>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="82" id="checkout-w"/>
+                    </constraints>
                     <connections>
                         <action selector="checkoutClicked:" target="-2" id="conn-checkout"/>
                     </connections>
                 </button>
             </subviews>
             <constraints>
-                <constraint firstItem="title-lbl" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="20" id="c-title-t"/>
-                <constraint firstItem="title-lbl" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c-title-l"/>
+                <constraint firstItem="cancel-btn" firstAttribute="centerY" secondItem="checkout-btn" secondAttribute="centerY" id="c-can-cy"/>
+                <constraint firstItem="cancel-btn" firstAttribute="trailing" secondItem="checkout-btn" secondAttribute="leading" constant="-12" id="c-can-r"/>
+                <constraint firstItem="checkout-btn" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" constant="-16" id="c-chk-b"/>
+                <constraint firstItem="checkout-btn" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-20" id="c-chk-r"/>
                 <constraint firstItem="current-lbl" firstAttribute="centerY" secondItem="title-lbl" secondAttribute="centerY" id="c-curr-cy"/>
                 <constraint firstItem="current-lbl" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-20" id="c-curr-r"/>
-                <constraint firstItem="search-fld" firstAttribute="top" secondItem="title-lbl" secondAttribute="bottom" constant="12" id="c-search-t"/>
-                <constraint firstItem="search-fld" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c-search-l"/>
-                <constraint firstItem="search-fld" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-20" id="c-search-r"/>
-                <constraint firstItem="sep-1" firstAttribute="top" secondItem="search-fld" secondAttribute="bottom" constant="12" id="c-sep1-t"/>
-                <constraint firstItem="sep-1" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-sep1-l"/>
-                <constraint firstItem="sep-1" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-sep1-r"/>
-                <constraint firstItem="scroll-view" firstAttribute="top" secondItem="sep-1" secondAttribute="bottom" id="c-scroll-t"/>
+                <constraint firstItem="scroll-view" firstAttribute="bottom" secondItem="sep-2" secondAttribute="top" id="c-scroll-b"/>
                 <constraint firstItem="scroll-view" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-scroll-l"/>
                 <constraint firstItem="scroll-view" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-scroll-r"/>
-                <constraint firstItem="scroll-view" firstAttribute="bottom" secondItem="sep-2" secondAttribute="top" id="c-scroll-b"/>
+                <constraint firstItem="scroll-view" firstAttribute="top" secondItem="sep-1" secondAttribute="bottom" id="c-scroll-t"/>
+                <constraint firstItem="search-fld" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c-search-l"/>
+                <constraint firstItem="search-fld" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-20" id="c-search-r"/>
+                <constraint firstItem="search-fld" firstAttribute="top" secondItem="title-lbl" secondAttribute="bottom" constant="12" id="c-search-t"/>
+                <constraint firstItem="sep-1" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-sep1-l"/>
+                <constraint firstItem="sep-1" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-sep1-r"/>
+                <constraint firstItem="sep-1" firstAttribute="top" secondItem="search-fld" secondAttribute="bottom" constant="12" id="c-sep1-t"/>
+                <constraint firstItem="sep-2" firstAttribute="bottom" secondItem="checkout-btn" secondAttribute="top" constant="-12" id="c-sep2-b"/>
                 <constraint firstItem="sep-2" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="c-sep2-l"/>
                 <constraint firstItem="sep-2" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" id="c-sep2-r"/>
-                <constraint firstItem="sep-2" firstAttribute="bottom" secondItem="checkout-btn" secondAttribute="top" constant="-12" id="c-sep2-b"/>
-                <constraint firstItem="checkout-btn" firstAttribute="trailing" secondItem="c22-O7-iKe" secondAttribute="trailing" constant="-20" id="c-chk-r"/>
-                <constraint firstItem="checkout-btn" firstAttribute="bottom" secondItem="c22-O7-iKe" secondAttribute="bottom" constant="-16" id="c-chk-b"/>
-                <constraint firstItem="cancel-btn" firstAttribute="trailing" secondItem="checkout-btn" secondAttribute="leading" constant="-12" id="c-can-r"/>
-                <constraint firstItem="cancel-btn" firstAttribute="centerY" secondItem="checkout-btn" secondAttribute="centerY" id="c-can-cy"/>
+                <constraint firstItem="title-lbl" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" id="c-title-l"/>
+                <constraint firstItem="title-lbl" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="20" id="c-title-t"/>
             </constraints>
+            <point key="canvasLocation" x="-32.5" y="148"/>
         </customView>
     </objects>
+    <resources>
+        <image name="NSActionTemplate" width="20" height="20"/>
+    </resources>
 </document>
