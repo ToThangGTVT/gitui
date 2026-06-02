@@ -528,19 +528,25 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
     /// Returns (ahead, behind) commit counts relative to upstream.
     /// ahead = commits to push, behind = commits to pull.
     func getAheadBehind(in repoPath: String) async -> (ahead: Int, behind: Int) {
+        var output = ""
         do {
-            let output = try await runGit(["rev-list", "--count", "--left-right", "HEAD...@{upstream}"], in: repoPath)
-            let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\t")
-            guard parts.count == 2,
-                  let ahead = Int(parts[0]),
-                  let behind = Int(parts[1]) else {
+            output = try await runGit(["rev-list", "--count", "--left-right", "HEAD...@{upstream}"], in: repoPath)
+        } catch {
+            do {
+                let currentBranch = try await runGit(["rev-parse", "--abbrev-ref", "HEAD"], in: repoPath).trimmingCharacters(in: .whitespacesAndNewlines)
+                output = try await runGit(["rev-list", "--count", "--left-right", "HEAD...origin/\(currentBranch)"], in: repoPath)
+            } catch {
                 return (0, 0)
             }
-            return (ahead, behind)
-        } catch {
-            // No upstream configured or other error
+        }
+        
+        let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\t")
+        guard parts.count == 2,
+              let ahead = Int(parts[0]),
+              let behind = Int(parts[1]) else {
             return (0, 0)
         }
+        return (ahead, behind)
     }
     
     func discardFile(_ filePath: String, in repoPath: String) async throws {

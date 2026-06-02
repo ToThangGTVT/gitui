@@ -226,6 +226,15 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         // Update branch label (in case of checkout)
         let repoName = URL(fileURLWithPath: path).lastPathComponent
         updateBranchLabel(for: path, repoName: repoName)
+        
+        // Refresh ahead/behind stats
+        Task {
+            let aheadBehind = await GitService.shared.getAheadBehind(in: path)
+            await MainActor.run { [weak self] in
+                self?.updateSyncStatus(ahead: aheadBehind.ahead, behind: aheadBehind.behind)
+            }
+        }
+        
         // Notify modules to refresh data (NOT rebuild views)
         NotificationCenter.default.post(name: .repositoryContentShouldRefresh, object: nil)
         // Notify sidebar to update line stats
