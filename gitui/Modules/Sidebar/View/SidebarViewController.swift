@@ -543,17 +543,43 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             }
 
             let title: String
+            let systemSymbolName: String?
+            let fallbackImageName: String?
+            let accessibilityDescription: String
             if let groupItem = item as? BranchGroupItem {
                 title = groupItem.title.uppercased()
+                if groupItem.title == "Remote Branches" {
+                    systemSymbolName = "cloud"
+                    fallbackImageName = nil
+                    accessibilityDescription = "Remote branches"
+                } else {
+                    systemSymbolName = "arrow.triangle.branch"
+                    fallbackImageName = NSImage.slideshowTemplateName
+                    accessibilityDescription = "Local branches"
+                }
             } else if let subGroup = item as? SubmoduleGroupItem {
                 title = subGroup.title.uppercased()
+                systemSymbolName = "shippingbox"
+                fallbackImageName = nil
+                accessibilityDescription = "Submodule group"
             } else if let wtGroup = item as? WorktreeGroupItem {
                 title = wtGroup.title.uppercased()
+                systemSymbolName = "folder"
+                fallbackImageName = nil
+                accessibilityDescription = "Worktree group"
             } else {
                 title = ""
+                systemSymbolName = nil
+                fallbackImageName = nil
+                accessibilityDescription = ""
             }
 
-            cell?.configure(title: title)
+            cell?.configure(
+                title: title,
+                systemSymbolName: systemSymbolName,
+                fallbackImageName: fallbackImageName,
+                accessibilityDescription: accessibilityDescription
+            )
             return cell
         } else if let branchItem = item as? BranchItem {
             let branch = branchItem.branch
@@ -565,12 +591,12 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
 
             cell?.configure(
                 title: branch.shortName,
-                systemSymbolName: "arrow.triangle.branch",
-                fallbackImageName: NSImage.slideshowTemplateName,
+                systemSymbolName: nil,
+                fallbackImageName: nil,
                 accessibilityDescription: "Branch",
                 font: branch.isCurrent
-                    ? NSFont.systemFont(ofSize: 12, weight: .bold)
-                    : NSFont.systemFont(ofSize: 12, weight: .medium),
+                    ? NSFont.systemFont(ofSize: 13, weight: .bold)
+                    : NSFont.systemFont(ofSize: 13, weight: .medium),
                 textColor: branch.isCurrent ? NSColor.gitFlowAccent : NSColor.labelColor,
                 tintColor: branch.isCurrent ? NSColor.gitFlowAccent : NSColor.secondaryLabelColor
             )
@@ -586,7 +612,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 systemSymbolName: "shippingbox",
                 fallbackImageName: nil,
                 accessibilityDescription: "Submodule",
-                font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                font: NSFont.systemFont(ofSize: 13, weight: .medium),
                 textColor: NSColor.labelColor,
                 tintColor: NSColor.secondaryLabelColor
             )
@@ -602,7 +628,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 systemSymbolName: "folder.badge.gearshape",
                 fallbackImageName: nil,
                 accessibilityDescription: "Worktree",
-                font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                font: NSFont.systemFont(ofSize: 13, weight: .medium),
                 textColor: NSColor.labelColor,
                 tintColor: NSColor.secondaryLabelColor
             )

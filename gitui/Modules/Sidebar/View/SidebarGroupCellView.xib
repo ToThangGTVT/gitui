@@ -10,11 +10,15 @@
         <customObject id="-2" userLabel="File's Owner" customClass="NSObject"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <tableCellView identifier="GroupCell" id="group-cell" customClass="SidebarGroupCellView" customModule="gitui" customModuleProvider="target">
-            <rect key="frame" x="0.0" y="0.0" width="220" height="24"/>
+            <rect key="frame" x="0.0" y="0.0" width="220" height="26"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
+                <imageView translatesAutoresizingMaskIntoConstraints="NO" id="group-icon">
+                    <rect key="frame" x="4" y="6" width="14" height="14"/>
+                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="group-icon-cell"/>
+                </imageView>
                 <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="group-label">
-                    <rect key="frame" x="4" y="4" width="212" height="16"/>
+                    <rect key="frame" x="24" y="5" width="192" height="17"/>
                     <textFieldCell key="cell" lineBreakMode="truncatingTail" title="SECTION" id="group-label-cell">
                         <font key="font" metaFont="systemBold"/>
                         <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
@@ -23,11 +27,16 @@
                 </textField>
             </subviews>
             <constraints>
-                <constraint firstItem="group-label" firstAttribute="leading" secondItem="group-cell" secondAttribute="leading" constant="4" id="group-label-l"/>
+                <constraint firstItem="group-icon" firstAttribute="leading" secondItem="group-cell" secondAttribute="leading" constant="4" id="group-icon-l"/>
+                <constraint firstItem="group-icon" firstAttribute="centerY" secondItem="group-cell" secondAttribute="centerY" id="group-icon-cy"/>
+                <constraint firstItem="group-icon" firstAttribute="width" secondItem="group-icon" secondAttribute="height" id="group-icon-square"/>
+                <constraint firstItem="group-icon" firstAttribute="width" constant="14" id="group-icon-w"/>
+                <constraint firstItem="group-label" firstAttribute="leading" secondItem="group-icon" secondAttribute="trailing" constant="6" id="group-label-l"/>
                 <constraint firstItem="group-label" firstAttribute="centerY" secondItem="group-cell" secondAttribute="centerY" id="group-label-cy"/>
                 <constraint firstAttribute="trailing" secondItem="group-label" secondAttribute="trailing" constant="4" id="group-label-r"/>
             </constraints>
             <connections>
+                <outlet property="imageView" destination="group-icon" id="group-out-image"/>
                 <outlet property="textField" destination="group-label" id="group-out-text"/>
             </connections>
             <point key="canvasLocation" x="140" y="81"/>
