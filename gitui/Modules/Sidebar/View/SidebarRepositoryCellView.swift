@@ -43,9 +43,7 @@ class SidebarRepositoryCellView: NSTableCellView {
                    isActive: Bool,
                    stats: (added: Int, removed: Int)?,
                    showDivider: Bool) {
-        layer?.backgroundColor = isActive
-            ? NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
-            : NSColor.clear.cgColor
+        layer?.backgroundColor = NSColor.clear.cgColor
 
         textField?.stringValue = bookmark.name
         textField?.font = isActive

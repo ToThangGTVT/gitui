@@ -41,12 +41,26 @@ class WorktreeGroupItem: NSObject {
 }
 
 class CustomSelectionRowView: NSTableRowView {
+    var repositoryBackgroundColor: NSColor?
+
+    override func drawBackground(in dirtyRect: NSRect) {
+        super.drawBackground(in: dirtyRect)
+        drawRepositoryBackground()
+    }
+
     override func drawSelection(in dirtyRect: NSRect) {
-        // Selection background is handled by the cell's own layer
+        drawRepositoryBackground()
     }
 
     override var interiorBackgroundStyle: NSView.BackgroundStyle {
         return .normal
+    }
+
+    private func drawRepositoryBackground() {
+        guard let repositoryBackgroundColor else { return }
+        repositoryBackgroundColor.setFill()
+        let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 8, dy: 2), xRadius: 6, yRadius: 6)
+        path.fill()
     }
 }
 
@@ -125,13 +139,12 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         outlineView.backgroundColor = NSColor.clear
         outlineView.gridStyleMask = []
         outlineView.allowsMultipleSelection = false
-        outlineView.selectionHighlightStyle = .none
+        outlineView.selectionHighlightStyle = .regular
         outlineView.doubleAction = #selector(outlineDoubleClicked(_:))
         outlineView.registerForDraggedTypes([dragType])
 
         if let col = outlineView.tableColumns.first {
             col.identifier = NSUserInterfaceItemIdentifier("bookmarkColumn")
-            col.width = 200
             outlineView.outlineTableColumn = col
         }
 
@@ -481,6 +494,11 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         if rowView == nil {
             rowView = CustomSelectionRowView()
             rowView?.identifier = identifier
+        }
+        if let repoItem = item as? RepositoryItem, repoItem.bookmark.path == activePath {
+            rowView?.repositoryBackgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15)
+        } else {
+            rowView?.repositoryBackgroundColor = nil
         }
         return rowView
     }

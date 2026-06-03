@@ -19,11 +19,11 @@
                     </constraints>
                 </customView>
                 <imageView translatesAutoresizingMaskIntoConstraints="NO" id="repo-icon">
-                    <rect key="frame" x="10" y="41" width="0.0" height="0.0"/>
+                    <rect key="frame" x="10" y="37" width="0.0" height="0.0"/>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="repo-icon-cell"/>
                 </imageView>
                 <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="repo-name">
-                    <rect key="frame" x="15" y="33" width="108" height="16"/>
+                    <rect key="frame" x="15" y="29" width="108" height="16"/>
                     <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Repository Name" id="repo-name-cell">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
@@ -31,7 +31,7 @@
                     </textFieldCell>
                 </textField>
                 <textField focusRingType="none" horizontalHuggingPriority="252" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-stats">
-                    <rect key="frame" x="210" y="35" width="4" height="13"/>
+                    <rect key="frame" x="210" y="31" width="4" height="13"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" id="repo-stats-cell">
                         <font key="font" size="11" name="SFMono-Medium"/>
                         <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
@@ -39,9 +39,9 @@
                     </textFieldCell>
                 </textField>
                 <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-path">
-                    <rect key="frame" x="6" y="16" width="208" height="13"/>
+                    <rect key="frame" x="6" y="10" width="208" height="15"/>
                     <textFieldCell key="cell" lineBreakMode="truncatingHead" title="/Users/example/repository" id="repo-path-cell">
-                        <font key="font" metaFont="system" size="10"/>
+                        <font key="font" metaFont="system" size="12"/>
                         <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
@@ -54,8 +54,8 @@
                 <constraint firstItem="repo-icon" firstAttribute="centerY" secondItem="repo-name" secondAttribute="centerY" id="repo-icon-cy"/>
                 <constraint firstItem="repo-icon" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="10" id="repo-icon-l"/>
                 <constraint firstItem="repo-name" firstAttribute="leading" secondItem="repo-icon" secondAttribute="trailing" constant="7" id="repo-name-l"/>
-                <constraint firstItem="repo-name" firstAttribute="top" secondItem="repo-cell" secondAttribute="top" constant="9" id="repo-name-t"/>
-                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="repo-path" secondAttribute="bottom" constant="8" id="repo-path-b"/>
+                <constraint firstItem="repo-name" firstAttribute="top" secondItem="repo-cell" secondAttribute="top" constant="13" id="repo-name-t"/>
+                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="repo-path" secondAttribute="bottom" constant="4" id="repo-path-b"/>
                 <constraint firstAttribute="trailing" secondItem="repo-path" secondAttribute="trailing" constant="8" id="repo-path-r"/>
                 <constraint firstItem="repo-path" firstAttribute="top" secondItem="repo-name" secondAttribute="bottom" constant="4" id="repo-path-t"/>
                 <constraint firstItem="repo-stats" firstAttribute="centerY" secondItem="repo-name" secondAttribute="centerY" id="repo-stats-cy"/>
