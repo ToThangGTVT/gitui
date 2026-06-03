@@ -41,7 +41,7 @@ class WorktreeGroupItem: NSObject {
 }
 
 class CustomSelectionRowView: NSTableRowView {
-    var repositoryBackgroundColor: NSColor?
+    var highlightBackgroundColor: NSColor?
 
     override func drawBackground(in dirtyRect: NSRect) {
         super.drawBackground(in: dirtyRect)
@@ -57,8 +57,8 @@ class CustomSelectionRowView: NSTableRowView {
     }
 
     private func drawRepositoryBackground() {
-        guard let repositoryBackgroundColor else { return }
-        repositoryBackgroundColor.setFill()
+        guard let highlightBackgroundColor else { return }
+        highlightBackgroundColor.setFill()
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 8, dy: 2), xRadius: 6, yRadius: 6)
         path.fill()
     }
@@ -67,10 +67,14 @@ class CustomSelectionRowView: NSTableRowView {
 class BranchItem: NSObject {
     let branch: GitBranch
     let repoPath: String
+    let aheadCount: Int
+    let behindCount: Int
     
-    init(branch: GitBranch, repoPath: String) {
+    init(branch: GitBranch, repoPath: String, aheadCount: Int = 0, behindCount: Int = 0) {
         self.branch = branch
         self.repoPath = repoPath
+        self.aheadCount = aheadCount
+        self.behindCount = behindCount
     }
 }
 
@@ -496,9 +500,11 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             rowView?.identifier = identifier
         }
         if let repoItem = item as? RepositoryItem, repoItem.bookmark.path == activePath {
-            rowView?.repositoryBackgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15)
+            rowView?.highlightBackgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15)
+        } else if let branchItem = item as? BranchItem, branchItem.branch.isCurrent {
+            rowView?.highlightBackgroundColor = NSColor.m3PrimaryContainer
         } else {
-            rowView?.repositoryBackgroundColor = nil
+            rowView?.highlightBackgroundColor = nil
         }
         return rowView
     }
@@ -597,8 +603,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 font: branch.isCurrent
                     ? NSFont.systemFont(ofSize: 13, weight: .bold)
                     : NSFont.systemFont(ofSize: 13, weight: .medium),
-                textColor: branch.isCurrent ? NSColor.gitFlowAccent : NSColor.labelColor,
-                tintColor: branch.isCurrent ? NSColor.gitFlowAccent : NSColor.secondaryLabelColor
+                textColor: branch.isCurrent ? NSColor.m3OnPrimaryContainer : NSColor.labelColor,
+                tintColor: branch.isCurrent ? NSColor.m3OnPrimaryContainer : NSColor.secondaryLabelColor,
+                syncStatus: syncStatusAttributedString(
+                    ahead: branchItem.aheadCount,
+                    behind: branchItem.behindCount,
+                    highlighted: branch.isCurrent
+                )
             )
             return cell
         } else if let subItem = item as? GitSubmodule {
@@ -614,7 +625,8 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 accessibilityDescription: "Submodule",
                 font: NSFont.systemFont(ofSize: 13, weight: .medium),
                 textColor: NSColor.labelColor,
-                tintColor: NSColor.secondaryLabelColor
+                tintColor: NSColor.secondaryLabelColor,
+                syncStatus: nil
             )
             return cell
         } else if let wtItem = item as? GitWorktree {
@@ -630,7 +642,8 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 accessibilityDescription: "Worktree",
                 font: NSFont.systemFont(ofSize: 13, weight: .medium),
                 textColor: NSColor.labelColor,
-                tintColor: NSColor.secondaryLabelColor
+                tintColor: NSColor.secondaryLabelColor,
+                syncStatus: nil
             )
             return cell
         }
@@ -790,9 +803,26 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             Task {
                 do {
                     let branches = try await GitService.shared.getBranches(in: path)
+                    let localBranchStats = await withTaskGroup(of: (String, Int, Int).self, returning: [String: (ahead: Int, behind: Int)].self) { group in
+                        for branch in branches where !branch.isRemote {
+                            group.addTask {
+                                let counts = await GitService.shared.getAheadBehind(for: branch.name, in: path)
+                                return (branch.name, counts.ahead, counts.behind)
+                            }
+                        }
+
+                        var result: [String: (ahead: Int, behind: Int)] = [:]
+                        for await (branchName, ahead, behind) in group {
+                            result[branchName] = (ahead, behind)
+                        }
+                        return result
+                    }
                     await MainActor.run {
                         if let targetItem = self.repositoryItems.first(where: { $0.bookmark.path == path }) {
-                            let localBranches = branches.filter { !$0.isRemote }.map { BranchItem(branch: $0, repoPath: path) }
+                            let localBranches = branches.filter { !$0.isRemote }.map {
+                                let counts = localBranchStats[$0.name] ?? (ahead: 0, behind: 0)
+                                return BranchItem(branch: $0, repoPath: path, aheadCount: counts.ahead, behindCount: counts.behind)
+                            }
                             let remoteBranches = branches.filter { $0.isRemote }.map { BranchItem(branch: $0, repoPath: path) }
                             
                             // Preserve expansion state by updating existing groups
@@ -936,5 +966,35 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         } else {
             progressIndicator.stopAnimation(nil)
         }
+    }
+
+    private func syncStatusAttributedString(ahead: Int, behind: Int, highlighted: Bool) -> NSAttributedString? {
+        guard ahead > 0 || behind > 0 else { return nil }
+
+        let color = highlighted ? NSColor.m3OnPrimaryContainer : NSColor.m3Primary
+        let result = NSMutableAttributedString()
+
+        if ahead > 0 {
+            result.append(NSAttributedString(string: "↑\(ahead)", attributes: [
+                .foregroundColor: color,
+                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
+            ]))
+        }
+
+        if ahead > 0 && behind > 0 {
+            result.append(NSAttributedString(string: " ", attributes: [
+                .foregroundColor: color,
+                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
+            ]))
+        }
+
+        if behind > 0 {
+            result.append(NSAttributedString(string: "↓\(behind)", attributes: [
+                .foregroundColor: color,
+                .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .bold)
+            ]))
+        }
+
+        return result
     }
 }

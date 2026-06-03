@@ -89,6 +89,7 @@ protocol GitServiceProtocol: Sendable {
     func applyPatch(_ patch: String, cached: Bool, reverse: Bool, in repoPath: String) async throws
     func getHistory(in repoPath: String, limit: Int) async throws -> [GitCommit]
     func getBranches(in repoPath: String) async throws -> [GitBranch]
+    func getAheadBehind(for branch: String, in repoPath: String) async -> (ahead: Int, behind: Int)
     func checkout(branch: String, in repoPath: String) async throws
     func createBranch(name: String, startPoint: String, checkout: Bool, in repoPath: String) async throws
     func getAheadBehind(in repoPath: String) async -> (ahead: Int, behind: Int)
@@ -554,6 +555,42 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
             branches.append(GitBranch(name: name, isCurrent: isCurrent, isRemote: isRemote))
         }
         return branches
+    }
+
+    func getAheadBehind(for branch: String, in repoPath: String) async -> (ahead: Int, behind: Int) {
+        let upstreamRef: String
+
+        do {
+            let trackedRef = try await runGit(
+                ["for-each-ref", "--format=%(upstream:short)", "refs/heads/\(branch)"],
+                in: repoPath
+            ).trimmingCharacters(in: .whitespacesAndNewlines)
+
+            if !trackedRef.isEmpty {
+                upstreamRef = trackedRef
+            } else {
+                upstreamRef = "origin/\(branch)"
+            }
+        } catch {
+            upstreamRef = "origin/\(branch)"
+        }
+
+        do {
+            let output = try await runGit(
+                ["rev-list", "--count", "--left-right", "\(branch)...\(upstreamRef)"],
+                in: repoPath
+            )
+
+            let parts = output.trimmingCharacters(in: .whitespacesAndNewlines).components(separatedBy: "\t")
+            guard parts.count == 2,
+                  let ahead = Int(parts[0]),
+                  let behind = Int(parts[1]) else {
+                return (0, 0)
+            }
+            return (ahead, behind)
+        } catch {
+            return (0, 0)
+        }
     }
     
     func checkout(branch: String, in repoPath: String) async throws {

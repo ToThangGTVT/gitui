@@ -18,10 +18,18 @@
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="item-icon-cell"/>
                 </imageView>
                 <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="item-label">
-                    <rect key="frame" x="29" y="7" width="183" height="16"/>
+                    <rect key="frame" x="29" y="7" width="143" height="16"/>
                     <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Item" id="item-label-cell">
                         <font key="font" metaFont="system"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField horizontalCompressionResistancePriority="751" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="item-status">
+                    <rect key="frame" x="172" y="7" width="40" height="16"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" truncatesLastVisibleLine="YES" title="↑3" id="item-status-cell">
+                        <font key="font" metaFont="message"/>
+                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
@@ -33,12 +41,17 @@
                 <constraint firstItem="item-icon" firstAttribute="width" constant="14" id="item-icon-w"/>
                 <constraint firstItem="item-label" firstAttribute="leading" secondItem="item-icon" secondAttribute="trailing" constant="7" id="item-label-l"/>
                 <constraint firstItem="item-label" firstAttribute="centerY" secondItem="item-cell" secondAttribute="centerY" id="item-label-cy"/>
-                <constraint firstAttribute="trailing" secondItem="item-label" secondAttribute="trailing" constant="8" id="item-label-r"/>
+                <constraint firstItem="item-status" firstAttribute="centerY" secondItem="item-cell" secondAttribute="centerY" id="item-status-cy"/>
+                <constraint firstAttribute="trailing" secondItem="item-status" secondAttribute="trailing" constant="8" id="item-status-r"/>
+                <constraint firstAttribute="trailing" secondItem="item-label" secondAttribute="trailing" constant="40" id="item-label-r"/>
+                <constraint firstItem="item-status" firstAttribute="leading" secondItem="item-label" secondAttribute="trailing" constant="8" id="item-status-l"/>
             </constraints>
             <connections>
                 <outlet property="iconWidthConstraint" destination="item-icon-w" id="item-out-icon-width"/>
                 <outlet property="imageView" destination="item-icon" id="item-out-image"/>
                 <outlet property="labelLeadingConstraint" destination="item-label-l" id="item-out-label-leading"/>
+                <outlet property="labelTrailingConstraint" destination="item-label-r" id="item-out-label-trailing"/>
+                <outlet property="statusLabel" destination="item-status" id="item-out-status"/>
                 <outlet property="textField" destination="item-label" id="item-out-text"/>
             </connections>
             <point key="canvasLocation" x="140" y="81"/>
