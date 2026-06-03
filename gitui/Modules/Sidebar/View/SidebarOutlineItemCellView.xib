@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+        <capability name="System colors introduced in macOS 10.14" minToolsVersion="10.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-2" userLabel="File's Owner" customClass="NSObject"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <tableCellView identifier="SidebarOutlineItemCell" id="item-cell" customClass="SidebarOutlineItemCellView" customModule="gitui" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="220" height="28"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <imageView translatesAutoresizingMaskIntoConstraints="NO" id="item-icon">
+                    <rect key="frame" x="8" y="8" width="12" height="12"/>
+                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="item-icon-cell"/>
+                </imageView>
+                <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="item-label">
+                    <rect key="frame" x="26" y="6" width="186" height="16"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Item" id="item-label-cell">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <constraints>
+                <constraint firstItem="item-icon" firstAttribute="leading" secondItem="item-cell" secondAttribute="leading" constant="8" id="item-icon-l"/>
+                <constraint firstItem="item-icon" firstAttribute="centerY" secondItem="item-cell" secondAttribute="centerY" id="item-icon-cy"/>
+                <constraint firstItem="item-icon" firstAttribute="width" secondItem="item-icon" secondAttribute="height" id="item-icon-square"/>
+                <constraint firstItem="item-icon" firstAttribute="width" constant="12" id="item-icon-w"/>
+                <constraint firstItem="item-label" firstAttribute="leading" secondItem="item-icon" secondAttribute="trailing" constant="6" id="item-label-l"/>
+                <constraint firstItem="item-label" firstAttribute="centerY" secondItem="item-cell" secondAttribute="centerY" id="item-label-cy"/>
+                <constraint firstAttribute="trailing" secondItem="item-label" secondAttribute="trailing" constant="8" id="item-label-r"/>
+            </constraints>
+            <connections>
+                <outlet property="imageView" destination="item-icon" id="item-out-image"/>
+                <outlet property="textField" destination="item-label" id="item-out-text"/>
+            </connections>
+            <point key="canvasLocation" x="140" y="81"/>
+        </tableCellView>
+    </objects>
+</document>

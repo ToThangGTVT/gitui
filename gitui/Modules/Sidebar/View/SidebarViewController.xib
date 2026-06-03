@@ -1,21 +1,168 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="SidebarViewController" customModule="gitui" customModuleProvider="target">
             <connections>
-                <outlet property="view" destination="c22-O7-iKe" id="out-view"/>
+                <outlet property="actionButton" destination="action-button" id="out-action"/>
+                <outlet property="bottomBorderView" destination="bottom-border" id="out-bottom-border"/>
+                <outlet property="outlineView" destination="outline-view" id="out-outline"/>
+                <outlet property="progressIndicator" destination="progress-indicator" id="out-progress"/>
+                <outlet property="removeButton" destination="remove-button" id="out-remove"/>
+                <outlet property="searchField" destination="search-field" id="out-search"/>
+                <outlet property="segmentedControl" destination="segmented-control" id="out-segmented"/>
+                <outlet property="view" destination="sidebar-root" id="out-view"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customView id="c22-O7-iKe">
+        <customView id="sidebar-root">
             <rect key="frame" x="0.0" y="0.0" width="220" height="600"/>
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="tab-container">
+                    <rect key="frame" x="0.0" y="556" width="220" height="44"/>
+                    <subviews>
+                        <segmentedControl verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="segmented-control">
+                            <rect key="frame" x="25" y="10" width="170" height="24"/>
+                            <segmentedCell key="cell" borderStyle="border" alignment="left" style="rounded" trackingMode="selectOne" id="segmented-cell">
+                                <font key="font" metaFont="system"/>
+                                <segments>
+                                    <segment label="Changes" selected="YES"/>
+                                    <segment label="Repositories"/>
+                                </segments>
+                            </segmentedCell>
+                        </segmentedControl>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="segmented-control" firstAttribute="centerX" secondItem="tab-container" secondAttribute="centerX" id="segment-cx"/>
+                        <constraint firstItem="segmented-control" firstAttribute="centerY" secondItem="tab-container" secondAttribute="centerY" id="segment-cy"/>
+                        <constraint firstAttribute="height" constant="44" id="tab-h"/>
+                    </constraints>
+                </customView>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="search-container">
+                    <rect key="frame" x="0.0" y="524" width="220" height="32"/>
+                    <subviews>
+                        <searchField focusRingType="none" verticalHuggingPriority="750" textCompletion="NO" translatesAutoresizingMaskIntoConstraints="NO" id="search-field">
+                            <rect key="frame" x="12" y="4" width="196" height="24"/>
+                            <searchFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" borderStyle="bezel" placeholderString="Search branches, worktrees..." bezelStyle="round" id="search-field-cell">
+                                <font key="font" metaFont="system"/>
+                                <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </searchFieldCell>
+                        </searchField>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="search-field" firstAttribute="centerY" secondItem="search-container" secondAttribute="centerY" id="search-cy"/>
+                        <constraint firstAttribute="height" constant="32" id="search-h"/>
+                        <constraint firstItem="search-field" firstAttribute="leading" secondItem="search-container" secondAttribute="leading" constant="12" id="search-l"/>
+                        <constraint firstAttribute="trailing" secondItem="search-field" secondAttribute="trailing" constant="12" id="search-r"/>
+                    </constraints>
+                </customView>
+                <scrollView borderType="none" autohidesScrollers="YES" horizontalLineScroll="17" horizontalPageScroll="10" verticalLineScroll="17" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="outline-scroll">
+                    <rect key="frame" x="0.0" y="40" width="220" height="484"/>
+                    <clipView key="contentView" drawsBackground="NO" id="outline-clip">
+                        <rect key="frame" x="0.0" y="0.0" width="220" height="467"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <outlineView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" multipleSelection="NO" autosaveColumns="NO" rowSizeStyle="automatic" viewBased="YES" indentationPerLevel="16" outlineTableColumn="bookmark-column" id="outline-view">
+                                <rect key="frame" x="0.0" y="0.0" width="252" height="467"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <size key="intercellSpacing" width="3" height="0.0"/>
+                                <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <color key="gridColor" name="gridColor" catalog="System" colorSpace="catalog"/>
+                                <tableColumns>
+                                    <tableColumn identifier="bookmarkColumn" width="220" minWidth="80" maxWidth="2000" id="bookmark-column">
+                                        <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
+                                            <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
+                                        </tableHeaderCell>
+                                        <textFieldCell key="dataCell" lineBreakMode="truncatingTail" selectable="YES" editable="YES" title="Text Cell" id="bookmark-data-cell"/>
+                                        <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
+                                    </tableColumn>
+                                </tableColumns>
+                            </outlineView>
+                        </subviews>
+                    </clipView>
+                    <scroller key="horizontalScroller" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="outline-h-scroller">
+                        <rect key="frame" x="0.0" y="467" width="220" height="17"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                    <scroller key="verticalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="NO" id="outline-v-scroller">
+                        <rect key="frame" x="205" y="17" width="15" height="467"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </scroller>
+                </scrollView>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-bar">
+                    <rect key="frame" x="0.0" y="0.0" width="220" height="40"/>
+                    <subviews>
+                        <customView translatesAutoresizingMaskIntoConstraints="NO" id="bottom-border">
+                            <rect key="frame" x="0.0" y="39" width="220" height="1"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="1" id="bottom-border-h"/>
+                            </constraints>
+                        </customView>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="action-button">
+                            <rect key="frame" x="12" y="8" width="24" height="24"/>
+                            <buttonCell key="cell" type="roundTextured" bezelStyle="texturedRounded" imageScaling="proportionallyDown" inset="2" id="action-cell">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            </buttonCell>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="24" id="action-h"/>
+                                <constraint firstAttribute="width" constant="24" id="action-w"/>
+                            </constraints>
+                        </button>
+                        <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="remove-button">
+                            <rect key="frame" x="44" y="8" width="24" height="24"/>
+                            <buttonCell key="cell" type="roundTextured" bezelStyle="texturedRounded" imageScaling="proportionallyDown" inset="2" id="remove-cell">
+                                <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            </buttonCell>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="24" id="remove-h"/>
+                                <constraint firstAttribute="width" constant="24" id="remove-w"/>
+                            </constraints>
+                        </button>
+                        <progressIndicator hidden="YES" wantsLayer="YES" maxValue="100" displayedWhenStopped="NO" indeterminate="YES" controlSize="small" style="spinning" translatesAutoresizingMaskIntoConstraints="NO" id="progress-indicator">
+                            <rect key="frame" x="194" y="13" width="14" height="14"/>
+                            <constraints>
+                                <constraint firstAttribute="height" constant="14" id="progress-h"/>
+                                <constraint firstAttribute="width" constant="14" id="progress-w"/>
+                            </constraints>
+                        </progressIndicator>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="action-button" firstAttribute="centerY" secondItem="bottom-bar" secondAttribute="centerY" id="action-cy"/>
+                        <constraint firstItem="action-button" firstAttribute="leading" secondItem="bottom-bar" secondAttribute="leading" constant="12" id="action-l"/>
+                        <constraint firstItem="bottom-border" firstAttribute="leading" secondItem="bottom-bar" secondAttribute="leading" id="bottom-border-l"/>
+                        <constraint firstAttribute="trailing" secondItem="bottom-border" secondAttribute="trailing" id="bottom-border-r"/>
+                        <constraint firstItem="bottom-border" firstAttribute="top" secondItem="bottom-bar" secondAttribute="top" id="bottom-border-t"/>
+                        <constraint firstAttribute="height" constant="40" id="bottom-h"/>
+                        <constraint firstItem="progress-indicator" firstAttribute="centerY" secondItem="bottom-bar" secondAttribute="centerY" id="progress-cy"/>
+                        <constraint firstAttribute="trailing" secondItem="progress-indicator" secondAttribute="trailing" constant="12" id="progress-r"/>
+                        <constraint firstItem="remove-button" firstAttribute="centerY" secondItem="bottom-bar" secondAttribute="centerY" id="remove-cy"/>
+                        <constraint firstItem="remove-button" firstAttribute="leading" secondItem="action-button" secondAttribute="trailing" constant="8" id="remove-l"/>
+                    </constraints>
+                </customView>
+            </subviews>
+            <constraints>
+                <constraint firstAttribute="bottom" secondItem="bottom-bar" secondAttribute="bottom" id="bottom-b"/>
+                <constraint firstItem="bottom-bar" firstAttribute="leading" secondItem="sidebar-root" secondAttribute="leading" id="bottom-l"/>
+                <constraint firstAttribute="trailing" secondItem="bottom-bar" secondAttribute="trailing" id="bottom-r"/>
+                <constraint firstItem="bottom-bar" firstAttribute="top" secondItem="outline-scroll" secondAttribute="bottom" id="bottom-top"/>
+                <constraint firstItem="outline-scroll" firstAttribute="leading" secondItem="sidebar-root" secondAttribute="leading" id="outline-l"/>
+                <constraint firstAttribute="trailing" secondItem="outline-scroll" secondAttribute="trailing" id="outline-r"/>
+                <constraint firstItem="outline-scroll" firstAttribute="top" secondItem="search-container" secondAttribute="bottom" id="outline-t"/>
+                <constraint firstItem="search-container" firstAttribute="leading" secondItem="sidebar-root" secondAttribute="leading" id="search-container-l"/>
+                <constraint firstAttribute="trailing" secondItem="search-container" secondAttribute="trailing" id="search-container-r"/>
+                <constraint firstItem="search-container" firstAttribute="top" secondItem="tab-container" secondAttribute="bottom" id="search-t"/>
+                <constraint firstItem="tab-container" firstAttribute="leading" secondItem="sidebar-root" secondAttribute="leading" id="tab-l"/>
+                <constraint firstAttribute="trailing" secondItem="tab-container" secondAttribute="trailing" id="tab-r"/>
+                <constraint firstItem="tab-container" firstAttribute="top" secondItem="sidebar-root" secondAttribute="top" id="tab-t"/>
+            </constraints>
+            <point key="canvasLocation" x="141" y="154"/>
         </customView>
     </objects>
 </document>

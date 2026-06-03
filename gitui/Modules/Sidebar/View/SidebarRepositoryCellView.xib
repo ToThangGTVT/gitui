@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-2" userLabel="File's Owner"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <tableCellView identifier="BookmarkCell" wantsLayer="YES" id="repo-cell" customClass="SidebarRepositoryCellView" customModule="gitui" customModuleProvider="target">
+            <rect key="frame" x="0.0" y="0.0" width="220" height="58"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <customView translatesAutoresizingMaskIntoConstraints="NO" id="repo-divider">
+                    <rect key="frame" x="16" y="57" width="188" height="1"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="1" id="repo-divider-h"/>
+                    </constraints>
+                </customView>
+                <imageView translatesAutoresizingMaskIntoConstraints="NO" id="repo-icon">
+                    <rect key="frame" x="10" y="41" width="0.0" height="0.0"/>
+                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="repo-icon-cell"/>
+                </imageView>
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="repo-name">
+                    <rect key="frame" x="15" y="33" width="108" height="16"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Repository Name" id="repo-name-cell">
+                        <font key="font" metaFont="system"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField focusRingType="none" horizontalHuggingPriority="252" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-stats">
+                    <rect key="frame" x="210" y="35" width="4" height="13"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" id="repo-stats-cell">
+                        <font key="font" size="11" name="SFMono-Medium"/>
+                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-path">
+                    <rect key="frame" x="6" y="16" width="208" height="13"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingHead" title="/Users/example/repository" id="repo-path-cell">
+                        <font key="font" metaFont="system" size="10"/>
+                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <constraints>
+                <constraint firstItem="repo-divider" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="16" id="repo-divider-l"/>
+                <constraint firstAttribute="trailing" secondItem="repo-divider" secondAttribute="trailing" constant="16" id="repo-divider-r"/>
+                <constraint firstItem="repo-divider" firstAttribute="top" secondItem="repo-cell" secondAttribute="top" id="repo-divider-t"/>
+                <constraint firstItem="repo-icon" firstAttribute="centerY" secondItem="repo-name" secondAttribute="centerY" id="repo-icon-cy"/>
+                <constraint firstItem="repo-icon" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="10" id="repo-icon-l"/>
+                <constraint firstItem="repo-name" firstAttribute="leading" secondItem="repo-icon" secondAttribute="trailing" constant="7" id="repo-name-l"/>
+                <constraint firstItem="repo-name" firstAttribute="top" secondItem="repo-cell" secondAttribute="top" constant="9" id="repo-name-t"/>
+                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="repo-path" secondAttribute="bottom" constant="8" id="repo-path-b"/>
+                <constraint firstAttribute="trailing" secondItem="repo-path" secondAttribute="trailing" constant="8" id="repo-path-r"/>
+                <constraint firstItem="repo-path" firstAttribute="top" secondItem="repo-name" secondAttribute="bottom" constant="4" id="repo-path-t"/>
+                <constraint firstItem="repo-stats" firstAttribute="centerY" secondItem="repo-name" secondAttribute="centerY" id="repo-stats-cy"/>
+                <constraint firstItem="repo-stats" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="repo-name" secondAttribute="trailing" constant="4" id="repo-stats-l"/>
+                <constraint firstAttribute="trailing" secondItem="repo-stats" secondAttribute="trailing" constant="8" id="repo-stats-r"/>
+                <constraint firstItem="repo-path" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="8" id="wnO-cx-0fh"/>
+            </constraints>
+            <connections>
+                <outlet property="dividerView" destination="repo-divider" id="out-divider"/>
+                <outlet property="imageView" destination="repo-icon" id="out-image"/>
+                <outlet property="pathLabel" destination="repo-path" id="out-path"/>
+                <outlet property="repoIcon" destination="repo-icon" id="out-repo-icon"/>
+                <outlet property="statsLabel" destination="repo-stats" id="out-stats"/>
+                <outlet property="textField" destination="repo-name" id="out-text"/>
+            </connections>
+            <point key="canvasLocation" x="140" y="81"/>
+        </tableCellView>
+    </objects>
+</document>

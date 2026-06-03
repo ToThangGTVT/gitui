@@ -70,22 +70,21 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     private var lineStatsCache: [String: (added: Int, removed: Int)] = [:]
     
     // UI Elements
-    private var searchField: NSSearchField!
-    private var outlineView: NSOutlineView!
-    private var actionButton: NSButton!
-    private var removeButton: NSButton!
-    private var progressIndicator: NSProgressIndicator!
-    private var segmentedControl: NSSegmentedControl!
+    @IBOutlet private weak var searchField: NSSearchField!
+    @IBOutlet private weak var outlineView: NSOutlineView!
+    @IBOutlet private weak var actionButton: NSButton!
+    @IBOutlet private weak var removeButton: NSButton!
+    @IBOutlet private weak var progressIndicator: NSProgressIndicator!
+    @IBOutlet private weak var segmentedControl: NSSegmentedControl!
+    @IBOutlet private weak var bottomBorderView: NSView!
     
     private let dragType = NSPasteboard.PasteboardType("gitflow.sidebar.drag")
-    private var backgroundView: NSView!
     private var currentTab: Int = 0 // 0 = Changes, 1 = Repositories
-    private var searchContainer: NSView!
     private var currentSearchQuery: String = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        setupUI()
+        configureUI()
         presenter?.viewDidLoad()
         
         NotificationCenter.default.addObserver(self, selector: #selector(handleRefreshStats), name: .sidebarShouldRefreshStats, object: nil)
@@ -100,158 +99,65 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         fetchBranchesForAll()
     }
     
-    private func setupUI() {
-        // Solid sidebar using NSView with M3 surface color
-        backgroundView = NSView()
-        backgroundView.wantsLayer = true
-        backgroundView.layer?.backgroundColor = NSColor.gitFlowSidebarBackground.cgColor
-        backgroundView.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(backgroundView)
-        NSLayoutConstraint.activate([
-            backgroundView.topAnchor.constraint(equalTo: view.topAnchor),
-            backgroundView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            backgroundView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            backgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
-        ])
-        
-        // 0. Segmented Control at Top
-        let tabContainer = NSView()
-        tabContainer.translatesAutoresizingMaskIntoConstraints = false
-        backgroundView.addSubview(tabContainer)
-        
-        segmentedControl = NSSegmentedControl(labels: ["Changes", "Repositories"], trackingMode: .selectOne, target: self, action: #selector(tabChanged(_:)))
+    private func configureUI() {
+        view.wantsLayer = true
+        view.layer?.backgroundColor = NSColor.gitFlowSidebarBackground.cgColor
+
+        bottomBorderView.wantsLayer = true
+        bottomBorderView.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
+
+        segmentedControl.segmentCount = 2
+        segmentedControl.setLabel("Changes", forSegment: 0)
+        segmentedControl.setLabel("Repositories", forSegment: 1)
+        segmentedControl.target = self
+        segmentedControl.action = #selector(tabChanged(_:))
         segmentedControl.selectedSegment = 0
         if #available(macOS 11.0, *) {
             segmentedControl.segmentStyle = .capsule
         } else {
             segmentedControl.segmentStyle = .texturedRounded
         }
-        segmentedControl.translatesAutoresizingMaskIntoConstraints = false
-        tabContainer.addSubview(segmentedControl)
-        
-        // 1. Search Bar at Top
-        searchContainer = NSView()
-        searchContainer.translatesAutoresizingMaskIntoConstraints = false
-        backgroundView.addSubview(searchContainer)
-        
-        searchField = NSSearchField()
+
         searchField.placeholderString = "Search branches, worktrees..."
         searchField.delegate = self
         searchField.font = NSFont.systemFont(ofSize: 12)
-        searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchContainer.addSubview(searchField)
-        
-        // 2. Outline Scroll View
-        let scroll = NSScrollView()
-        scroll.hasVerticalScroller = true
-        scroll.borderType = .noBorder
-        scroll.drawsBackground = false
-        scroll.translatesAutoresizingMaskIntoConstraints = false
-        backgroundView.addSubview(scroll)
-        
-        outlineView = NSOutlineView()
         outlineView.headerView = nil
         outlineView.backgroundColor = NSColor.clear
         outlineView.gridStyleMask = []
         outlineView.allowsMultipleSelection = false
         outlineView.selectionHighlightStyle = .none
         outlineView.doubleAction = #selector(outlineDoubleClicked(_:))
-        
-        // Register drag & drop
         outlineView.registerForDraggedTypes([dragType])
-        
-        let col = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("bookmarkColumn"))
-        col.width = 200
-        outlineView.addTableColumn(col)
-        
+
+        if let col = outlineView.tableColumns.first {
+            col.identifier = NSUserInterfaceItemIdentifier("bookmarkColumn")
+            col.width = 200
+            outlineView.outlineTableColumn = col
+        }
+
         outlineView.dataSource = self
         outlineView.delegate = self
-        scroll.documentView = outlineView
 
         let contextMenu = NSMenu()
         contextMenu.delegate = self
         outlineView.menu = contextMenu
-        
-        // 3. Bottom Bar
-        let bottomView = NSView()
-        bottomView.translatesAutoresizingMaskIntoConstraints = false
-        backgroundView.addSubview(bottomView)
-        
-        let border = NSView()
-        border.wantsLayer = true
-        border.layer?.backgroundColor = NSColor.gitFlowBorder.cgColor
-        border.translatesAutoresizingMaskIntoConstraints = false
-        bottomView.addSubview(border)
-        
-        actionButton = NSButton(image: NSImage(named: NSImage.addTemplateName)!, target: self, action: #selector(plusClicked(_:)))
+
+        actionButton.image = NSImage(named: NSImage.addTemplateName)
+        actionButton.target = self
+        actionButton.action = #selector(plusClicked(_:))
         actionButton.bezelStyle = .texturedRounded
         actionButton.isBordered = false
-        actionButton.translatesAutoresizingMaskIntoConstraints = false
-        bottomView.addSubview(actionButton)
-        
-        removeButton = NSButton(image: NSImage(named: NSImage.removeTemplateName)!, target: self, action: #selector(minusClicked(_:)))
+
+        removeButton.image = NSImage(named: NSImage.removeTemplateName)
+        removeButton.target = self
+        removeButton.action = #selector(minusClicked(_:))
         removeButton.bezelStyle = .texturedRounded
         removeButton.isBordered = false
         removeButton.isEnabled = false
-        removeButton.translatesAutoresizingMaskIntoConstraints = false
-        bottomView.addSubview(removeButton)
-        
-        progressIndicator = NSProgressIndicator()
+
         progressIndicator.style = .spinning
         progressIndicator.isDisplayedWhenStopped = false
         progressIndicator.controlSize = .small
-        progressIndicator.translatesAutoresizingMaskIntoConstraints = false
-        backgroundView.addSubview(progressIndicator)
-        
-        // Constraints
-        NSLayoutConstraint.activate([
-            tabContainer.topAnchor.constraint(equalTo: backgroundView.topAnchor),
-            tabContainer.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
-            tabContainer.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
-            tabContainer.heightAnchor.constraint(equalToConstant: 44),
-            
-            segmentedControl.centerYAnchor.constraint(equalTo: tabContainer.centerYAnchor),
-            segmentedControl.centerXAnchor.constraint(equalTo: tabContainer.centerXAnchor),
-            
-            searchContainer.topAnchor.constraint(equalTo: tabContainer.bottomAnchor),
-            searchContainer.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
-            searchContainer.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
-            searchContainer.heightAnchor.constraint(equalToConstant: 32),
-            
-            searchField.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
-            searchField.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 12),
-            searchField.trailingAnchor.constraint(equalTo: searchContainer.trailingAnchor, constant: -12),
-            
-            scroll.topAnchor.constraint(equalTo: searchContainer.bottomAnchor),
-            scroll.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
-            scroll.bottomAnchor.constraint(equalTo: bottomView.topAnchor),
-            
-            bottomView.bottomAnchor.constraint(equalTo: backgroundView.bottomAnchor),
-            bottomView.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
-            bottomView.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
-            bottomView.heightAnchor.constraint(equalToConstant: 40),
-            
-            border.topAnchor.constraint(equalTo: bottomView.topAnchor),
-            border.leadingAnchor.constraint(equalTo: bottomView.leadingAnchor),
-            border.trailingAnchor.constraint(equalTo: bottomView.trailingAnchor),
-            border.heightAnchor.constraint(equalToConstant: 1),
-            
-            actionButton.centerYAnchor.constraint(equalTo: bottomView.centerYAnchor),
-            actionButton.leadingAnchor.constraint(equalTo: bottomView.leadingAnchor, constant: 12),
-            actionButton.widthAnchor.constraint(equalToConstant: 24),
-            actionButton.heightAnchor.constraint(equalToConstant: 24),
-            
-            removeButton.centerYAnchor.constraint(equalTo: bottomView.centerYAnchor),
-            removeButton.leadingAnchor.constraint(equalTo: actionButton.trailingAnchor, constant: 8),
-            removeButton.widthAnchor.constraint(equalToConstant: 24),
-            removeButton.heightAnchor.constraint(equalToConstant: 24),
-            
-            progressIndicator.centerYAnchor.constraint(equalTo: bottomView.centerYAnchor),
-            progressIndicator.trailingAnchor.constraint(equalTo: bottomView.trailingAnchor, constant: -12),
-            progressIndicator.widthAnchor.constraint(equalToConstant: 14),
-            progressIndicator.heightAnchor.constraint(equalToConstant: 14)
-        ])
     }
     
     @objc private func tabChanged(_ sender: NSSegmentedControl) {
@@ -594,295 +500,94 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             let bookmark = repoItem.bookmark
             let isActive = bookmark.path == activePath
             
-            let cellIdentifier = NSUserInterfaceItemIdentifier("BookmarkCell")
-            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
-            
+            var cell = outlineView.makeView(withIdentifier: SidebarRepositoryCellView.reuseIdentifier, owner: self) as? SidebarRepositoryCellView
             if cell == nil {
-                cell = NSTableCellView()
-                cell?.identifier = cellIdentifier
-
-                let icon = NSImageView()
-                if #available(macOS 11.0, *) {
-                    let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
-                    icon.image = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: "Repository")?.withSymbolConfiguration(config)
-                }
-                icon.imageScaling = .scaleProportionallyUpOrDown
-                icon.identifier = NSUserInterfaceItemIdentifier("repoIcon")
-                icon.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(icon)
-                cell?.imageView = icon
-
-                let label = NSTextField(labelWithString: "")
-                label.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(label)
-                cell?.textField = label
-
-                let divider = NSView()
-                divider.wantsLayer = true
-                divider.layer?.backgroundColor = NSColor.gitFlowBorder.withAlphaComponent(0.4).cgColor
-                divider.identifier = NSUserInterfaceItemIdentifier("repoDivider")
-                divider.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(divider)
-
-                let pathLabel = NSTextField(labelWithString: "")
-                pathLabel.font = NSFont.systemFont(ofSize: 10)
-                pathLabel.textColor = NSColor.secondaryLabelColor
-                pathLabel.lineBreakMode = .byTruncatingHead
-                pathLabel.identifier = NSUserInterfaceItemIdentifier("pathLabel")
-                pathLabel.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(pathLabel)
-
-                let statsLabel = NSTextField(labelWithString: "")
-                statsLabel.font = NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
-                statsLabel.identifier = NSUserInterfaceItemIdentifier("statsLabel")
-                statsLabel.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(statsLabel)
-
-                NSLayoutConstraint.activate([
-                    divider.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 16),
-                    divider.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -16),
-                    divider.topAnchor.constraint(equalTo: cell!.topAnchor),
-                    divider.heightAnchor.constraint(equalToConstant: 1),
-
-                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 10),
-                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    icon.widthAnchor.constraint(equalToConstant: 15),
-                    icon.heightAnchor.constraint(equalToConstant: 15),
-
-                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 7),
-                    label.bottomAnchor.constraint(equalTo: cell!.centerYAnchor, constant: 1),
-
-                    statsLabel.leadingAnchor.constraint(greaterThanOrEqualTo: label.trailingAnchor, constant: 4),
-                    statsLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
-                    statsLabel.centerYAnchor.constraint(equalTo: label.centerYAnchor),
-
-                    pathLabel.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 7),
-                    pathLabel.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8),
-                    pathLabel.topAnchor.constraint(equalTo: label.bottomAnchor, constant: 2)
-                ])
-            }
-            
-            cell?.wantsLayer = true
-            cell?.layer?.cornerRadius = 6
-            if isActive {
-                cell?.layer?.backgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15).cgColor
-            } else {
-                cell?.layer?.backgroundColor = NSColor.clear.cgColor
+                cell = SidebarRepositoryCellView.instantiate()
             }
 
-            if #available(macOS 11.0, *),
-               let icon = cell?.subviews.first(where: { $0.identifier?.rawValue == "repoIcon" }) as? NSImageView {
-                icon.contentTintColor = isActive ? NSColor.gitFlowAccent : NSColor.secondaryLabelColor
+            if #available(macOS 11.0, *) {
+                let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+                cell?.repoIcon.image = NSImage(systemSymbolName: "folder.fill", accessibilityDescription: "Repository")?.withSymbolConfiguration(config)
             }
 
-            if let textField = cell?.textField {
-                textField.stringValue = bookmark.name
-                if isActive {
-                    textField.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
-                    textField.textColor = NSColor.m3Primary
-                } else {
-                    textField.font = NSFont.systemFont(ofSize: 13, weight: .medium)
-                    textField.textColor = NSColor.labelColor
-                }
-            }
-            
-            if let pathLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "pathLabel" }) as? NSTextField {
-                pathLabel.stringValue = bookmark.path
-                pathLabel.textColor = isActive ? NSColor.gitFlowAccent.withAlphaComponent(0.7) : NSColor.secondaryLabelColor
-            }
-            
-            if let statsLabel = cell?.subviews.first(where: { $0.identifier?.rawValue == "statsLabel" }) as? NSTextField {
-                if let stats = lineStatsCache[bookmark.path], (stats.added > 0 || stats.removed > 0) {
-                    let result = NSMutableAttributedString()
-                    if stats.added > 0 {
-                        result.append(NSAttributedString(string: "+\(stats.added)", attributes: [
-                            .foregroundColor: NSColor.gitFlowStagedAddText,
-                            .font: NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
-                        ]))
-                    }
-                    if stats.added > 0 && stats.removed > 0 {
-                        result.append(NSAttributedString(string: " ", attributes: [
-                            .font: NSFont.systemFont(ofSize: 11)
-                        ]))
-                    }
-                    if stats.removed > 0 {
-                        result.append(NSAttributedString(string: "-\(stats.removed)", attributes: [
-                            .foregroundColor: NSColor.gitFlowStagedDeleteText,
-                            .font: NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
-                        ]))
-                    }
-                    statsLabel.attributedStringValue = result
-                } else {
-                    statsLabel.stringValue = ""
-                }
-            }
-            
-            if let divider = cell?.subviews.first(where: { $0.identifier?.rawValue == "repoDivider" }) {
-                if let index = repositoryItems.firstIndex(of: repoItem), index > 0 {
-                    divider.isHidden = false
-                } else {
-                    divider.isHidden = true
-                }
-            }
-            
+            let showDivider = repositoryItems.firstIndex(of: repoItem).map { $0 > 0 } ?? false
+            cell?.configure(
+                bookmark: bookmark,
+                isActive: isActive,
+                stats: lineStatsCache[bookmark.path],
+                showDivider: showDivider
+            )
             return cell
         } else if item is BranchGroupItem || item is SubmoduleGroupItem || item is WorktreeGroupItem {
-            let cellIdentifier = NSUserInterfaceItemIdentifier("GroupCell")
-            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+            var cell = outlineView.makeView(withIdentifier: SidebarGroupCellView.reuseIdentifier, owner: self) as? SidebarGroupCellView
             if cell == nil {
-                cell = NSTableCellView()
-                cell?.identifier = cellIdentifier
-                let label = NSTextField(labelWithString: "")
-                label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
-                label.textColor = NSColor.secondaryLabelColor
-                label.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(label)
-                cell?.textField = label
-                NSLayoutConstraint.activate([
-                    label.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
-                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
-                ])
+                cell = SidebarGroupCellView.instantiate()
             }
+
+            let title: String
             if let groupItem = item as? BranchGroupItem {
-                cell?.textField?.stringValue = groupItem.title.uppercased()
+                title = groupItem.title.uppercased()
             } else if let subGroup = item as? SubmoduleGroupItem {
-                cell?.textField?.stringValue = subGroup.title.uppercased()
+                title = subGroup.title.uppercased()
             } else if let wtGroup = item as? WorktreeGroupItem {
-                cell?.textField?.stringValue = wtGroup.title.uppercased()
+                title = wtGroup.title.uppercased()
+            } else {
+                title = ""
             }
+
+            cell?.configure(title: title)
             return cell
         } else if let branchItem = item as? BranchItem {
             let branch = branchItem.branch
-            
-            let cellIdentifier = NSUserInterfaceItemIdentifier("BranchCell")
-            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
-            
+
+            var cell = outlineView.makeView(withIdentifier: SidebarOutlineItemCellView.reuseIdentifier, owner: self) as? SidebarOutlineItemCellView
             if cell == nil {
-                cell = NSTableCellView()
-                cell?.identifier = cellIdentifier
-                
-                let icon = NSImageView()
-                if #available(macOS 11.0, *) {
-                    let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
-                    icon.image = NSImage(systemSymbolName: "arrow.triangle.branch", accessibilityDescription: "Branch")?.withSymbolConfiguration(config)
-                } else {
-                    icon.image = NSImage(named: NSImage.slideshowTemplateName)
-                }
-                icon.imageScaling = .scaleProportionallyUpOrDown
-                icon.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(icon)
-                cell?.imageView = icon
-                
-                let label = NSTextField(labelWithString: "")
-                label.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(label)
-                cell?.textField = label
-                
-                NSLayoutConstraint.activate([
-                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
-                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    icon.widthAnchor.constraint(equalToConstant: 12),
-                    icon.heightAnchor.constraint(equalToConstant: 12),
-                    
-                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
-                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8)
-                ])
+                cell = SidebarOutlineItemCellView.instantiate()
             }
-            
-            if let textField = cell?.textField {
-                textField.stringValue = branch.shortName
-                if branch.isCurrent {
-                    textField.font = NSFont.systemFont(ofSize: 12, weight: .bold)
-                    textField.textColor = NSColor.gitFlowAccent
-                    if #available(macOS 11.0, *) {
-                        cell?.imageView?.contentTintColor = NSColor.gitFlowAccent
-                    }
-                } else {
-                    textField.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-                    textField.textColor = NSColor.labelColor
-                    if #available(macOS 11.0, *) {
-                        cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor
-                    }
-                }
-            }
-            
+
+            cell?.configure(
+                title: branch.shortName,
+                systemSymbolName: "arrow.triangle.branch",
+                fallbackImageName: NSImage.slideshowTemplateName,
+                accessibilityDescription: "Branch",
+                font: branch.isCurrent
+                    ? NSFont.systemFont(ofSize: 12, weight: .bold)
+                    : NSFont.systemFont(ofSize: 12, weight: .medium),
+                textColor: branch.isCurrent ? NSColor.gitFlowAccent : NSColor.labelColor,
+                tintColor: branch.isCurrent ? NSColor.gitFlowAccent : NSColor.secondaryLabelColor
+            )
             return cell
         } else if let subItem = item as? GitSubmodule {
-            let cellIdentifier = NSUserInterfaceItemIdentifier("SubmoduleCell")
-            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
-            
+            var cell = outlineView.makeView(withIdentifier: SidebarOutlineItemCellView.reuseIdentifier, owner: self) as? SidebarOutlineItemCellView
             if cell == nil {
-                cell = NSTableCellView()
-                cell?.identifier = cellIdentifier
-                
-                let icon = NSImageView()
-                if #available(macOS 11.0, *) {
-                    icon.image = NSImage(systemSymbolName: "shippingbox", accessibilityDescription: "Submodule")?.withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 10, weight: .medium))
-                    icon.contentTintColor = NSColor.secondaryLabelColor
-                }
-                icon.imageScaling = .scaleProportionallyUpOrDown
-                icon.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(icon)
-                cell?.imageView = icon
-                
-                let label = NSTextField(labelWithString: "")
-                label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-                label.textColor = NSColor.labelColor
-                label.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(label)
-                cell?.textField = label
-                
-                NSLayoutConstraint.activate([
-                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
-                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    icon.widthAnchor.constraint(equalToConstant: 12),
-                    icon.heightAnchor.constraint(equalToConstant: 12),
-                    
-                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
-                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8)
-                ])
+                cell = SidebarOutlineItemCellView.instantiate()
             }
-            cell?.textField?.stringValue = subItem.path
+
+            cell?.configure(
+                title: subItem.path,
+                systemSymbolName: "shippingbox",
+                fallbackImageName: nil,
+                accessibilityDescription: "Submodule",
+                font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                textColor: NSColor.labelColor,
+                tintColor: NSColor.secondaryLabelColor
+            )
             return cell
         } else if let wtItem = item as? GitWorktree {
-            let cellIdentifier = NSUserInterfaceItemIdentifier("WorktreeCell")
-            var cell = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
-            
+            var cell = outlineView.makeView(withIdentifier: SidebarOutlineItemCellView.reuseIdentifier, owner: self) as? SidebarOutlineItemCellView
             if cell == nil {
-                cell = NSTableCellView()
-                cell?.identifier = cellIdentifier
-                
-                let icon = NSImageView()
-                if #available(macOS 11.0, *) {
-                    icon.image = NSImage(systemSymbolName: "folder.badge.gearshape", accessibilityDescription: "Worktree")?.withSymbolConfiguration(NSImage.SymbolConfiguration(pointSize: 10, weight: .medium))
-                    icon.contentTintColor = NSColor.secondaryLabelColor
-                }
-                icon.imageScaling = .scaleProportionallyUpOrDown
-                icon.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(icon)
-                cell?.imageView = icon
-                
-                let label = NSTextField(labelWithString: "")
-                label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-                label.textColor = NSColor.labelColor
-                label.translatesAutoresizingMaskIntoConstraints = false
-                cell?.addSubview(label)
-                cell?.textField = label
-                
-                NSLayoutConstraint.activate([
-                    icon.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 8),
-                    icon.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    icon.widthAnchor.constraint(equalToConstant: 12),
-                    icon.heightAnchor.constraint(equalToConstant: 12),
-                    
-                    label.leadingAnchor.constraint(equalTo: icon.trailingAnchor, constant: 6),
-                    label.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
-                    label.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -8)
-                ])
+                cell = SidebarOutlineItemCellView.instantiate()
             }
-            cell?.textField?.stringValue = (wtItem.path as NSString).lastPathComponent + " (" + wtItem.branch + ")"
+
+            cell?.configure(
+                title: (wtItem.path as NSString).lastPathComponent + " (" + wtItem.branch + ")",
+                systemSymbolName: "folder.badge.gearshape",
+                fallbackImageName: nil,
+                accessibilityDescription: "Worktree",
+                font: NSFont.systemFont(ofSize: 12, weight: .medium),
+                textColor: NSColor.labelColor,
+                tintColor: NSColor.secondaryLabelColor
+            )
             return cell
         }
         
