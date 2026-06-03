@@ -402,6 +402,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                     let repoName = URL(fileURLWithPath: path).lastPathComponent
                     self?.updateBranchLabel(for: path, repoName: repoName)
                     self?.refreshCurrentTab()
+                    self?.notifyRepositoryMetadataChanged()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         self?.showToolbarAlert(title: "Fetch Complete", message: "Successfully fetched.", isError: false)
                     }
@@ -479,6 +480,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
                 self.updateBranchLabel(for: repoPath, repoName: repoName)
                 self.refreshCurrentTab()
+                self.notifyRepositoryMetadataChanged()
             }
         }
     }
@@ -591,6 +593,10 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         syncStatusLabel.attributedStringValue = result
         syncStatusContainer?.isHidden = false
     }
+
+    private func notifyRepositoryMetadataChanged() {
+        NotificationCenter.default.post(name: .repositoryFilesChanged, object: nil)
+    }
     
     @objc private func branchButtonClicked(_ sender: NSButton) {
         guard let path = activeRepoPath, let window = self.window else { return }
@@ -628,6 +634,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                     let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
                     self.updateBranchLabel(for: repoPath, repoName: repoName)
                     self.refreshCurrentTab()
+                    self.notifyRepositoryMetadataChanged()
                 }
             } catch {
                 await MainActor.run {
@@ -713,6 +720,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                     let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
                     self.updateBranchLabel(for: repoPath, repoName: repoName)
                     self.refreshCurrentTab()
+                    self.notifyRepositoryMetadataChanged()
                 }
             } catch {
                 await MainActor.run {
@@ -740,6 +748,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                 let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
                 self.updateBranchLabel(for: repoPath, repoName: repoName)
                 self.refreshCurrentTab()
+                self.notifyRepositoryMetadataChanged()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                     self.showToolbarAlert(title: "Pull Complete", message: "Successfully pulled \(branch) from '\(remote)'.", isError: false)
                 }
@@ -802,6 +811,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
                     let repoName = URL(fileURLWithPath: repoPath).lastPathComponent
                     self.updateBranchLabel(for: repoPath, repoName: repoName)
                     self.refreshCurrentTab()
+                    self.notifyRepositoryMetadataChanged()
                     
                     var targetWindow = self.window
                     while let sheet = targetWindow?.attachedSheet {
@@ -829,6 +839,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             guard let self = self else { return }
             self.updateBranchLabel(for: repoPath, repoName: repoName)
             self.refreshCurrentTab()
+            self.notifyRepositoryMetadataChanged()
         }
     }
     

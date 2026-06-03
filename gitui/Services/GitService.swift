@@ -89,6 +89,7 @@ protocol GitServiceProtocol: Sendable {
     func applyPatch(_ patch: String, cached: Bool, reverse: Bool, in repoPath: String) async throws
     func getHistory(in repoPath: String, limit: Int) async throws -> [GitCommit]
     func getBranches(in repoPath: String) async throws -> [GitBranch]
+    func getUpstream(for branch: String, in repoPath: String) async -> String?
     func getAheadBehind(for branch: String, in repoPath: String) async -> (ahead: Int, behind: Int)
     func checkout(branch: String, in repoPath: String) async throws
     func createBranch(name: String, startPoint: String, checkout: Bool, in repoPath: String) async throws
@@ -557,23 +558,20 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
         return branches
     }
 
-    func getAheadBehind(for branch: String, in repoPath: String) async -> (ahead: Int, behind: Int) {
-        let upstreamRef: String
-
+    func getUpstream(for branch: String, in repoPath: String) async -> String? {
         do {
             let trackedRef = try await runGit(
                 ["for-each-ref", "--format=%(upstream:short)", "refs/heads/\(branch)"],
                 in: repoPath
             ).trimmingCharacters(in: .whitespacesAndNewlines)
-
-            if !trackedRef.isEmpty {
-                upstreamRef = trackedRef
-            } else {
-                upstreamRef = "origin/\(branch)"
-            }
+            return trackedRef.isEmpty ? nil : trackedRef
         } catch {
-            upstreamRef = "origin/\(branch)"
+            return nil
         }
+    }
+
+    func getAheadBehind(for branch: String, in repoPath: String) async -> (ahead: Int, behind: Int) {
+        let upstreamRef = await getUpstream(for: branch, in: repoPath) ?? "origin/\(branch)"
 
         do {
             let output = try await runGit(

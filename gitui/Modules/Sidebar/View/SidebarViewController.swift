@@ -67,14 +67,36 @@ class CustomSelectionRowView: NSTableRowView {
 class BranchItem: NSObject {
     let branch: GitBranch
     let repoPath: String
+    let trackedRemote: String?
     let aheadCount: Int
     let behindCount: Int
     
-    init(branch: GitBranch, repoPath: String, aheadCount: Int = 0, behindCount: Int = 0) {
+    init(branch: GitBranch, repoPath: String, trackedRemote: String? = nil, aheadCount: Int = 0, behindCount: Int = 0) {
         self.branch = branch
         self.repoPath = repoPath
+        self.trackedRemote = trackedRemote
         self.aheadCount = aheadCount
         self.behindCount = behindCount
+    }
+}
+
+final class BranchRemoteActionContext: NSObject {
+    let branchItem: BranchItem
+    let remoteName: String
+
+    init(branchItem: BranchItem, remoteName: String) {
+        self.branchItem = branchItem
+        self.remoteName = remoteName
+    }
+}
+
+final class BranchTrackActionContext: NSObject {
+    let branchItem: BranchItem
+    let remoteReference: String
+
+    init(branchItem: BranchItem, remoteReference: String) {
+        self.branchItem = branchItem
+        self.remoteReference = remoteReference
     }
 }
 
@@ -240,18 +262,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             menu.addItem(remove)
 
         } else if let branchItem = item as? BranchItem {
-            if !branchItem.branch.isCurrent {
-                let switchBranch = NSMenuItem(title: "Switch to '\(branchItem.branch.shortName)'", action: #selector(contextSwitchBranch(_:)), keyEquivalent: "")
-                switchBranch.target = self
-                switchBranch.representedObject = branchItem
-                menu.addItem(switchBranch)
-                menu.addItem(.separator())
-            }
-
-            let copyName = NSMenuItem(title: "Copy Branch Name", action: #selector(contextCopyBranchName(_:)), keyEquivalent: "")
-            copyName.target = self
-            copyName.representedObject = branchItem
-            menu.addItem(copyName)
+            buildBranchContextMenu(menu, for: branchItem)
         }
     }
 
@@ -323,6 +334,412 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         guard let branchItem = sender.representedObject as? BranchItem else { return }
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(branchItem.branch.shortName, forType: .string)
+    }
+
+    @objc private func contextMergeIntoCurrent(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem else { return }
+        let currentBranch = currentBranchName(in: branchItem.repoPath) ?? "current branch"
+        showConfirmation(
+            title: "Merge Branch",
+            message: "Merge '\(branchItem.branch.shortName)' into '\(currentBranch)'?",
+            confirmTitle: "Merge"
+        ) { [weak self] approved in
+            guard approved, let self = self else { return }
+            Task {
+                do {
+                    try await GitService.shared.merge(branch: branchItem.branch.name, in: branchItem.repoPath)
+                    await MainActor.run {
+                        self.handleBranchOperationSuccess("Merge Complete", message: "Merged '\(branchItem.branch.shortName)' into '\(currentBranch)'.")
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.showBranchError("Merge Failed", error: error)
+                    }
+                }
+            }
+        }
+    }
+
+    @objc private func contextRebaseOntoBranch(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem else { return }
+        showConfirmation(
+            title: "Rebase Current Branch",
+            message: "Rebase the current branch onto '\(branchItem.branch.shortName)'?\n\nThis rewrites history.",
+            confirmTitle: "Rebase"
+        ) { [weak self] approved in
+            guard approved, let self = self else { return }
+            Task {
+                do {
+                    try await GitService.shared.rebase(onto: branchItem.branch.name, in: branchItem.repoPath)
+                    await MainActor.run {
+                        self.handleBranchOperationSuccess("Rebase Complete", message: "Rebased current branch onto '\(branchItem.branch.shortName)'.")
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.showBranchError("Rebase Failed", error: error)
+                    }
+                }
+            }
+        }
+    }
+
+    @objc private func contextFetchTracked(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem,
+              let trackedRemote = branchItem.trackedRemote,
+              let remoteName = trackedRemote.components(separatedBy: "/").first else { return }
+        Task {
+            do {
+                try await GitService.shared.fetch(remote: remoteName, in: branchItem.repoPath)
+                await MainActor.run {
+                    self.handleBranchOperationSuccess("Fetch Complete", message: "Fetched '\(remoteName)'.")
+                }
+            } catch {
+                await MainActor.run {
+                    self.showBranchError("Fetch Failed", error: error)
+                }
+            }
+        }
+    }
+
+    @objc private func contextFetchRemote(_ sender: NSMenuItem) {
+        guard let context = sender.representedObject as? BranchRemoteActionContext else { return }
+        Task {
+            do {
+                try await GitService.shared.fetch(remote: context.remoteName, in: context.branchItem.repoPath)
+                await MainActor.run {
+                    self.handleBranchOperationSuccess("Fetch Complete", message: "Fetched '\(context.remoteName)'.")
+                }
+            } catch {
+                await MainActor.run {
+                    self.showBranchError("Fetch Failed", error: error)
+                }
+            }
+        }
+    }
+
+    @objc private func contextPullTracked(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem,
+              let trackedRemote = branchItem.trackedRemote,
+              let (remoteName, remoteBranch) = parseRemoteReference(trackedRemote) else { return }
+        Task {
+            do {
+                try await GitService.shared.pull(remote: remoteName, branch: remoteBranch, in: branchItem.repoPath)
+                await MainActor.run {
+                    self.handleBranchOperationSuccess("Pull Complete", message: "Pulled '\(trackedRemote)'.")
+                }
+            } catch {
+                await MainActor.run {
+                    self.showBranchError("Pull Failed", error: error)
+                }
+            }
+        }
+    }
+
+    @objc private func contextPushTracked(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem,
+              let trackedRemote = branchItem.trackedRemote,
+              let (remoteName, _) = parseRemoteReference(trackedRemote) else { return }
+        GitPushProgressViewController.show(remote: remoteName, branch: branchItem.branch.name, repoPath: branchItem.repoPath, from: view.window) { [weak self] _ in
+            self?.notifyRepositoryStateChanged()
+        }
+    }
+
+    @objc private func contextPushToRemote(_ sender: NSMenuItem) {
+        guard let context = sender.representedObject as? BranchRemoteActionContext else { return }
+        GitPushProgressViewController.show(remote: context.remoteName, branch: context.branchItem.branch.name, repoPath: context.branchItem.repoPath, from: view.window) { [weak self] _ in
+            self?.notifyRepositoryStateChanged()
+        }
+    }
+
+    @objc private func contextTrackRemoteBranch(_ sender: NSMenuItem) {
+        guard let context = sender.representedObject as? BranchTrackActionContext else { return }
+        Task {
+            do {
+                _ = try await GitService.shared.runGit(
+                    ["branch", "--set-upstream-to", context.remoteReference, context.branchItem.branch.name],
+                    in: context.branchItem.repoPath
+                )
+                await MainActor.run {
+                    self.handleBranchOperationSuccess("Tracking Updated", message: "'\(context.branchItem.branch.shortName)' now tracks '\(context.remoteReference)'.")
+                }
+            } catch {
+                await MainActor.run {
+                    self.showBranchError("Track Remote Failed", error: error)
+                }
+            }
+        }
+    }
+
+    @objc private func contextRenameBranch(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem,
+              let window = view.window else { return }
+
+        let alert = NSAlert()
+        alert.messageText = "Rename Branch"
+        alert.informativeText = "Enter a new name for '\(branchItem.branch.shortName)':"
+        alert.addButton(withTitle: "Rename")
+        alert.addButton(withTitle: "Cancel")
+
+        let field = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 22))
+        field.stringValue = branchItem.branch.shortName
+        alert.accessoryView = field
+
+        alert.beginSheetModal(for: window) { [weak self] response in
+            guard response == .alertFirstButtonReturn else { return }
+            let newName = field.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !newName.isEmpty else { return }
+            Task {
+                do {
+                    _ = try await GitService.shared.runGit(["branch", "-m", branchItem.branch.name, newName], in: branchItem.repoPath)
+                    await MainActor.run {
+                        self?.handleBranchOperationSuccess("Rename Complete", message: "Renamed '\(branchItem.branch.shortName)' to '\(newName)'.")
+                    }
+                } catch {
+                    await MainActor.run {
+                        self?.showBranchError("Rename Failed", error: error)
+                    }
+                }
+            }
+        }
+    }
+
+    @objc private func contextDeleteBranch(_ sender: NSMenuItem) {
+        guard let branchItem = sender.representedObject as? BranchItem else { return }
+        showConfirmation(
+            title: "Delete Branch",
+            message: "Delete branch '\(branchItem.branch.shortName)'?",
+            confirmTitle: "Delete"
+        ) { [weak self] approved in
+            guard approved, let self = self else { return }
+            Task {
+                do {
+                    _ = try await GitService.shared.runGit(["branch", "-D", branchItem.branch.name], in: branchItem.repoPath)
+                    await MainActor.run {
+                        self.handleBranchOperationSuccess("Branch Deleted", message: "Deleted '\(branchItem.branch.shortName)'.")
+                    }
+                } catch {
+                    await MainActor.run {
+                        self.showBranchError("Delete Failed", error: error)
+                    }
+                }
+            }
+        }
+    }
+
+    private func buildBranchContextMenu(_ menu: NSMenu, for branchItem: BranchItem) {
+        let branch = branchItem.branch
+
+        if branch.isRemote {
+            let checkout = NSMenuItem(title: "Checkout \(branch.shortName)", action: #selector(contextSwitchBranch(_:)), keyEquivalent: "")
+            checkout.target = self
+            checkout.representedObject = branchItem
+            menu.addItem(checkout)
+
+            if let (remoteName, _) = parseRemoteReference(branch.shortName) {
+                menu.addItem(.separator())
+
+                let fetchRemote = NSMenuItem(title: "Fetch \(remoteName)", action: #selector(contextFetchRemote(_:)), keyEquivalent: "")
+                fetchRemote.target = self
+                fetchRemote.representedObject = BranchRemoteActionContext(branchItem: branchItem, remoteName: remoteName)
+                menu.addItem(fetchRemote)
+            }
+
+            menu.addItem(.separator())
+
+            let copyName = NSMenuItem(title: "Copy Branch Name to Clipboard", action: #selector(contextCopyBranchName(_:)), keyEquivalent: "")
+            copyName.target = self
+            copyName.representedObject = branchItem
+            menu.addItem(copyName)
+            return
+        }
+
+        let currentBranch = currentBranchName(in: branchItem.repoPath) ?? "current branch"
+        let isCurrent = branch.isCurrent
+
+        let checkout = NSMenuItem(title: "Checkout \(branch.shortName)", action: #selector(contextSwitchBranch(_:)), keyEquivalent: "")
+        checkout.target = self
+        checkout.representedObject = branchItem
+        checkout.isEnabled = !isCurrent
+        menu.addItem(checkout)
+
+        let merge = NSMenuItem(title: "Merge \(branch.shortName) into \(currentBranch)", action: #selector(contextMergeIntoCurrent(_:)), keyEquivalent: "")
+        merge.target = self
+        merge.representedObject = branchItem
+        merge.isEnabled = !isCurrent
+        menu.addItem(merge)
+
+        let rebase = NSMenuItem(title: "Rebase current changes onto \(branch.shortName)", action: #selector(contextRebaseOntoBranch(_:)), keyEquivalent: "")
+        rebase.target = self
+        rebase.representedObject = branchItem
+        rebase.isEnabled = !isCurrent
+        menu.addItem(rebase)
+
+        menu.addItem(.separator())
+
+        let fetchTracked = NSMenuItem(
+            title: branchItem.trackedRemote.map { "Fetch \($0)" } ?? "Fetch",
+            action: #selector(contextFetchTracked(_:)),
+            keyEquivalent: ""
+        )
+        fetchTracked.target = self
+        fetchTracked.representedObject = branchItem
+        fetchTracked.isEnabled = branchItem.trackedRemote != nil
+        menu.addItem(fetchTracked)
+
+        let pullTracked = NSMenuItem(
+            title: branchItem.trackedRemote.map { "Pull \($0) (tracked)" } ?? "Pull (tracked)",
+            action: #selector(contextPullTracked(_:)),
+            keyEquivalent: ""
+        )
+        pullTracked.target = self
+        pullTracked.representedObject = branchItem
+        pullTracked.isEnabled = isCurrent && branchItem.trackedRemote != nil
+        menu.addItem(pullTracked)
+
+        let pushTracked = NSMenuItem(
+            title: branchItem.trackedRemote.map { "Push to \($0) (tracked)" } ?? "Push to (tracked)",
+            action: #selector(contextPushTracked(_:)),
+            keyEquivalent: ""
+        )
+        pushTracked.target = self
+        pushTracked.representedObject = branchItem
+        pushTracked.isEnabled = branchItem.trackedRemote != nil
+        menu.addItem(pushTracked)
+
+        let pushToItem = NSMenuItem(title: "Push to", action: nil, keyEquivalent: "")
+        let pushToMenu = NSMenu()
+        for remoteName in remoteNames(for: branchItem.repoPath) {
+            let remoteItem = NSMenuItem(title: remoteName, action: #selector(contextPushToRemote(_:)), keyEquivalent: "")
+            remoteItem.target = self
+            remoteItem.representedObject = BranchRemoteActionContext(branchItem: branchItem, remoteName: remoteName)
+            pushToMenu.addItem(remoteItem)
+        }
+        if pushToMenu.items.isEmpty {
+            let emptyItem = NSMenuItem(title: "No remotes available", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            pushToMenu.addItem(emptyItem)
+        }
+        pushToItem.submenu = pushToMenu
+        menu.addItem(pushToItem)
+
+        let trackItem = NSMenuItem(title: "Track Remote Branch", action: nil, keyEquivalent: "")
+        let trackMenu = NSMenu()
+        for remoteBranch in remoteBranchItems(for: branchItem.repoPath) {
+            let item = NSMenuItem(title: remoteBranch.branch.shortName, action: #selector(contextTrackRemoteBranch(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = BranchTrackActionContext(branchItem: branchItem, remoteReference: remoteBranch.branch.shortName)
+            item.state = remoteBranch.branch.shortName == branchItem.trackedRemote ? .on : .off
+            trackMenu.addItem(item)
+        }
+        if trackMenu.items.isEmpty {
+            let emptyItem = NSMenuItem(title: "No remote branches available", action: nil, keyEquivalent: "")
+            emptyItem.isEnabled = false
+            trackMenu.addItem(emptyItem)
+        }
+        trackItem.submenu = trackMenu
+        menu.addItem(trackItem)
+
+        menu.addItem(.separator())
+
+        let diffItem = NSMenuItem(title: "Diff Against Current", action: nil, keyEquivalent: "")
+        diffItem.isEnabled = false
+        menu.addItem(diffItem)
+
+        menu.addItem(.separator())
+
+        let rename = NSMenuItem(title: "Rename...", action: #selector(contextRenameBranch(_:)), keyEquivalent: "")
+        rename.target = self
+        rename.representedObject = branchItem
+        menu.addItem(rename)
+
+        let delete = NSMenuItem(title: "Delete \(branch.shortName)", action: #selector(contextDeleteBranch(_:)), keyEquivalent: "")
+        delete.target = self
+        delete.representedObject = branchItem
+        delete.isEnabled = !isCurrent
+        menu.addItem(delete)
+
+        menu.addItem(.separator())
+
+        let copyName = NSMenuItem(title: "Copy Branch Name to Clipboard", action: #selector(contextCopyBranchName(_:)), keyEquivalent: "")
+        copyName.target = self
+        copyName.representedObject = branchItem
+        menu.addItem(copyName)
+
+        menu.addItem(.separator())
+
+        let prItem = NSMenuItem(title: "Create Pull Request...", action: nil, keyEquivalent: "")
+        prItem.isEnabled = false
+        menu.addItem(prItem)
+    }
+
+    private func showConfirmation(title: String, message: String, confirmTitle: String, completion: @escaping (Bool) -> Void) {
+        guard let window = view.window else {
+            completion(false)
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: confirmTitle)
+        alert.addButton(withTitle: "Cancel")
+        alert.beginSheetModal(for: window) { response in
+            completion(response == .alertFirstButtonReturn)
+        }
+    }
+
+    private func handleBranchOperationSuccess(_ title: String, message: String) {
+        notifyRepositoryStateChanged()
+        showBranchAlert(title: title, message: message, isError: false)
+    }
+
+    private func showBranchError(_ title: String, error: Error) {
+        showBranchAlert(title: title, message: error.localizedDescription, isError: true)
+    }
+
+    private func showBranchAlert(title: String, message: String, isError: Bool) {
+        guard let window = view.window else { return }
+
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = isError ? .warning : .informational
+        alert.addButton(withTitle: "OK")
+        alert.beginSheetModal(for: window, completionHandler: nil)
+    }
+
+    private func notifyRepositoryStateChanged() {
+        NotificationCenter.default.post(name: .repositoryFilesChanged, object: nil)
+        NotificationCenter.default.post(name: .sidebarShouldRefreshStats, object: nil)
+    }
+
+    private func currentBranchName(in repoPath: String) -> String? {
+        branchItems(in: repoPath).first(where: { !$0.branch.isRemote && $0.branch.isCurrent })?.branch.shortName
+    }
+
+    private func remoteBranchItems(for repoPath: String) -> [BranchItem] {
+        branchItems(in: repoPath).filter(\.branch.isRemote)
+    }
+
+    private func remoteNames(for repoPath: String) -> [String] {
+        let names = remoteBranchItems(for: repoPath).compactMap { branchItem in
+            parseRemoteReference(branchItem.branch.shortName)?.0
+        }
+        return Array(Set(names)).sorted()
+    }
+
+    private func branchItems(in repoPath: String) -> [BranchItem] {
+        guard let repoItem = repositoryItems.first(where: { $0.bookmark.path == repoPath }) else { return [] }
+        return repoItem.groups
+            .compactMap { $0 as? BranchGroupItem }
+            .flatMap(\.branches)
+    }
+
+    private func parseRemoteReference(_ reference: String) -> (String, String)? {
+        let components = reference.split(separator: "/", maxSplits: 1, omittingEmptySubsequences: true)
+        guard components.count == 2 else { return nil }
+        return (String(components[0]), String(components[1]))
     }
 
     // MARK: - Actions
@@ -803,25 +1220,35 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             Task {
                 do {
                     let branches = try await GitService.shared.getBranches(in: path)
-                    let localBranchStats = await withTaskGroup(of: (String, Int, Int).self, returning: [String: (ahead: Int, behind: Int)].self) { group in
+                    let localBranchMetadata = await withTaskGroup(
+                        of: (String, String?, Int, Int).self,
+                        returning: [String: (trackedRemote: String?, ahead: Int, behind: Int)].self
+                    ) { group in
                         for branch in branches where !branch.isRemote {
                             group.addTask {
+                                let trackedRemote = await GitService.shared.getUpstream(for: branch.name, in: path)
                                 let counts = await GitService.shared.getAheadBehind(for: branch.name, in: path)
-                                return (branch.name, counts.ahead, counts.behind)
+                                return (branch.name, trackedRemote, counts.ahead, counts.behind)
                             }
                         }
 
-                        var result: [String: (ahead: Int, behind: Int)] = [:]
-                        for await (branchName, ahead, behind) in group {
-                            result[branchName] = (ahead, behind)
+                        var result: [String: (trackedRemote: String?, ahead: Int, behind: Int)] = [:]
+                        for await (branchName, trackedRemote, ahead, behind) in group {
+                            result[branchName] = (trackedRemote, ahead, behind)
                         }
                         return result
                     }
                     await MainActor.run {
                         if let targetItem = self.repositoryItems.first(where: { $0.bookmark.path == path }) {
                             let localBranches = branches.filter { !$0.isRemote }.map {
-                                let counts = localBranchStats[$0.name] ?? (ahead: 0, behind: 0)
-                                return BranchItem(branch: $0, repoPath: path, aheadCount: counts.ahead, behindCount: counts.behind)
+                                let metadata = localBranchMetadata[$0.name] ?? (trackedRemote: nil, ahead: 0, behind: 0)
+                                return BranchItem(
+                                    branch: $0,
+                                    repoPath: path,
+                                    trackedRemote: metadata.trackedRemote,
+                                    aheadCount: metadata.ahead,
+                                    behindCount: metadata.behind
+                                )
                             }
                             let remoteBranches = branches.filter { $0.isRemote }.map { BranchItem(branch: $0, repoPath: path) }
                             
