@@ -8,7 +8,7 @@ protocol HistoryViewProtocol: AnyObject {
     func showLoading(_ loading: Bool)
 }
 
-class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate, NSSplitViewDelegate, NSSearchFieldDelegate {
+class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSMenuDelegate, NSSplitViewDelegate, NSSearchFieldDelegate, HeaderDividerWidthProviding, TabLayoutRestoring {
     
     var presenter: HistoryPresenterProtocol?
     
@@ -43,6 +43,10 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     // Child View Controller
     private let detailVC = CommitDetailViewController()
     
+    var headerDividerWidth: CGFloat {
+        splitView.subviews.first?.frame.width ?? 0
+    }
+    
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: "HistoryViewController", bundle: nil)
     }
@@ -65,10 +69,7 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     
     override func viewDidLayout() {
         super.viewDidLayout()
-        if !hasRestoredSplit && splitView.bounds.width > 200 {
-            splitPersistence?.restoreDividerPositions()
-            hasRestoredSplit = true
-        }
+        restoreLayoutIfNeeded()
     }
     
     private func setupUI() {
@@ -148,6 +149,19 @@ class HistoryViewController: NSViewController, HistoryViewProtocol, NSTableViewD
     
     func splitViewDidResizeSubviews(_ notification: Notification) {
         splitPersistence?.saveDividerPositions()
+        notifyHeaderDividerWidthChanged()
+    }
+
+    func restoreLayoutIfNeeded() {
+        if !hasRestoredSplit && splitView.bounds.width > 200 {
+            splitPersistence?.restoreDividerPositions()
+            hasRestoredSplit = true
+            notifyHeaderDividerWidthChanged()
+        }
+    }
+
+    private func notifyHeaderDividerWidthChanged() {
+        NotificationCenter.default.post(name: .contentSplitLayoutDidChange, object: self)
     }
     
     // MARK: - NSTableViewDataSource & Delegate

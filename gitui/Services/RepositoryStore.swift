@@ -102,4 +102,5 @@ extension Notification.Name {
     static let sidebarShouldRefreshStats = Notification.Name("sidebarShouldRefreshStats")
     static let repositoryContentShouldRefresh = Notification.Name("repositoryContentShouldRefresh")
     static let fileSearchQueryChanged = Notification.Name("fileSearchQueryChanged")
+    static let contentSplitLayoutDidChange = Notification.Name("contentSplitLayoutDidChange")
 }

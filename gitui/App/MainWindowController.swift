@@ -2,6 +2,14 @@
 
 import Cocoa
 
+protocol HeaderDividerWidthProviding: AnyObject {
+    var headerDividerWidth: CGFloat { get }
+}
+
+protocol TabLayoutRestoring: AnyObject {
+    func restoreLayoutIfNeeded()
+}
+
 class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDelegate {
     
     @IBOutlet weak var sidebarContainer: NSView!
@@ -29,6 +37,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     @IBOutlet weak var fileSearchField: NSSearchField!
     private var placeholderView: NSView!
     private var cloneWelcomeButton: NSButton!
+    private var headerBorderWidthConstraint: NSLayoutConstraint?
+    private var hasRestoredMainWindowSplit = false
     
     private var customTabBar: CustomTabBarView!
     
@@ -57,6 +67,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         }
         setupWorkspaceUI()
         loadSidebar()
+        restoreMainSplitIfNeeded()
         
         // Listen for active repository changes
         NotificationCenter.default.addObserver(self, selector: #selector(handleRepoChanged(_:)), name: .activeRepositoryChanged, object: nil)
@@ -66,6 +77,8 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         
         // Refresh when app becomes active
         NotificationCenter.default.addObserver(self, selector: #selector(handleAppDidBecomeActive), name: NSApplication.didBecomeActiveNotification, object: nil)
+
+        NotificationCenter.default.addObserver(self, selector: #selector(handleContentSplitLayoutChanged(_:)), name: .contentSplitLayoutDidChange, object: nil)
         
         // Load initial state
         updateWorkspaceState(path: RepositoryStore.shared.getActiveRepositoryPath())
@@ -73,11 +86,7 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     
     override func showWindow(_ sender: Any?) {
         super.showWindow(sender)
-        // Restore divider positions once the window is visible and has a valid frame
-        DispatchQueue.main.async { [weak self] in
-            self?.splitPersistence?.restoreDividerPositions()
-            self?.splitPersistence?.restoreCollapsedState(defaultWidth: 244)
-        }
+        restoreMainSplitIfNeeded()
     }
     
     private func setupWorkspaceUI() {
@@ -126,10 +135,9 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
             customTabBar.heightAnchor.constraint(equalToConstant: 38)
         ])
         
-        // Constrain the header border width to visually mimic a 3-column layout where
-        // the left pane of ChangesViewController is 400px wide.
         headerBorder.translatesAutoresizingMaskIntoConstraints = false
-        headerBorder.widthAnchor.constraint(equalToConstant: 400).isActive = true
+        headerBorderWidthConstraint = headerBorder.widthAnchor.constraint(equalToConstant: 0)
+        headerBorderWidthConstraint?.isActive = true
         
         placeholderView = WelcomePlaceholderView()
         placeholderView.translatesAutoresizingMaskIntoConstraints = false
@@ -192,6 +200,17 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         // -------------------------------
     }
 
+    private func restoreMainSplitIfNeeded() {
+        guard !hasRestoredMainWindowSplit else { return }
+        window?.contentView?.layoutSubtreeIfNeeded()
+        guard mainSplitView.bounds.width > 200 else { return }
+
+        splitPersistence?.restoreDividerPositions()
+        splitPersistence?.restoreCollapsedState(defaultWidth: 244)
+        hasRestoredMainWindowSplit = true
+        updateHeaderBorderWidth()
+    }
+
     @objc private func cloneWelcomeClicked() {
         guard let window = self.window else { return }
         CloneViewController.show(from: window) { clonedPath in
@@ -237,6 +256,12 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
     @objc private func handleAppDidBecomeActive() {
         // Refresh the current active repo content and all repos in the sidebar
         handleFilesChanged()
+    }
+
+    @objc private func handleContentSplitLayoutChanged(_ notification: Notification) {
+        guard let sourceViewController = notification.object as? NSViewController,
+              sourceViewController === currentTabVC else { return }
+        updateHeaderBorderWidth(for: sourceViewController)
     }
     
     private func updateWorkspaceState(path: String?) {
@@ -312,6 +337,26 @@ class MainWindowController: NSWindowController, NSWindowDelegate, NSSplitViewDel
         newVC.view.pinToEdges(of: tabContentContainer)
         window?.contentViewController?.addChild(newVC)
         currentTabVC = newVC
+        tabContentContainer.layoutSubtreeIfNeeded()
+        (newVC as? TabLayoutRestoring)?.restoreLayoutIfNeeded()
+        tabContentContainer.layoutSubtreeIfNeeded()
+
+        DispatchQueue.main.async { [weak self, weak newVC] in
+            guard let self, let newVC else { return }
+            self.updateHeaderBorderWidth(for: newVC)
+        }
+    }
+
+    private func updateHeaderBorderWidth(for viewController: NSViewController? = nil) {
+        let targetViewController = viewController ?? currentTabVC
+        targetViewController?.view.layoutSubtreeIfNeeded()
+        tabContentContainer.layoutSubtreeIfNeeded()
+
+        let fullWidth = headerContainer.bounds.width > 0 ? headerContainer.bounds.width : tabContentContainer.bounds.width
+        guard fullWidth > 0 else { return }
+
+        let dividerWidth = (targetViewController as? HeaderDividerWidthProviding)?.headerDividerWidth ?? fullWidth
+        headerBorderWidthConstraint?.constant = min(max(dividerWidth, 0), fullWidth)
     }
     
     // MARK: - NSSplitViewDelegate
@@ -1169,4 +1214,3 @@ extension MainWindowController {
         }
     }
 }
-

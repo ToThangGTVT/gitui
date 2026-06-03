@@ -71,7 +71,7 @@ class CommitTextView: NSTextView {
     }
 }
 
-class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate, NSMenuDelegate {
+class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate, NSMenuDelegate, HeaderDividerWidthProviding, TabLayoutRestoring {
 
     var presenter: ChangesPresenterProtocol?
 
@@ -126,8 +126,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
 
     private var hasRestoredMainSplit = false
     private var hasRestoredLeftSplit = false
-    private var hasQueuedMainSplitRestore = false
-    private var hasQueuedLeftSplitRestore = false
+
+    var headerDividerWidth: CGFloat {
+        mainSplitView.subviews.first?.frame.width ?? 0
+    }
     
     override init(nibName nibNameOrNil: NSNib.Name?, bundle nibBundleOrNil: Bundle?) {
         super.init(nibName: "ChangesViewController", bundle: nil)
@@ -183,28 +185,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         }
     }
     
-    override func viewDidAppear() {
-        super.viewDidAppear()
-        // Restore dividers after initial layout is complete and window is visible
-        if !hasQueuedMainSplitRestore {
-            hasQueuedMainSplitRestore = true
-            DispatchQueue.main.async { [weak self] in
-                self?.mainSplitPersistence?.restoreDividerPositions()
-                self?.hasRestoredMainSplit = true
-            }
-        }
-        
-        if !hasQueuedLeftSplitRestore {
-            hasQueuedLeftSplitRestore = true
-            DispatchQueue.main.async { [weak self] in
-                self?.restoreFilesDividerPositions()
-                self?.hasRestoredLeftSplit = true
-            }
-        }
-    }
-    
     override func viewDidLayout() {
         super.viewDidLayout()
+
+        restoreLayoutIfNeeded()
         
         // Re-clamp if the window shrank below saved positions
         if hasRestoredLeftSplit {
@@ -220,6 +204,19 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
                commitH   < FilesSplitMin.commit {
                 restoreFilesDividerPositions()
             }
+        }
+    }
+
+    func restoreLayoutIfNeeded() {
+        if !hasRestoredMainSplit && mainSplitView.bounds.width > 200 {
+            mainSplitPersistence?.restoreDividerPositions()
+            hasRestoredMainSplit = true
+            notifyHeaderDividerWidthChanged()
+        }
+
+        if !hasRestoredLeftSplit && leftSplitView.bounds.height > FilesSplitMin.total {
+            restoreFilesDividerPositions()
+            hasRestoredLeftSplit = true
         }
     }
     
@@ -330,12 +327,30 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         guard panes.count == 3 else { return }
         
         isRestoringLeftSplit = true
-        panes[0].frame = NSRect(x: 0, y: 0, width: panes[0].bounds.width, height: pos0)
-        panes[1].frame = NSRect(x: 0, y: pos0 + divT, width: panes[1].bounds.width, height: pos1 - pos0 - divT)
-        panes[2].frame = NSRect(x: 0, y: pos1 + divT, width: panes[2].bounds.width, height: total - pos1 - divT)
-        
-        leftSplitView.adjustSubviews()
+        leftSplitView.setPosition(pos0, ofDividerAt: 0)
+        leftSplitView.setPosition(pos1, ofDividerAt: 1)
+        leftSplitView.layoutSubtreeIfNeeded()
         isRestoringLeftSplit = false
+    }
+
+    private func ensureLeftSplitLayoutIsValid() {
+        guard hasRestoredLeftSplit else { return }
+        let panes = leftSplitView.subviews
+        guard panes.count == 3 else { return }
+
+        let stagedH = panes[0].frame.height
+        let unstagedH = panes[1].frame.height
+        let commitH = panes[2].frame.height
+
+        if stagedH < FilesSplitMin.staged ||
+            unstagedH < FilesSplitMin.unstaged ||
+            commitH < FilesSplitMin.commit {
+            restoreFilesDividerPositions()
+        }
+    }
+
+    private func notifyHeaderDividerWidthChanged() {
+        NotificationCenter.default.post(name: .contentSplitLayoutDidChange, object: self)
     }
     
     // MARK: - Section builders
@@ -1057,6 +1072,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         guard let sv = notification.object as? NSSplitView else { return }
         if sv === mainSplitView {
             mainSplitPersistence?.saveDividerPositions()
+            notifyHeaderDividerWidthChanged()
         } else if sv === leftSplitView {
             saveFilesDividerPositions()
         }
@@ -1279,6 +1295,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             ? stagedFiles[stagedTableView.selectedRow].path : nil
         allStagedFiles = files
         applyFilter()
+        ensureLeftSplitLayoutIsValid()
         if let selected = previousSelection,
            let newIdx = stagedFiles.firstIndex(where: { $0.path == selected }) {
             stagedTableView.selectRowIndexes(IndexSet(integer: newIdx), byExtendingSelection: false)
@@ -1290,6 +1307,7 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
             ? unstagedFiles[unstagedTableView.selectedRow].path : nil
         allUnstagedFiles = files
         applyFilter()
+        ensureLeftSplitLayoutIsValid()
         if let selected = previousSelection,
            let newIdx = unstagedFiles.firstIndex(where: { $0.path == selected }) {
             unstagedTableView.selectRowIndexes(IndexSet(integer: newIdx), byExtendingSelection: false)
