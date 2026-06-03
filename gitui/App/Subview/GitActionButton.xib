@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="GitActionButton" customModule="gitui" customModuleProvider="target">
+            <connections>
+                <outlet property="badgeLabel" destination="Bdg-3a-c8c" id="o8S-3k-e1F"/>
+                <outlet property="contentView" destination="c22-O7-iKe" id="d8S-4k-e1F"/>
+                <outlet property="iconImageView" destination="pYh-hD-aQz" id="m8S-5k-e1F"/>
+                <outlet property="titleLabel" destination="F7o-aL-oXG" id="p8S-6k-e1F"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="c22-O7-iKe">
+            <rect key="frame" x="0.0" y="0.0" width="160" height="154"/>
+            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+            <subviews>
+                <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="pYh-hD-aQz">
+                    <rect key="frame" x="69" y="23" width="22" height="22"/>
+                    <constraints>
+                        <constraint firstAttribute="width" constant="22" id="Q1K-Zl-A6e"/>
+                        <constraint firstAttribute="height" constant="22" id="vE2-2X-a8E"/>
+                    </constraints>
+                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="E2u-t7-kQv"/>
+                </imageView>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="F7o-aL-oXG">
+                    <rect key="frame" x="-2" y="4" width="164" height="15"/>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="Label" id="bX6-9X-aC8">
+                        <font key="font" metaFont="systemMedium" size="12"/>
+                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Bdg-3a-c8c">
+                    <rect key="frame" x="83" y="35" width="4" height="16"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="16" id="K1e-5Z-bFp"/>
+                        <constraint firstAttribute="width" id="P2K-w1-cFp"/>
+                    </constraints>
+                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="center" title="1" id="TqY-uA-qVv">
+                        <font key="font" metaFont="systemBold" size="10"/>
+                        <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+            </subviews>
+            <constraints>
+                <constraint firstItem="F7o-aL-oXG" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="Hca-Qj-E0E"/>
+                <constraint firstAttribute="trailing" secondItem="F7o-aL-oXG" secondAttribute="trailing" id="L3a-qg-Mh9"/>
+                <constraint firstItem="pYh-hD-aQz" firstAttribute="centerX" secondItem="c22-O7-iKe" secondAttribute="centerX" id="R5h-P6-R5s"/>
+                <constraint firstItem="F7o-aL-oXG" firstAttribute="top" secondItem="pYh-hD-aQz" secondAttribute="bottom" constant="4" id="R7g-Q4-Z5w"/>
+                <constraint firstAttribute="bottom" secondItem="F7o-aL-oXG" secondAttribute="bottom" constant="4" id="S6s-Q6-R8s"/>
+                <constraint firstItem="Bdg-3a-c8c" firstAttribute="leading" secondItem="pYh-hD-aQz" secondAttribute="trailing" constant="-6" id="U0a-2b-D3e"/>
+                <constraint firstItem="Bdg-3a-c8c" firstAttribute="top" secondItem="pYh-hD-aQz" secondAttribute="top" constant="-6" id="W0e-2b-D3e"/>
+            </constraints>
+            <point key="canvasLocation" x="19" y="101"/>
+        </customView>
+    </objects>
+</document>

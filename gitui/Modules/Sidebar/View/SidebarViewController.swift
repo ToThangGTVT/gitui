@@ -75,9 +75,13 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     private var actionButton: NSButton!
     private var removeButton: NSButton!
     private var progressIndicator: NSProgressIndicator!
+    private var segmentedControl: NSSegmentedControl!
     
     private let dragType = NSPasteboard.PasteboardType("gitflow.sidebar.drag")
     private var backgroundView: NSView!
+    private var currentTab: Int = 0 // 0 = Changes, 1 = Repositories
+    private var searchContainer: NSView!
+    private var currentSearchQuery: String = ""
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -110,13 +114,28 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             backgroundView.trailingAnchor.constraint(equalTo: view.trailingAnchor)
         ])
         
+        // 0. Segmented Control at Top
+        let tabContainer = NSView()
+        tabContainer.translatesAutoresizingMaskIntoConstraints = false
+        backgroundView.addSubview(tabContainer)
+        
+        segmentedControl = NSSegmentedControl(labels: ["Changes", "Repositories"], trackingMode: .selectOne, target: self, action: #selector(tabChanged(_:)))
+        segmentedControl.selectedSegment = 0
+        if #available(macOS 11.0, *) {
+            segmentedControl.segmentStyle = .capsule
+        } else {
+            segmentedControl.segmentStyle = .texturedRounded
+        }
+        segmentedControl.translatesAutoresizingMaskIntoConstraints = false
+        tabContainer.addSubview(segmentedControl)
+        
         // 1. Search Bar at Top
-        let searchContainer = NSView()
+        searchContainer = NSView()
         searchContainer.translatesAutoresizingMaskIntoConstraints = false
         backgroundView.addSubview(searchContainer)
         
         searchField = NSSearchField()
-        searchField.placeholderString = "Search repositories..."
+        searchField.placeholderString = "Search branches, worktrees..."
         searchField.delegate = self
         searchField.font = NSFont.systemFont(ofSize: 12)
         searchField.translatesAutoresizingMaskIntoConstraints = false
@@ -186,10 +205,18 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         
         // Constraints
         NSLayoutConstraint.activate([
-            searchContainer.topAnchor.constraint(equalTo: backgroundView.topAnchor),
+            tabContainer.topAnchor.constraint(equalTo: backgroundView.topAnchor),
+            tabContainer.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
+            tabContainer.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
+            tabContainer.heightAnchor.constraint(equalToConstant: 44),
+            
+            segmentedControl.centerYAnchor.constraint(equalTo: tabContainer.centerYAnchor),
+            segmentedControl.centerXAnchor.constraint(equalTo: tabContainer.centerXAnchor),
+            
+            searchContainer.topAnchor.constraint(equalTo: tabContainer.bottomAnchor),
             searchContainer.leadingAnchor.constraint(equalTo: backgroundView.leadingAnchor),
             searchContainer.trailingAnchor.constraint(equalTo: backgroundView.trailingAnchor),
-            searchContainer.heightAnchor.constraint(equalToConstant: 44),
+            searchContainer.heightAnchor.constraint(equalToConstant: 32),
             
             searchField.centerYAnchor.constraint(equalTo: searchContainer.centerYAnchor),
             searchField.leadingAnchor.constraint(equalTo: searchContainer.leadingAnchor, constant: 12),
@@ -225,6 +252,31 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
             progressIndicator.widthAnchor.constraint(equalToConstant: 14),
             progressIndicator.heightAnchor.constraint(equalToConstant: 14)
         ])
+    }
+    
+    @objc private func tabChanged(_ sender: NSSegmentedControl) {
+        currentTab = sender.selectedSegment
+        actionButton.isHidden = (currentTab == 0)
+        removeButton.isHidden = (currentTab == 0)
+        
+        searchField.placeholderString = currentTab == 0 ? "Search branches, worktrees..." : "Search repositories..."
+        searchField.stringValue = ""
+        currentSearchQuery = ""
+        
+        if currentTab == 1 {
+            presenter?.filterBookmarks(query: "")
+        }
+        
+        outlineView.reloadData()
+        
+        if currentTab == 0 {
+            // Expand all groups in changes by default
+            if let activeRepo = repositoryItems.first(where: { $0.bookmark.path == activePath }) {
+                for group in activeRepo.groups {
+                    outlineView.expandItem(group, expandChildren: true)
+                }
+            }
+        }
     }
     
     // MARK: - NSMenuDelegate
@@ -398,11 +450,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         
         if let clickedItem = sender.item(atRow: row) {
             if let repoItem = clickedItem as? RepositoryItem {
-                if sender.isItemExpanded(repoItem) {
-                    sender.animator().collapseItem(repoItem)
-                } else {
-                    sender.animator().expandItem(repoItem)
-                }
+                presenter?.didSelectRepository(repoItem.bookmark)
             } else if let groupItem = clickedItem as? BranchGroupItem {
                 if sender.isItemExpanded(groupItem) {
                     sender.animator().collapseItem(groupItem)
@@ -427,43 +475,87 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         }
     }
     
+    // MARK: - Filtering Logic
+    
+    private func filteredGroups() -> [Any] {
+        guard let activeRepo = repositoryItems.first(where: { $0.bookmark.path == activePath }) else { return [] }
+        if currentSearchQuery.isEmpty { return activeRepo.groups }
+        
+        return activeRepo.groups.filter { group in
+            if let bGroup = group as? BranchGroupItem {
+                return !filteredBranches(for: bGroup).isEmpty
+            } else if let sGroup = group as? SubmoduleGroupItem {
+                return !filteredSubmodules(for: sGroup).isEmpty
+            } else if let wGroup = group as? WorktreeGroupItem {
+                return !filteredWorktrees(for: wGroup).isEmpty
+            }
+            return false
+        }
+    }
+    
+    private func filteredBranches(for group: BranchGroupItem) -> [BranchItem] {
+        if currentSearchQuery.isEmpty { return group.branches }
+        return group.branches.filter { $0.branch.shortName.lowercased().contains(currentSearchQuery) }
+    }
+    
+    private func filteredSubmodules(for group: SubmoduleGroupItem) -> [GitSubmodule] {
+        if currentSearchQuery.isEmpty { return group.items }
+        return group.items.filter { $0.path.lowercased().contains(currentSearchQuery) }
+    }
+    
+    private func filteredWorktrees(for group: WorktreeGroupItem) -> [GitWorktree] {
+        if currentSearchQuery.isEmpty { return group.items }
+        return group.items.filter { $0.branch.lowercased().contains(currentSearchQuery) || $0.path.lowercased().contains(currentSearchQuery) }
+    }
+
     // MARK: - NSOutlineViewDataSource
     
     func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
-        if item == nil {
-            return repositoryItems.count
-        } else if let repoItem = item as? RepositoryItem {
-            return repoItem.groups.count
-        } else if let groupItem = item as? BranchGroupItem {
-            return groupItem.branches.count
-        } else if let subGroup = item as? SubmoduleGroupItem {
-            return subGroup.items.count
-        } else if let wtGroup = item as? WorktreeGroupItem {
-            return wtGroup.items.count
+        if currentTab == 0 {
+            if item == nil {
+                return filteredGroups().count
+            } else if let groupItem = item as? BranchGroupItem {
+                return filteredBranches(for: groupItem).count
+            } else if let subGroup = item as? SubmoduleGroupItem {
+                return filteredSubmodules(for: subGroup).count
+            } else if let wtGroup = item as? WorktreeGroupItem {
+                return filteredWorktrees(for: wtGroup).count
+            }
+            return 0
+        } else {
+            if item == nil {
+                return repositoryItems.count
+            }
+            return 0
         }
-        return 0
     }
     
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
-        if item == nil {
-            return repositoryItems[index]
-        } else if let repoItem = item as? RepositoryItem {
-            return repoItem.groups[index]
-        } else if let groupItem = item as? BranchGroupItem {
-            return groupItem.branches[index]
-        } else if let subGroup = item as? SubmoduleGroupItem {
-            return subGroup.items[index]
-        } else if let wtGroup = item as? WorktreeGroupItem {
-            return wtGroup.items[index]
+        if currentTab == 0 {
+            if item == nil {
+                return filteredGroups()[index]
+            } else if let groupItem = item as? BranchGroupItem {
+                return filteredBranches(for: groupItem)[index]
+            } else if let subGroup = item as? SubmoduleGroupItem {
+                return filteredSubmodules(for: subGroup)[index]
+            } else if let wtGroup = item as? WorktreeGroupItem {
+                return filteredWorktrees(for: wtGroup)[index]
+            }
+        } else {
+            if item == nil {
+                return repositoryItems[index]
+            }
         }
         fatalError("Requested child out of bounds")
     }
     
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
-        if item is RepositoryItem {
-            return true
-        } else if item is BranchGroupItem || item is SubmoduleGroupItem || item is WorktreeGroupItem {
-            return true
+        if currentTab == 0 {
+            if item is BranchGroupItem || item is SubmoduleGroupItem || item is WorktreeGroupItem {
+                return true
+            }
+        } else {
+            return false
         }
         return false
     }
@@ -642,7 +734,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.identifier = cellIdentifier
                 let label = NSTextField(labelWithString: "")
                 label.font = NSFont.systemFont(ofSize: 11, weight: .bold)
-                label.textColor = NSColor.tertiaryLabelColor
+                label.textColor = NSColor.secondaryLabelColor
                 label.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(label)
                 cell?.textField = label
@@ -707,7 +799,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                         cell?.imageView?.contentTintColor = NSColor.gitFlowAccent
                     }
                 } else {
-                    textField.font = NSFont.systemFont(ofSize: 12, weight: .regular)
+                    textField.font = NSFont.systemFont(ofSize: 12, weight: .medium)
                     textField.textColor = NSColor.labelColor
                     if #available(macOS 11.0, *) {
                         cell?.imageView?.contentTintColor = NSColor.secondaryLabelColor
@@ -735,7 +827,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.imageView = icon
                 
                 let label = NSTextField(labelWithString: "")
-                label.font = NSFont.systemFont(ofSize: 12)
+                label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
                 label.textColor = NSColor.labelColor
                 label.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(label)
@@ -773,7 +865,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                 cell?.imageView = icon
                 
                 let label = NSTextField(labelWithString: "")
-                label.font = NSFont.systemFont(ofSize: 12)
+                label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
                 label.textColor = NSColor.labelColor
                 label.translatesAutoresizingMaskIntoConstraints = false
                 cell?.addSubview(label)
@@ -809,7 +901,6 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         if let selectedItem = outlineView.item(atRow: selectedRow) {
             if let repoItem = selectedItem as? RepositoryItem {
                 removeButton.isEnabled = true
-                outlineView.expandItem(repoItem, expandChildren: true)
                 presenter?.didSelectRepository(repoItem.bookmark)
             } else if let branchItem = selectedItem as? BranchItem {
                 removeButton.isEnabled = false
@@ -855,7 +946,21 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
     
     func controlTextDidChange(_ obj: Notification) {
         guard let field = obj.object as? NSSearchField else { return }
-        presenter?.filterBookmarks(query: field.stringValue)
+        let query = field.stringValue
+        
+        if currentTab == 1 {
+            presenter?.filterBookmarks(query: query)
+        } else {
+            currentSearchQuery = query.lowercased()
+            outlineView.reloadData()
+            
+            if !query.isEmpty {
+                // Expand all matching groups when searching
+                for group in filteredGroups() {
+                    outlineView.expandItem(group, expandChildren: true)
+                }
+            }
+        }
     }
     
     // MARK: - SidebarViewProtocol
@@ -983,10 +1088,20 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             updatedGroups.append(contentsOf: targetItem.groups.filter { $0 is SubmoduleGroupItem || $0 is WorktreeGroupItem })
                             
                             targetItem.groups = updatedGroups
-                            self.outlineView.reloadItem(targetItem, reloadChildren: true)
+                            if path == self.activePath && self.currentTab == 0 {
+                                self.outlineView.reloadData()
+                            } else {
+                                self.outlineView.reloadItem(targetItem, reloadChildren: true)
+                            }
 
                             if path == self.activePath {
-                                self.outlineView.expandItem(targetItem, expandChildren: true)
+                                if self.currentTab == 0 {
+                                    for group in updatedGroups {
+                                        self.outlineView.expandItem(group, expandChildren: true)
+                                    }
+                                } else {
+                                    self.outlineView.expandItem(targetItem, expandChildren: true)
+                                }
                             } else {
                                 for group in updatedGroups {
                                     let title: String?
@@ -1042,10 +1157,20 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
                             }
                             
                             targetItem.groups = newGroups
-                            self.outlineView.reloadItem(targetItem, reloadChildren: true)
+                            if path == self.activePath && self.currentTab == 0 {
+                                self.outlineView.reloadData()
+                            } else {
+                                self.outlineView.reloadItem(targetItem, reloadChildren: true)
+                            }
 
                             if path == self.activePath {
-                                self.outlineView.expandItem(targetItem, expandChildren: true)
+                                if self.currentTab == 0 {
+                                    for group in newGroups {
+                                        self.outlineView.expandItem(group, expandChildren: true)
+                                    }
+                                } else {
+                                    self.outlineView.expandItem(targetItem, expandChildren: true)
+                                }
                             }
                         }
                     }
