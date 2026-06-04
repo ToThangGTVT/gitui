@@ -274,7 +274,7 @@ final class GitService: GitServiceProtocol, @unchecked Sendable {
             process.waitUntilExit()
             
             // Give readers a brief moment to complete writing any remaining buffered data
-            try await Task.sleep(for: .seconds(0.05))
+            try await Task.sleep(nanoseconds: 50_000_000)
             
             let finalOutput = buffer.get()
             

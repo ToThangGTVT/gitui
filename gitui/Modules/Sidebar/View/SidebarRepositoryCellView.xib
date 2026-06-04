@@ -41,7 +41,7 @@
                 <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-path">
                     <rect key="frame" x="6" y="10" width="208" height="15"/>
                     <textFieldCell key="cell" lineBreakMode="truncatingHead" title="/Users/example/repository" id="repo-path-cell">
-                        <font key="font" metaFont="system" size="12"/>
+                        <font key="font" metaFont="cellTitle"/>
                         <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
