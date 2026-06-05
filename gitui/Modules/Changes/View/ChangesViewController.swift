@@ -38,7 +38,7 @@ class CommitTextView: NSTextView {
         
         if string.isEmpty && !placeholderString.isEmpty {
             let attributes: [NSAttributedString.Key: Any] = [
-                .font: self.font ?? NSFont.systemFont(ofSize: 13),
+                .font: self.font ?? NSFont.systemFont(ofSize: 14),
                 .foregroundColor: NSColor.placeholderTextColor
             ]
             
@@ -71,7 +71,7 @@ class CommitTextView: NSTextView {
     }
 }
 
-class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate, NSMenuDelegate, HeaderDividerWidthProviding, TabLayoutRestoring {
+class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewDataSource, NSTableViewDelegate, NSTextViewDelegate, NSSplitViewDelegate, NSMenuDelegate, HeaderDividerWidthProviding, TabLayoutRestoring, DiffTextViewHunkDelegate {
 
     var presenter: ChangesPresenterProtocol?
 
@@ -96,7 +96,13 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     @IBOutlet private weak var diffTableView: NSTableView!
     @IBOutlet private weak var diffScrollView: NSScrollView!
     @IBOutlet private weak var diffTitleLabel: NSTextField!
+    private weak var copyDiffButton: NSButton?
+    private weak var diffTextView: DiffTextView?
+    private weak var diffTextDocumentView: DiffTextDocumentView?
+    private var retainedDiffTableView: NSTableView?
     private var diffLines: [DiffLine] = []
+    private var currentDiffText: String = ""
+    private var currentDiffHunks: [DiffHunk] = []
     private var isShowingUnstagedDiff: Bool = true
     
     // Binary Diff View Components
@@ -189,6 +195,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         super.viewDidLayout()
 
         restoreLayoutIfNeeded()
+
+        if !currentDiffText.isEmpty {
+            updateDiffTextView(text: currentDiffText, hunks: currentDiffHunks)
+        }
         
         // Re-clamp if the window shrank below saved positions
         if hasRestoredLeftSplit {
@@ -242,7 +252,13 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         unstagedTableView.delegate = self
         
         commitTextView.delegate = self
-        
+        let commitFont = NSFont.systemFont(ofSize: 14)
+        commitTextView.font = commitFont
+        commitTextView.typingAttributes = [
+            .font: commitFont,
+            .foregroundColor: NSColor.labelColor
+        ]
+
         if #available(macOS 11.0, *) {
             commitButton.bezelColor = NSColor.systemBlue
             commitButton.contentTintColor = .white
@@ -259,6 +275,9 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         
         diffTableView.dataSource = self
         diffTableView.delegate = self
+        configureDiffTextView()
+        configureDiffCopyButton()
+        updateDiffCopyButtonState()
         
         // Set double click actions on tables
         stagedTableView.doubleAction = #selector(stagedTableDoubleClicked(_:))
@@ -274,6 +293,224 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         unstagedMenu.delegate = self
         unstagedMenu.identifier = NSUserInterfaceItemIdentifier("unstagedMenu")
         unstagedTableView.menu = unstagedMenu
+    }
+
+    private func configureDiffCopyButton() {
+        guard let container = diffTitleLabel.superview else { return }
+
+        let button = NSButton(title: "Copy Diff", target: self, action: #selector(copyDiffClicked(_:)))
+        button.bezelStyle = .rounded
+        button.controlSize = .small
+        button.toolTip = "Copy the current diff as text"
+        button.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(button)
+        copyDiffButton = button
+
+        for constraint in container.constraints where
+            ((constraint.firstItem as? NSTextField) === diffTitleLabel && constraint.firstAttribute == .trailing) ||
+            ((constraint.secondItem as? NSTextField) === diffTitleLabel && constraint.secondAttribute == .trailing) {
+            constraint.isActive = false
+        }
+
+        diffTitleLabel.lineBreakMode = .byTruncatingMiddle
+
+        NSLayoutConstraint.activate([
+            button.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
+            button.centerYAnchor.constraint(equalTo: diffTitleLabel.centerYAnchor),
+            diffTitleLabel.trailingAnchor.constraint(lessThanOrEqualTo: button.leadingAnchor, constant: -12)
+        ])
+    }
+
+    private func updateDiffCopyButtonState() {
+        copyDiffButton?.isEnabled = !currentDiffText.isEmpty
+    }
+
+    private func configureDiffTextView() {
+        retainedDiffTableView = diffTableView
+
+        let textView = DiffTextView(frame: diffScrollView.contentView.bounds, textContainer: nil)
+        textView.hunkDelegate = self
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.isRichText = false
+        textView.importsGraphics = false
+        textView.usesFindBar = true
+        textView.drawsBackground = true
+        textView.backgroundColor = NSColor.controlBackgroundColor
+        textView.textColor = NSColor.gitFlowText
+        textView.font = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        textView.insertionPointColor = NSColor.clear
+        textView.allowsUndo = false
+        textView.textContainerInset = NSSize(width: 12, height: 10)
+        textView.minSize = NSSize(width: 0, height: diffScrollView.contentSize.height)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.isHorizontallyResizable = true
+        textView.isVerticallyResizable = true
+        textView.autoresizingMask = [.width]
+        textView.textContainer?.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.textContainer?.widthTracksTextView = false
+        textView.textContainer?.lineFragmentPadding = 0
+
+        let documentView = DiffTextDocumentView(textView: textView)
+        diffScrollView.hasVerticalRuler = false
+        diffScrollView.rulersVisible = false
+        diffScrollView.documentView = documentView
+        diffTextView = textView
+        diffTextDocumentView = documentView
+    }
+
+    private func copyToPasteboard(_ text: String) {
+        guard !text.isEmpty else { return }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
+    private func textForDiffRows(_ rows: IndexSet) -> String {
+        rows.compactMap { row -> String? in
+            guard row < diffLines.count else { return nil }
+            return diffLines[row].rawText
+        }
+        .joined(separator: "\n")
+    }
+
+    private func isResponderInsideDiffPane(_ responder: NSResponder?) -> Bool {
+        if responder === diffTableView || responder === diffTextView || responder === copyDiffButton {
+            return true
+        }
+
+        guard let view = responder as? NSView else { return false }
+        let isInsideTable = diffTableView.map { view.isDescendant(of: $0) } ?? false
+        let isInsideTextView = diffTextView.map { view.isDescendant(of: $0) } ?? false
+        return isInsideTable || isInsideTextView || view.isDescendant(of: diffScrollView)
+    }
+
+    private func friendlyHunkTitle(_ hunk: DiffHunk, index: Int) -> String {
+        let pattern = #"@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@"#
+        guard let regex = try? NSRegularExpression(pattern: pattern),
+              let match = regex.firstMatch(in: hunk.header, range: NSRange(hunk.header.startIndex..., in: hunk.header)),
+              let oldStartRange = Range(match.range(at: 1), in: hunk.header) else {
+            return "Hunk \(index + 1)"
+        }
+
+        let oldStart = Int(hunk.header[oldStartRange]) ?? 1
+        let oldCount: Int = {
+            guard match.range(at: 2).location != NSNotFound,
+                  let range = Range(match.range(at: 2), in: hunk.header) else { return 1 }
+            return Int(hunk.header[range]) ?? 1
+        }()
+        let oldEnd = max(oldStart + max(oldCount - 1, 0), oldStart)
+        return "Hunk \(index + 1): Lines \(oldStart)-\(oldEnd)"
+    }
+
+    private func attributedDiffText(from lines: [DiffLine]) -> (NSAttributedString, [DiffTextGutterEntry]) {
+        let result = NSMutableAttributedString()
+        let fullRangeFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        let headerFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
+        var gutterEntries: [DiffTextGutterEntry] = []
+        let addedBackground = NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.04, green: 0.18, blue: 0.04, alpha: 1.0)
+                : NSColor(hex: "#E6F4EA")
+        }
+        let addedText = NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.42, green: 0.88, blue: 0.42, alpha: 1.0)
+                : NSColor(hex: "#0B5B27")
+        }
+        let removedBackground = NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.22, green: 0.04, blue: 0.04, alpha: 1.0)
+                : NSColor(hex: "#FCE8E6")
+        }
+        let removedText = NSColor(name: nil) { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(red: 0.96, green: 0.46, blue: 0.46, alpha: 1.0)
+                : NSColor(hex: "#A50E0E")
+        }
+        var hunkIndex = 0
+
+        for (index, line) in lines.enumerated() {
+            if index > 0 {
+                result.append(NSAttributedString(string: "\n"))
+            }
+
+            let attributes: [NSAttributedString.Key: Any]
+            let lineString: String
+            var backgroundColor: NSColor?
+            var oldLineNumber = ""
+            var newLineNumber = ""
+
+            switch line.kind {
+            case .hunkHeader(let hunk):
+                lineString = friendlyHunkTitle(hunk, index: hunkIndex)
+                hunkIndex += 1
+                attributes = [
+                    .font: headerFont,
+                    .foregroundColor: NSColor.m3Primary,
+                    .backgroundColor: NSColor.m3Primary.withAlphaComponent(0.08)
+                ]
+                backgroundColor = NSColor.m3Primary.withAlphaComponent(0.08)
+            case .added(let newLine):
+                lineString = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
+                newLineNumber = "\(newLine)"
+                backgroundColor = addedBackground
+                attributes = [
+                    .font: fullRangeFont,
+                    .foregroundColor: addedText,
+                    .backgroundColor: backgroundColor as Any
+                ]
+            case .removed(let oldLine):
+                lineString = line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())
+                oldLineNumber = "\(oldLine)"
+                backgroundColor = removedBackground
+                attributes = [
+                    .font: fullRangeFont,
+                    .foregroundColor: removedText,
+                    .backgroundColor: backgroundColor as Any
+                ]
+            case .context(let oldLine, let newLine):
+                lineString = line.rawText.hasPrefix(" ") ? String(line.rawText.dropFirst()) : line.rawText
+                oldLineNumber = "\(oldLine)"
+                newLineNumber = "\(newLine)"
+                attributes = [
+                    .font: fullRangeFont,
+                    .foregroundColor: NSColor.gitFlowDiffContextText
+                ]
+            case .fileHeader:
+                lineString = line.rawText
+                attributes = [
+                    .font: headerFont,
+                    .foregroundColor: NSColor.gitFlowSecondaryText
+                ]
+            }
+
+            result.append(NSAttributedString(string: lineString, attributes: attributes))
+            gutterEntries.append(DiffTextGutterEntry(oldLineNumber: oldLineNumber, newLineNumber: newLineNumber, backgroundColor: backgroundColor))
+        }
+
+        return (result, gutterEntries)
+    }
+
+    private func updateDiffTextView(text: String, hunks: [DiffHunk]) {
+        guard let diffTextView else { return }
+
+        let renderedLines = diffLines.isEmpty ? buildDiffLines(from: text, hunks: hunks) : diffLines
+        let (attributedText, gutterEntries) = attributedDiffText(from: renderedLines)
+        diffTextView.hunks = hunks
+        diffTextView.isShowingUnstagedDiff = isShowingUnstagedDiff
+        diffTextView.lineNumberPrefixLength = 0
+        diffTextView.gutterEntries = gutterEntries
+        diffTextView.textStorage?.setAttributedString(attributedText)
+        diffTextView.setSelectedRange(NSRange(location: 0, length: 0))
+
+        guard let textContainer = diffTextView.textContainer else { return }
+        diffTextView.layoutManager?.ensureLayout(for: textContainer)
+        let usedRect = diffTextView.layoutManager?.usedRect(for: textContainer) ?? .zero
+        let contentWidth = max(diffScrollView.contentSize.width, ceil(usedRect.width) + diffTextView.textContainerInset.width * 2)
+        let contentHeight = max(diffScrollView.contentSize.height, ceil(usedRect.height) + diffTextView.textContainerInset.height * 2)
+        diffTextDocumentView?.update(entries: gutterEntries, textViewSize: NSSize(width: contentWidth, height: contentHeight))
     }
     
     // MARK: - Left split (3-pane) save/restore
@@ -445,17 +682,23 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         scroll.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(scroll)
         
-        commitTextView = CommitTextView()
-        commitTextView.isRichText = false
-        commitTextView.isEditable = true
-        commitTextView.font = NSFont.systemFont(ofSize: 13)
-        commitTextView.textColor = NSColor.labelColor
-        commitTextView.delegate = self
-        commitTextView.insertionPointColor = NSColor.labelColor
-        commitTextView.string = ""
-        commitTextView.textContainerInset = NSSize(width: 8, height: 8)
-        commitTextView.backgroundColor = .clear
-        scroll.documentView = commitTextView
+        let textView = CommitTextView()
+        let commitFont = NSFont.systemFont(ofSize: 14)
+        textView.isRichText = false
+        textView.isEditable = true
+        textView.font = commitFont
+        textView.textColor = NSColor.labelColor
+        textView.delegate = self
+        textView.insertionPointColor = NSColor.labelColor
+        textView.typingAttributes = [
+            .font: commitFont,
+            .foregroundColor: NSColor.labelColor
+        ]
+        textView.string = ""
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.backgroundColor = .clear
+        scroll.documentView = textView
+        commitTextView = textView
         
         amendCheckbox = NSButton(checkboxWithTitle: "Amend last commit", target: self, action: #selector(amendCheckboxChanged(_:)))
         amendCheckbox.translatesAutoresizingMaskIntoConstraints = false
@@ -965,33 +1208,27 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     }
     
     @objc func copy(_ sender: Any?) {
-        guard let window = view.window, window.firstResponder == diffTableView else {
+        if let window = view.window, window.firstResponder === diffTextView {
+            diffTextView?.copy(sender)
+            return
+        }
+
+        guard let window = view.window, isResponderInsideDiffPane(window.firstResponder) else {
             if let next = self.nextResponder {
                 next.tryToPerform(#selector(copy(_:)), with: sender)
             }
             return
         }
-        
-        let selectedRows = diffTableView.selectedRowIndexes
-        guard !selectedRows.isEmpty else { return }
-        
-        var copiedText = ""
-        for row in selectedRows {
-            guard row < diffLines.count else { continue }
-            let line = diffLines[row]
-            switch line.kind {
-            case .context, .added, .removed:
-                copiedText += (line.rawText.isEmpty ? "" : String(line.rawText.dropFirst())) + "\n"
-            case .fileHeader, .hunkHeader:
-                break
-            }
+
+        if let diffTextView, diffTextView.selectedRange.length > 0 {
+            diffTextView.copy(sender)
+        } else {
+            copyToPasteboard(currentDiffText)
         }
-        
-        if !copiedText.isEmpty {
-            let pasteboard = NSPasteboard.general
-            pasteboard.clearContents()
-            pasteboard.setString(copiedText, forType: .string)
-        }
+    }
+
+    @objc private func copyDiffClicked(_ sender: Any?) {
+        copyToPasteboard(currentDiffText)
     }
     
     // MARK: - NSSplitViewDelegate
@@ -1278,8 +1515,28 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         } else if table === unstagedTableView {
             stagedTableView.deselectAll(nil)
             presenter?.didSelectFile(unstagedFiles[row])
+        } else if table === diffTableView {
+            view.window?.makeFirstResponder(diffTextView)
         }
-        // diffTableView selection: intentionally ignored
+    }
+
+    func diffTextView(_ view: DiffTextView, didRequestStageHunk hunk: DiffHunk) {
+        presenter?.didClickStageHunk(patch: hunk.patch)
+    }
+
+    func diffTextView(_ view: DiffTextView, didRequestDiscardHunk hunk: DiffHunk) {
+        let alert = NSAlert()
+        alert.messageText = "Discard Hunk?"
+        alert.informativeText = "Are you sure? This cannot be undone."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Discard")
+        alert.addButton(withTitle: "Cancel")
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        presenter?.didClickDiscardHunk(patch: hunk.patch)
+    }
+
+    func diffTextView(_ view: DiffTextView, didRequestUnstageHunk hunk: DiffHunk) {
+        presenter?.didClickUnstageHunk(patch: hunk.patch)
     }
     
     // MARK: - NSTextViewDelegate
@@ -1316,6 +1573,11 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     
     func showConflictResolution(for filePath: String, repoPath: String) {
         removeConflictUI()
+        currentDiffText = ""
+        currentDiffHunks = []
+        diffTextView?.hunks = []
+        diffTextView?.string = ""
+        updateDiffCopyButtonState()
         
         let vc = ConflictResolutionViewController(filePath: filePath, repoPath: repoPath)
         vc.delegate = self
@@ -1346,24 +1608,19 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
     func showDiffText(_ text: String, for file: String, isStaged: Bool) {
         removeConflictUI()
         diffTitleLabel.stringValue = file
+        currentDiffText = text
         self.isShowingUnstagedDiff = !isStaged
         
         diffEmptyStateView.isHidden = true
         diffScrollView.isHidden = false
         diffBinaryView.isHidden = true
         let hunks = parseDiffHunks(from: text)
+        currentDiffHunks = hunks
         diffLines = buildDiffLines(from: text, hunks: hunks)
-        
-        let maxLineLength = diffLines.map { $0.rawText.count }.max() ?? 0
-        let contentWidth = CGFloat(maxLineLength) * 8.0 + 80 // Approx 8px per char + gutter padding
-        if let col = diffTableView.tableColumns.first {
-            col.width = max(diffScrollView.bounds.width, contentWidth)
-        }
-        
-        diffTableView.reloadData()
-        if !diffLines.isEmpty {
-            diffTableView.scrollRowToVisible(0)
-        }
+        updateDiffTextView(text: text, hunks: hunks)
+
+        diffTextView?.scrollRangeToVisible(NSRange(location: 0, length: 0))
+        updateDiffCopyButtonState()
     }
     
     private func formatSize(_ bytes: Int) -> String {
@@ -1384,6 +1641,10 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         removeConflictUI()
         diffTitleLabel.stringValue = file
         self.currentBinaryFilePath = file
+        currentDiffText = ""
+        currentDiffHunks = []
+        diffTextView?.hunks = []
+        diffTextView?.string = ""
         
         diffEmptyStateView.isHidden = true
         diffScrollView.isHidden = true
@@ -1395,10 +1656,15 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         // Ensure "After" open button works if size > 0
         binaryAfterOpenButton.isEnabled = afterSize > 0
         binaryBeforeOpenButton.isEnabled = beforeSize > 0
+        updateDiffCopyButtonState()
     }
 
     func showLastCommitMessage(_ message: String) {
-        commitTextView.string = message
+        let attrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 14),
+            .foregroundColor: NSColor.labelColor
+        ]
+        commitTextView.textStorage?.setAttributedString(NSAttributedString(string: message, attributes: attrs))
         amendCheckbox.state = .on
     }
 
@@ -1443,11 +1709,15 @@ class ChangesViewController: NSViewController, ChangesViewProtocol, NSTableViewD
         removeConflictUI()
         diffTitleLabel.stringValue = "No file selected"
         diffLines.removeAll()
-        diffTableView.reloadData()
+        currentDiffText = ""
+        currentDiffHunks = []
+        diffTextView?.hunks = []
+        diffTextView?.string = ""
         
         diffEmptyStateView.isHidden = false
         diffScrollView.isHidden = true
         diffBinaryView.isHidden = true
+        updateDiffCopyButtonState()
     }
     
     func showLoading(_ loading: Bool) {

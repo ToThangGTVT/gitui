@@ -1,22 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="22154" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="22154"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="UpdateViewController" customModule="gitui" customModuleProvider="target">
             <connections>
-                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
+                <outlet property="downloadButton" destination="dwn-ld-bn1" id="out-dw-1"/>
                 <outlet property="headerIcon" destination="hdr-ic-on1" id="out-hd-1"/>
-                <outlet property="titleLabel" destination="ttl-lb-l11" id="out-tt-1"/>
-                <outlet property="versionBadgeContainer" destination="ver-bg-cnt" id="out-vb-1"/>
-                <outlet property="notesLabel" destination="not-es-lb1" id="out-nt-1"/>
+                <outlet property="laterButton" destination="lat-er-bn1" id="out-lt-1"/>
                 <outlet property="logScrollView" destination="log-sc-rl1" id="out-sc-1"/>
                 <outlet property="logTextView" destination="log-tx-tv1" id="out-tx-1"/>
-                <outlet property="laterButton" destination="lat-er-bn1" id="out-lt-1"/>
-                <outlet property="downloadButton" destination="dwn-ld-bn1" id="out-dw-1"/>
+                <outlet property="notesLabel" destination="not-es-lb1" id="out-nt-1"/>
+                <outlet property="titleLabel" destination="ttl-lb-l11" id="out-tt-1"/>
+                <outlet property="versionBadgeContainer" destination="ver-bg-cnt" id="out-vb-1"/>
+                <outlet property="view" destination="Hz6-mo-xeY" id="0bl-1N-x8E"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -28,26 +28,26 @@
                 <imageView horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="hdr-ic-on1">
                     <rect key="frame" x="24" y="328" width="32" height="32"/>
                     <constraints>
-                        <constraint firstAttribute="width" constant="32" id="cW1"/>
                         <constraint firstAttribute="height" constant="32" id="cH1"/>
+                        <constraint firstAttribute="width" constant="32" id="cW1"/>
                     </constraints>
                     <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyUpOrDown" id="icC1"/>
                 </imageView>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ttl-lb-l11">
-                    <rect key="frame" x="66" y="343" width="432" height="21"/>
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="ttl-lb-l11">
+                    <rect key="frame" x="66" y="342" width="432" height="20"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" title="New Update Available" id="tlC1">
                         <font key="font" metaFont="systemBold" size="17"/>
                         <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                     </textFieldCell>
                 </textField>
-                <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="8" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ver-bg-cnt">
-                    <rect key="frame" x="68" y="321" width="0.0" height="16"/>
+                <stackView distribution="fill" orientation="horizontal" alignment="centerY" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" detachesHiddenViews="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ver-bg-cnt">
+                    <rect key="frame" x="68" y="312" width="0.0" height="24"/>
                     <constraints>
-                        <constraint firstAttribute="height" constant="16" id="cHStk"/>
+                        <constraint firstAttribute="height" constant="24" id="cHStk"/>
                     </constraints>
                 </stackView>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="not-es-lb1">
+                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="not-es-lb1">
                     <rect key="frame" x="22" y="293" width="476" height="15"/>
                     <textFieldCell key="cell" lineBreakMode="clipping" title="Release Notes:" id="nlC1">
                         <font key="font" metaFont="systemSemibold" size="12"/>
@@ -82,25 +82,21 @@
                     </scroller>
                 </scrollView>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lat-er-bn1">
-                    <rect key="frame" x="17" y="11" width="104" height="40"/>
-                    <constraints>
-                        <constraint firstAttribute="width" constant="90" id="cW2"/>
-                        <constraint firstAttribute="height" constant="28" id="cH3"/>
-                    </constraints>
+                    <rect key="frame" x="24" y="18" width="90" height="28"/>
                     <buttonCell key="cell" type="push" title="Later" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="bc1">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="28" id="cH3"/>
+                        <constraint firstAttribute="width" constant="90" id="cW2"/>
+                    </constraints>
                     <connections>
                         <action selector="laterClicked:" target="-2" id="actCb"/>
                     </connections>
                 </button>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="dwn-ld-bn1">
-                    <rect key="frame" x="359" y="11" width="144" height="40"/>
-                    <constraints>
-                        <constraint firstAttribute="width" constant="130" id="cW3"/>
-                        <constraint firstAttribute="height" constant="28" id="cH4"/>
-                    </constraints>
+                    <rect key="frame" x="366" y="18" width="130" height="28"/>
                     <buttonCell key="cell" type="push" title="Download Now" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="bc2">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="systemSemibold" size="13"/>
@@ -108,6 +104,10 @@
 DQ
 </string>
                     </buttonCell>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="28" id="cH4"/>
+                        <constraint firstAttribute="width" constant="130" id="cW3"/>
+                    </constraints>
                     <connections>
                         <action selector="downloadClicked:" target="-2" id="actCb2"/>
                     </connections>
@@ -115,30 +115,25 @@ DQ
             </subviews>
             <constraints>
                 <constraint firstItem="hdr-ic-on1" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="24" id="c1"/>
-                <constraint firstItem="hdr-ic-on1" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="20" id="c2"/>
-                
-                <constraint firstItem="ttl-lb-l11" firstAttribute="leading" secondItem="hdr-ic-on1" secondAttribute="trailing" constant="12" id="c3"/>
-                <constraint firstItem="ttl-lb-l11" firstAttribute="centerY" secondItem="hdr-ic-on1" secondAttribute="centerY" constant="-8" id="c4"/>
-                <constraint firstAttribute="trailing" secondItem="ttl-lb-l11" secondAttribute="trailing" constant="24" id="c5"/>
-                
-                <constraint firstItem="ver-bg-cnt" firstAttribute="leading" secondItem="ttl-lb-l11" secondAttribute="leading" id="c6"/>
-                <constraint firstItem="ver-bg-cnt" firstAttribute="top" secondItem="ttl-lb-l11" secondAttribute="bottom" constant="6" id="c7"/>
-                
-                <constraint firstItem="not-es-lb1" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="24" id="c8"/>
-                <constraint firstItem="not-es-lb1" firstAttribute="top" secondItem="hdr-ic-on1" secondAttribute="bottom" constant="20" id="c9"/>
                 <constraint firstAttribute="trailing" secondItem="not-es-lb1" secondAttribute="trailing" constant="24" id="c10"/>
-                
                 <constraint firstItem="log-sc-rl1" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="24" id="c11"/>
                 <constraint firstAttribute="trailing" secondItem="log-sc-rl1" secondAttribute="trailing" constant="24" id="c12"/>
                 <constraint firstItem="log-sc-rl1" firstAttribute="top" secondItem="not-es-lb1" secondAttribute="bottom" constant="8" id="c13"/>
-                
                 <constraint firstAttribute="trailing" secondItem="dwn-ld-bn1" secondAttribute="trailing" constant="24" id="c14"/>
                 <constraint firstAttribute="bottom" secondItem="dwn-ld-bn1" secondAttribute="bottom" constant="18" id="c15"/>
                 <constraint firstItem="log-sc-rl1" firstAttribute="bottom" secondItem="dwn-ld-bn1" secondAttribute="top" constant="-18" id="c16"/>
-                
                 <constraint firstItem="lat-er-bn1" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="24" id="c17"/>
                 <constraint firstAttribute="bottom" secondItem="lat-er-bn1" secondAttribute="bottom" constant="18" id="c18"/>
+                <constraint firstItem="hdr-ic-on1" firstAttribute="top" secondItem="Hz6-mo-xeY" secondAttribute="top" constant="20" id="c2"/>
+                <constraint firstItem="ttl-lb-l11" firstAttribute="leading" secondItem="hdr-ic-on1" secondAttribute="trailing" constant="12" id="c3"/>
+                <constraint firstItem="ttl-lb-l11" firstAttribute="centerY" secondItem="hdr-ic-on1" secondAttribute="centerY" constant="-8" id="c4"/>
+                <constraint firstAttribute="trailing" secondItem="ttl-lb-l11" secondAttribute="trailing" constant="24" id="c5"/>
+                <constraint firstItem="ver-bg-cnt" firstAttribute="leading" secondItem="ttl-lb-l11" secondAttribute="leading" id="c6"/>
+                <constraint firstItem="ver-bg-cnt" firstAttribute="top" secondItem="ttl-lb-l11" secondAttribute="bottom" constant="6" id="c7"/>
+                <constraint firstItem="not-es-lb1" firstAttribute="leading" secondItem="Hz6-mo-xeY" secondAttribute="leading" constant="24" id="c8"/>
+                <constraint firstItem="not-es-lb1" firstAttribute="top" secondItem="hdr-ic-on1" secondAttribute="bottom" constant="20" id="c9"/>
             </constraints>
+            <point key="canvasLocation" x="140" y="154"/>
         </customView>
     </objects>
 </document>
