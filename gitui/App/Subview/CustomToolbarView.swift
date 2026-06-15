@@ -1,6 +1,8 @@
 // MARK: - CustomToolbarView.swift
 
 import Cocoa
+import Combine
+import SwiftUI
 
 protocol CustomToolbarViewDelegate: AnyObject {
     func toolbarDidClickCommit()
@@ -16,198 +18,267 @@ protocol CustomToolbarViewDelegate: AnyObject {
     func toolbarDidClickSettings()
 }
 
-class CustomToolbarView: NSView {
-    
+final class CustomToolbarView: NSView {
+
     weak var delegate: CustomToolbarViewDelegate?
-    
-    @IBOutlet weak var contentView: NSView!
-    @IBOutlet weak var borderView: NSView!
-    
-    @IBOutlet weak var commitButton: NSButton!
-    @IBOutlet weak var pullButton: NSButton!
-    @IBOutlet weak var pushButton: NSButton!
-    @IBOutlet weak var fetchButton: NSButton!
-    @IBOutlet weak var branchButton: NSButton!
-    @IBOutlet weak var mergeButton: NSButton!
-    @IBOutlet weak var stashButton: NSButton!
-    @IBOutlet weak var remoteButton: NSButton!
-    @IBOutlet weak var finderButton: NSButton!
-    @IBOutlet weak var terminalButton: NSButton!
-    @IBOutlet weak var settingsButton: NSButton!
-    
+
+    private let state = ToolbarState()
+    private var hostingView: NSHostingView<ToolbarRootView>?
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        setupFromNib()
+        setupSwiftUIView()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupFromNib()
+        setupSwiftUIView()
     }
-    
-    private func setupFromNib() {
-        let bundle = Bundle(for: type(of: self))
-        let nibName = String(describing: type(of: self))
-        guard let nib = NSNib(nibNamed: nibName, bundle: bundle) else {
-            print("Error: Could not load nib named \(nibName)")
-            return
-        }
-        var topLevelObjects: NSArray? = nil
-        if nib.instantiate(withOwner: self, topLevelObjects: &topLevelObjects) {
-            if let view = topLevelObjects?.first(where: { $0 is NSView }) as? NSView {
-                view.frame = self.bounds
-                view.autoresizingMask = [.width, .height]
-                self.addSubview(view)
-                self.contentView = view
-                
-                // Styling matching the screenshot design
-                self.wantsLayer = true
-                self.layer?.backgroundColor = NSColor.clear.cgColor
-                
-                borderView.wantsLayer = true
-                borderView.layer?.backgroundColor = NSColor.m3OutlineFaint.cgColor
-                borderView.layer?.backgroundColor = NSColor.clear.cgColor
-                
-                configureButtonIcons()
-            }
-        }
-    }
-    
-    private func configureButtonIcons() {
-        let configs: [(NSButton?, String, String)] = [
-            (commitButton, "Commit", "plus.circle"),
-            (pullButton, "Pull", "arrow.down.circle"),
-            (pushButton, "Push", "arrow.up.circle"),
-            (fetchButton, "Fetch", "arrow.clockwise.circle"),
-            (branchButton, "Branch", "arrow.triangle.branch"),
-            (mergeButton, "Merge", "arrow.triangle.merge"),
-            (stashButton, "Stash", "archivebox"),
-            (remoteButton, "View Remote", "globe"),
-            (finderButton, "Show in Finder", "folder"),
-            (terminalButton, "Terminal", "terminal"),
-            (settingsButton, "Settings", "gearshape")
-        ]
-        
-        for (idx, (btn, title, iconName)) in configs.enumerated() {
-            guard let btn = btn else { continue }
-            let isCommit = (idx == 0)
-            
-            if #available(macOS 11.0, *) {
-                let config = NSImage.SymbolConfiguration(pointSize: 18, weight: .regular)
-                var image = NSImage(systemSymbolName: iconName, accessibilityDescription: title)
-                if isCommit {
-                    image = image?.withSymbolConfiguration(config.applying(.init(paletteColors: [NSColor.systemBlue])))
-                } else {
-                    image = image?.withSymbolConfiguration(config)
-                }
-                btn.image = image
-            }
-            
-            let result = NSMutableAttributedString()
-            let spacer = NSAttributedString(string: "\n", attributes: [.font: NSFont.systemFont(ofSize: 4)])
-            result.append(spacer)
-            
-            let paragraphStyle = NSMutableParagraphStyle()
-            paragraphStyle.alignment = .center
-            let textAttr = NSAttributedString(string: title, attributes: [
-                .font: NSFont.systemFont(ofSize: 12, weight: .medium),
-                .foregroundColor: isCommit ? NSColor.systemBlue : NSColor.labelColor,
-                .paragraphStyle: paragraphStyle
-            ])
-            result.append(textAttr)
-            
-            btn.attributedTitle = result
-            btn.imagePosition = .imageAbove
-            btn.imageScaling = .scaleProportionallyDown
-            btn.isBordered = false
-        }
-    }
-    
-    // MARK: - Button Actions
-    
-    @IBAction func commitClicked(_ sender: Any) {
-        delegate?.toolbarDidClickCommit()
-    }
-    
-    @IBAction func pullClicked(_ sender: Any) {
-        delegate?.toolbarDidClickPull()
-    }
-    
-    @IBAction func pushClicked(_ sender: Any) {
-        delegate?.toolbarDidClickPush()
-    }
-    
-    @IBAction func fetchClicked(_ sender: Any) {
-        delegate?.toolbarDidClickFetch()
-    }
-    
-    @IBAction func branchClicked(_ sender: Any) {
-        delegate?.toolbarDidClickBranch()
-    }
-    
-    @IBAction func mergeClicked(_ sender: Any) {
-        delegate?.toolbarDidClickMerge()
-    }
-    
-    @IBAction func stashClicked(_ sender: Any) {
-        delegate?.toolbarDidClickStash()
-    }
-    
-    @IBAction func viewRemoteClicked(_ sender: Any) {
-        delegate?.toolbarDidClickViewRemote()
-    }
-    
-    @IBAction func showInFinderClicked(_ sender: Any) {
-        delegate?.toolbarDidClickShowInFinder()
-    }
-    
-    @IBAction func terminalClicked(_ sender: Any) {
-        delegate?.toolbarDidClickTerminal()
-    }
-    
-    @IBAction func settingsClicked(_ sender: Any) {
-        delegate?.toolbarDidClickSettings()
-    }
-    
-    // MARK: - Badges
-    
-    private func updateBadge(for button: NSButton, count: Int, identifier: String, color: NSColor) {
-        if count > 0 {
-            var badgeLabel: NSTextField!
-            if let existing = button.subviews.first(where: { $0.identifier?.rawValue == identifier }) as? NSTextField {
-                badgeLabel = existing
-            } else {
-                badgeLabel = NSTextField(labelWithString: "")
-                badgeLabel.identifier = NSUserInterfaceItemIdentifier(identifier)
-                badgeLabel.wantsLayer = true
-                badgeLabel.layer?.cornerRadius = 6
-                badgeLabel.layer?.masksToBounds = true
-                badgeLabel.alignment = .center
-                badgeLabel.font = NSFont.systemFont(ofSize: 8, weight: .bold)
-                badgeLabel.textColor = .white
-                badgeLabel.translatesAutoresizingMaskIntoConstraints = false
-                
-                button.addSubview(badgeLabel)
-                
-                NSLayoutConstraint.activate([
-                    badgeLabel.topAnchor.constraint(equalTo: button.topAnchor, constant: -6),
-                    badgeLabel.trailingAnchor.constraint(equalTo: button.trailingAnchor, constant: 4),
-                    badgeLabel.heightAnchor.constraint(equalToConstant: 12),
-                    badgeLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 12)
-                ])
-            }
-            badgeLabel.layer?.backgroundColor = color.cgColor
-            badgeLabel.stringValue = "\(count)"
-        } else {
-            button.subviews.first(where: { $0.identifier?.rawValue == identifier })?.removeFromSuperview()
-        }
-    }
-    
+
     func setPullBadge(count: Int) {
-        updateBadge(for: pullButton, count: count, identifier: "pullBadge", color: NSColor.systemOrange)
+        state.pullBadgeCount = count
     }
-    
+
     func setPushBadge(count: Int) {
-        updateBadge(for: pushButton, count: count, identifier: "pushBadge", color: NSColor.systemGreen)
+        state.pushBadgeCount = count
+    }
+
+    private func setupSwiftUIView() {
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+
+        let rootView = ToolbarRootView(state: state) { [weak self] action in
+            self?.handle(action: action)
+        }
+        let hostingView = NSHostingView(rootView: rootView)
+        hostingView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(hostingView)
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: bottomAnchor)
+        ])
+        self.hostingView = hostingView
+    }
+
+    private func handle(action: ToolbarAction) {
+        switch action {
+        case .commit:
+            delegate?.toolbarDidClickCommit()
+        case .pull:
+            delegate?.toolbarDidClickPull()
+        case .push:
+            delegate?.toolbarDidClickPush()
+        case .fetch:
+            delegate?.toolbarDidClickFetch()
+        case .branch:
+            delegate?.toolbarDidClickBranch()
+        case .merge:
+            delegate?.toolbarDidClickMerge()
+        case .stash:
+            delegate?.toolbarDidClickStash()
+        case .viewRemote:
+            delegate?.toolbarDidClickViewRemote()
+        case .showInFinder:
+            delegate?.toolbarDidClickShowInFinder()
+        case .terminal:
+            delegate?.toolbarDidClickTerminal()
+        case .settings:
+            delegate?.toolbarDidClickSettings()
+        }
+    }
+}
+
+private enum ToolbarAction: String, CaseIterable, Identifiable {
+    case commit
+    case pull
+    case push
+    case fetch
+    case branch
+    case merge
+    case stash
+    case viewRemote
+    case showInFinder
+    case terminal
+    case settings
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .commit:
+            return "Commit"
+        case .pull:
+            return "Pull"
+        case .push:
+            return "Push"
+        case .fetch:
+            return "Fetch"
+        case .branch:
+            return "Branch"
+        case .merge:
+            return "Merge"
+        case .stash:
+            return "Stash"
+        case .viewRemote:
+            return "View Remote"
+        case .showInFinder:
+            return "Show in Finder"
+        case .terminal:
+            return "Terminal"
+        case .settings:
+            return "Settings"
+        }
+    }
+
+    var symbolName: String {
+        switch self {
+        case .commit:
+            return "plus.circle"
+        case .pull:
+            return "arrow.down.circle"
+        case .push:
+            return "arrow.up.circle"
+        case .fetch:
+            return "arrow.clockwise.circle"
+        case .branch:
+            return "arrow.triangle.branch"
+        case .merge:
+            return "arrow.triangle.merge"
+        case .stash:
+            return "archivebox"
+        case .viewRemote:
+            return "globe"
+        case .showInFinder:
+            return "folder"
+        case .terminal:
+            return "terminal"
+        case .settings:
+            return "gearshape"
+        }
+    }
+
+    var isPrimary: Bool {
+        self == .commit
+    }
+}
+
+private final class ToolbarState: ObservableObject {
+    @Published var pullBadgeCount = 0
+    @Published var pushBadgeCount = 0
+
+    func badgeCount(for action: ToolbarAction) -> Int {
+        switch action {
+        case .pull:
+            return pullBadgeCount
+        case .push:
+            return pushBadgeCount
+        default:
+            return 0
+        }
+    }
+}
+
+private struct ToolbarRootView: View {
+    @ObservedObject var state: ToolbarState
+    let onAction: (ToolbarAction) -> Void
+
+    private let leftActions: [ToolbarAction] = [
+        .commit, .pull, .push, .fetch, .branch, .merge, .stash
+    ]
+
+    private let rightActions: [ToolbarAction] = [
+        .viewRemote, .showInFinder, .terminal, .settings
+    ]
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 0) {
+            toolbarGroup(leftActions)
+            Spacer(minLength: 32)
+            toolbarGroup(rightActions)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.clear)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color(nsColor: .m3OutlineFaint))
+                .frame(height: 1)
+        }
+    }
+
+    @ViewBuilder
+    private func toolbarGroup(_ actions: [ToolbarAction]) -> some View {
+        HStack(alignment: .center, spacing: 15) {
+            ForEach(actions) { action in
+                ToolbarButtonView(
+                    action: action,
+                    badgeCount: state.badgeCount(for: action),
+                    onTap: onAction
+                )
+            }
+        }
+    }
+}
+
+private struct ToolbarButtonView: View {
+    let action: ToolbarAction
+    let badgeCount: Int
+    let onTap: (ToolbarAction) -> Void
+
+    var body: some View {
+        Button {
+            onTap(action)
+        } label: {
+            VStack(spacing: 4) {
+                Image(systemName: action.symbolName)
+                    .font(.system(size: 19, weight: .regular))
+                Text(action.title)
+                    .font(.system(size: 12, weight: .medium))
+                    .multilineTextAlignment(.center)
+                    .fixedSize()
+            }
+            .foregroundStyle(Color(nsColor: action.isPrimary ? .systemBlue : .labelColor))
+            .frame(minHeight: 48)
+            .overlay(alignment: .topTrailing) {
+                if badgeCount > 0 {
+                    ToolbarBadgeView(
+                        count: badgeCount,
+                        color: badgeColor
+                    )
+                    .offset(x: 8, y: -4)
+                }
+            }
+        }
+        .buttonStyle(.plain)
+        .contentShape(Rectangle())
+    }
+
+    private var badgeColor: Color {
+        switch action {
+        case .pull:
+            return Color(nsColor: .systemOrange)
+        case .push:
+            return Color(nsColor: .systemGreen)
+        default:
+            return Color.clear
+        }
+    }
+}
+
+private struct ToolbarBadgeView: View {
+    let count: Int
+    let color: Color
+
+    var body: some View {
+        Text("\(count)")
+            .font(.system(size: 8, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 4)
+            .frame(minWidth: 12, minHeight: 12)
+            .background(color)
+            .clipShape(Capsule())
     }
 }

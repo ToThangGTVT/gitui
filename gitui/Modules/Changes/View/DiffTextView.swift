@@ -175,11 +175,16 @@ final class DiffTextDocumentView: NSView {
 
     private func calculatedGutterWidth(for entries: [DiffTextGutterEntry], font: NSFont?) -> CGFloat {
         let resolvedFont = font ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-        let digits = max(String(max(entries.count, 1)).count, 1)
+        let digits = max(
+            entries
+                .flatMap { [$0.oldLineNumber, $0.newLineNumber] }
+                .map(\.count)
+                .max() ?? 1,
+            1
+        )
         let sample = String(repeating: "8", count: digits)
         let numberWidth = ceil((sample as NSString).size(withAttributes: [.font: resolvedFont]).width)
-        let columnSpacing: CGFloat = 8
-        return numberWidth * 2 + columnSpacing + gutterPadding * 2
+        return numberWidth + gutterPadding * 2
     }
 }
 
@@ -195,15 +200,11 @@ private final class DiffTextGutterView: NSView {
         super.draw(dirtyRect)
 
         guard let textView, let font = textView.font else { return }
-
-        let lineHeight = ceil(font.ascender - font.descender + font.leading) + 2
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.alignment = .right
-        let columnSpacing: CGFloat = 8
 
         for (index, entry) in entries.enumerated() {
-            let y = textView.textContainerInset.height + CGFloat(index) * lineHeight
-            let rowRect = NSRect(x: 0, y: y, width: bounds.width, height: lineHeight)
+            let rowRect = lineRect(for: index, in: textView) ?? fallbackLineRect(for: index, in: textView, font: font)
 
             if rowRect.maxY < dirtyRect.minY || rowRect.minY > dirtyRect.maxY {
                 continue
@@ -220,12 +221,59 @@ private final class DiffTextGutterView: NSView {
                 .paragraphStyle: paragraphStyle
             ]
 
-            let columnWidth = (bounds.width - columnSpacing - 16) / 2
-            let oldNumberRect = NSRect(x: 0, y: y, width: columnWidth, height: lineHeight)
-            let newNumberRect = NSRect(x: columnWidth + columnSpacing, y: y, width: columnWidth, height: lineHeight)
-
-            (entry.oldLineNumber as NSString).draw(in: oldNumberRect, withAttributes: lineAttributes)
-            (entry.newLineNumber as NSString).draw(in: newNumberRect, withAttributes: lineAttributes)
+            let numberRect = NSRect(x: 0, y: rowRect.minY, width: bounds.width - 8, height: rowRect.height)
+            (displayLineNumber(for: entry) as NSString).draw(in: numberRect, withAttributes: lineAttributes)
         }
+    }
+
+    private func displayLineNumber(for entry: DiffTextGutterEntry) -> String {
+        if !entry.newLineNumber.isEmpty {
+            return entry.newLineNumber
+        }
+        return entry.oldLineNumber
+    }
+
+    private func lineRect(for lineIndex: Int, in textView: DiffTextView) -> NSRect? {
+        guard
+            let layoutManager = textView.layoutManager,
+            let textContainer = textView.textContainer,
+            let textStorage = textView.textStorage
+        else {
+            return nil
+        }
+
+        let text = textStorage.string as NSString
+        guard text.length > 0 else { return nil }
+
+        var characterIndex = 0
+        var currentLine = 0
+        while currentLine < lineIndex, characterIndex < text.length {
+            let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
+            characterIndex = NSMaxRange(lineRange)
+            currentLine += 1
+        }
+
+        guard characterIndex < text.length else { return nil }
+
+        let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
+        guard glyphRange.location < layoutManager.numberOfGlyphs else { return nil }
+
+        let fragmentRect = layoutManager.lineFragmentRect(
+            forGlyphAt: glyphRange.location,
+            effectiveRange: nil,
+            withoutAdditionalLayout: true
+        )
+        let origin = textView.textContainerOrigin
+        let visibleRect = fragmentRect.intersection(NSRect(origin: .zero, size: textContainer.containerSize))
+
+        guard !visibleRect.isEmpty else { return nil }
+        return NSRect(x: 0, y: visibleRect.minY + origin.y, width: bounds.width, height: visibleRect.height)
+    }
+
+    private func fallbackLineRect(for lineIndex: Int, in textView: DiffTextView, font: NSFont) -> NSRect {
+        let lineHeight = ceil(font.ascender - font.descender + font.leading) + 2
+        let y = textView.textContainerInset.height + CGFloat(lineIndex) * lineHeight
+        return NSRect(x: 0, y: y, width: bounds.width, height: lineHeight)
     }
 }
