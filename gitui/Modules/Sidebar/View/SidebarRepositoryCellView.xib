@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
+        <deployment identifier="macosx"/>
         <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -18,50 +19,79 @@
                         <constraint firstAttribute="height" constant="1" id="repo-divider-h"/>
                     </constraints>
                 </customView>
-                <imageView translatesAutoresizingMaskIntoConstraints="NO" id="repo-icon">
-                    <rect key="frame" x="10" y="37" width="0.0" height="0.0"/>
-                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="repo-icon-cell"/>
-                </imageView>
-                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="repo-name">
-                    <rect key="frame" x="15" y="29" width="108" height="16"/>
-                    <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Repository Name" id="repo-name-cell">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <textField focusRingType="none" horizontalHuggingPriority="252" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-stats">
-                    <rect key="frame" x="210" y="31" width="4" height="13"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" id="repo-stats-cell">
-                        <font key="font" size="11" name="SFMono-Medium"/>
-                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-path">
-                    <rect key="frame" x="6" y="10" width="208" height="15"/>
-                    <textFieldCell key="cell" lineBreakMode="truncatingHead" title="/Users/example/repository" id="repo-path-cell">
-                        <font key="font" metaFont="cellTitle"/>
-                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
+                <stackView distribution="fill" orientation="vertical" alignment="leading" spacing="4" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" translatesAutoresizingMaskIntoConstraints="NO" id="repo-content-stack">
+                    <rect key="frame" x="8" y="10" width="204" height="35"/>
+                    <subviews>
+                        <stackView distribution="fill" orientation="horizontal" alignment="centerY" spacing="7" horizontalStackHuggingPriority="249.99998474121094" verticalStackHuggingPriority="249.99998474121094" translatesAutoresizingMaskIntoConstraints="NO" id="repo-title-stack">
+                            <rect key="frame" x="0.0" y="19" width="204" height="16"/>
+                            <subviews>
+                                <imageView translatesAutoresizingMaskIntoConstraints="NO" id="repo-icon">
+                                    <rect key="frame" x="0.0" y="1" width="14" height="14"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="14" id="repo-icon-h"/>
+                                        <constraint firstAttribute="width" constant="14" id="repo-icon-w"/>
+                                    </constraints>
+                                    <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" id="repo-icon-cell"/>
+                                </imageView>
+                                <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" horizontalCompressionResistancePriority="749" translatesAutoresizingMaskIntoConstraints="NO" id="repo-name">
+                                    <rect key="frame" x="19" y="0.0" width="130" height="16"/>
+                                    <textFieldCell key="cell" lineBreakMode="truncatingTail" title="Repository Name" id="repo-name-cell">
+                                        <font key="font" metaFont="system"/>
+                                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                                <textField focusRingType="none" horizontalHuggingPriority="252" verticalHuggingPriority="750" horizontalCompressionResistancePriority="752" translatesAutoresizingMaskIntoConstraints="NO" id="repo-stats">
+                                    <rect key="frame" x="152" y="0.0" width="54" height="16"/>
+                                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" id="repo-stats-cell">
+                                        <font key="font" metaFont="message" size="13"/>
+                                        <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                    </textFieldCell>
+                                </textField>
+                            </subviews>
+                            <visibilityPriorities>
+                                <integer value="1000"/>
+                                <integer value="1000"/>
+                                <integer value="1000"/>
+                            </visibilityPriorities>
+                            <customSpacing>
+                                <real value="3.4028234663852886e+38"/>
+                                <real value="3.4028234663852886e+38"/>
+                                <real value="3.4028234663852886e+38"/>
+                            </customSpacing>
+                        </stackView>
+                        <textField focusRingType="none" horizontalHuggingPriority="249" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="repo-path">
+                            <rect key="frame" x="-2" y="0.0" width="208" height="15"/>
+                            <textFieldCell key="cell" lineBreakMode="truncatingHead" title="/Users/example/repository" id="repo-path-cell">
+                                <font key="font" metaFont="cellTitle"/>
+                                <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                            </textFieldCell>
+                        </textField>
+                    </subviews>
+                    <constraints>
+                        <constraint firstItem="repo-path" firstAttribute="width" secondItem="repo-content-stack" secondAttribute="width" id="repo-path-w"/>
+                        <constraint firstItem="repo-title-stack" firstAttribute="width" secondItem="repo-content-stack" secondAttribute="width" id="repo-title-stack-w"/>
+                    </constraints>
+                    <visibilityPriorities>
+                        <integer value="1000"/>
+                        <integer value="1000"/>
+                    </visibilityPriorities>
+                    <customSpacing>
+                        <real value="3.4028234663852886e+38"/>
+                        <real value="3.4028234663852886e+38"/>
+                    </customSpacing>
+                </stackView>
             </subviews>
             <constraints>
+                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="repo-content-stack" secondAttribute="bottom" constant="4" id="repo-content-b"/>
+                <constraint firstItem="repo-content-stack" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="8" id="repo-content-l"/>
+                <constraint firstAttribute="trailing" secondItem="repo-content-stack" secondAttribute="trailing" constant="8" id="repo-content-r"/>
+                <constraint firstItem="repo-content-stack" firstAttribute="top" secondItem="repo-cell" secondAttribute="top" constant="13" id="repo-content-t"/>
                 <constraint firstItem="repo-divider" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="16" id="repo-divider-l"/>
                 <constraint firstAttribute="trailing" secondItem="repo-divider" secondAttribute="trailing" constant="16" id="repo-divider-r"/>
                 <constraint firstItem="repo-divider" firstAttribute="top" secondItem="repo-cell" secondAttribute="top" id="repo-divider-t"/>
-                <constraint firstItem="repo-icon" firstAttribute="centerY" secondItem="repo-name" secondAttribute="centerY" id="repo-icon-cy"/>
-                <constraint firstItem="repo-icon" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="10" id="repo-icon-l"/>
-                <constraint firstItem="repo-name" firstAttribute="leading" secondItem="repo-icon" secondAttribute="trailing" constant="7" id="repo-name-l"/>
-                <constraint firstItem="repo-name" firstAttribute="top" secondItem="repo-cell" secondAttribute="top" constant="13" id="repo-name-t"/>
-                <constraint firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="repo-path" secondAttribute="bottom" constant="4" id="repo-path-b"/>
-                <constraint firstAttribute="trailing" secondItem="repo-path" secondAttribute="trailing" constant="8" id="repo-path-r"/>
-                <constraint firstItem="repo-path" firstAttribute="top" secondItem="repo-name" secondAttribute="bottom" constant="4" id="repo-path-t"/>
-                <constraint firstItem="repo-stats" firstAttribute="centerY" secondItem="repo-name" secondAttribute="centerY" id="repo-stats-cy"/>
-                <constraint firstItem="repo-stats" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="repo-name" secondAttribute="trailing" constant="4" id="repo-stats-l"/>
-                <constraint firstAttribute="trailing" secondItem="repo-stats" secondAttribute="trailing" constant="8" id="repo-stats-r"/>
-                <constraint firstItem="repo-path" firstAttribute="leading" secondItem="repo-cell" secondAttribute="leading" constant="8" id="wnO-cx-0fh"/>
             </constraints>
             <connections>
                 <outlet property="dividerView" destination="repo-divider" id="out-divider"/>

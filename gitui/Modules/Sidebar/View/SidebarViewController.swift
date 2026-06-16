@@ -42,23 +42,24 @@ class WorktreeGroupItem: NSObject {
 
 class CustomSelectionRowView: NSTableRowView {
     var highlightBackgroundColor: NSColor?
+    private let selectionBackgroundColor = NSColor.gitFlowAccent.withAlphaComponent(0.15)
 
     override func drawBackground(in dirtyRect: NSRect) {
         super.drawBackground(in: dirtyRect)
-        drawRepositoryBackground()
+        drawRepositoryBackground(isSelected ? selectionBackgroundColor : highlightBackgroundColor)
     }
 
     override func drawSelection(in dirtyRect: NSRect) {
-        drawRepositoryBackground()
+        drawRepositoryBackground(selectionBackgroundColor)
     }
 
     override var interiorBackgroundStyle: NSView.BackgroundStyle {
         return .normal
     }
 
-    private func drawRepositoryBackground() {
-        guard let highlightBackgroundColor else { return }
-        highlightBackgroundColor.setFill()
+    private func drawRepositoryBackground(_ color: NSColor?) {
+        guard let color else { return }
+        color.setFill()
         let path = NSBezierPath(roundedRect: bounds.insetBy(dx: 8, dy: 2), xRadius: 6, yRadius: 6)
         path.fill()
     }
@@ -165,7 +166,7 @@ class SidebarViewController: NSViewController, SidebarViewProtocol, NSOutlineVie
         outlineView.backgroundColor = NSColor.clear
         outlineView.gridStyleMask = []
         outlineView.allowsMultipleSelection = false
-        outlineView.selectionHighlightStyle = .regular
+        outlineView.selectionHighlightStyle = .none
         outlineView.doubleAction = #selector(outlineDoubleClicked(_:))
         outlineView.registerForDraggedTypes([dragType])
 

@@ -235,6 +235,18 @@ private struct ToolbarButtonView: View {
             VStack(spacing: 4) {
                 Image(systemName: action.symbolName)
                     .font(.system(size: 19, weight: .regular))
+                    .overlay(alignment: .topTrailing) {
+                        if badgeCount > 0 {
+                            ToolbarBadgeView(
+                                count: badgeCount,
+                                color: Color(nsColor: .systemBlue),
+                                fontSize: 10,
+                                horizontalPadding: 5,
+                                minSize: 12
+                            )
+                            .offset(x: 8, y: -4)
+                        }
+                    }
                 Text(action.title)
                     .font(.system(size: 12, weight: .medium))
                     .multilineTextAlignment(.center)
@@ -242,32 +254,9 @@ private struct ToolbarButtonView: View {
             }
             .foregroundStyle(Color(nsColor: action.isPrimary ? .systemBlue : .labelColor))
             .frame(minHeight: 48)
-            .overlay(alignment: .topTrailing) {
-                if badgeCount > 0 {
-                    ToolbarBadgeView(
-                        count: badgeCount,
-                        color: badgeColor,
-                        fontSize: 10,
-                        horizontalPadding: 5,
-                        minSize: 12
-                    )
-                    .offset(x: 8, y: -4)
-                }
-            }
         }
         .buttonStyle(.plain)
         .contentShape(Rectangle())
-    }
-
-    private var badgeColor: Color {
-        switch action {
-        case .pull:
-            return Color(nsColor: .systemOrange)
-        case .push:
-            return Color(nsColor: .systemGreen)
-        default:
-            return Color.clear
-        }
     }
 }
 

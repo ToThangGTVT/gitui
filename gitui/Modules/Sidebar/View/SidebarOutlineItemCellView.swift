@@ -3,15 +3,13 @@ import Cocoa
 class SidebarOutlineItemCellView: NSTableCellView {
 
     static let reuseIdentifier = NSUserInterfaceItemIdentifier("SidebarOutlineItemCell")
+    @IBOutlet private weak var contentStackView: NSStackView!
     @IBOutlet private weak var iconWidthConstraint: NSLayoutConstraint!
-    @IBOutlet private weak var labelLeadingConstraint: NSLayoutConstraint!
     @IBOutlet private weak var statusLabel: NSTextField!
-    @IBOutlet private weak var labelTrailingConstraint: NSLayoutConstraint!
 
     private let visibleIconWidth: CGFloat = 14
     private let visibleLabelSpacing: CGFloat = 7
-    private let compactTrailingInset: CGFloat = 8
-    private let expandedTrailingInset: CGFloat = 40
+    private let visibleStatusSpacing: CGFloat = 8
 
     static func instantiate() -> SidebarOutlineItemCellView? {
         let bundle = Bundle(for: SidebarOutlineItemCellView.self)
@@ -64,7 +62,5 @@ class SidebarOutlineItemCellView: NSTableCellView {
         imageView?.isHidden = !hasIcon
         imageView?.imageScaling = .scaleProportionallyUpOrDown
         iconWidthConstraint.constant = hasIcon ? visibleIconWidth : 0
-        labelLeadingConstraint.constant = hasIcon ? visibleLabelSpacing : 0
-        labelTrailingConstraint.constant = syncStatus == nil ? compactTrailingInset : expandedTrailingInset
     }
 }

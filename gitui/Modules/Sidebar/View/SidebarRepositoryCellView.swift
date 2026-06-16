@@ -62,24 +62,25 @@ class SidebarRepositoryCellView: NSTableCellView {
 
         if let stats, stats.added > 0 || stats.removed > 0 {
             let result = NSMutableAttributedString()
+            let statsFont = NSFont.messageFont(ofSize: 13)
 
             if stats.added > 0 {
                 result.append(NSAttributedString(string: "+\(stats.added)", attributes: [
                     .foregroundColor: NSColor.gitFlowStagedAddText,
-                    .font: NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+                    .font: statsFont
                 ]))
             }
 
             if stats.added > 0 && stats.removed > 0 {
                 result.append(NSAttributedString(string: " ", attributes: [
-                    .font: NSFont.systemFont(ofSize: 11)
+                    .font: statsFont
                 ]))
             }
 
             if stats.removed > 0 {
                 result.append(NSAttributedString(string: "-\(stats.removed)", attributes: [
                     .foregroundColor: NSColor.gitFlowStagedDeleteText,
-                    .font: NSFont(name: "SF Mono", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .medium)
+                    .font: statsFont
                 ]))
             }
 
