@@ -7,6 +7,9 @@ class UpdateViewController: NSViewController {
     
     private let release: GitHubRelease
     private let currentVersion: String
+    private var updateTask: Task<Void, Never>?
+    private var hasStartedUpdate = false
+    private var isUpdating = false
     
     // UI elements
     @IBOutlet private weak var headerIcon: NSImageView!
@@ -26,6 +29,10 @@ class UpdateViewController: NSViewController {
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+
+    deinit {
+        updateTask?.cancel()
     }
     
     override func viewDidLoad() {
@@ -55,7 +62,8 @@ class UpdateViewController: NSViewController {
         let latestLabel = createBadge(text: "Latest: \(release.tagName)", isAccent: true)
         versionBadgeContainer.addArrangedSubview(latestLabel)
         
-        notesLabel.stringValue = "Release Notes (\(release.name)):"
+        titleLabel.stringValue = "New Update Available"
+        notesLabel.stringValue = releaseNotesTitle
         
         logScrollView.wantsLayer = true
         logScrollView.layer?.cornerRadius = 8
@@ -68,7 +76,10 @@ class UpdateViewController: NSViewController {
         
         // Format body text if markdown-like
         let cleanBody = release.body.replacingOccurrences(of: "\r\n", with: "\n")
-        logTextView.string = cleanBody
+        logTextView.string = cleanBody.isEmpty ? "gitui \(release.tagName) is ready to download and install." : cleanBody
+        downloadButton.title = "Download Now"
+        downloadButton.isEnabled = true
+        laterButton.title = "Later"
     }
     
     private func createBadge(text: String, isAccent: Bool) -> NSView {
@@ -102,13 +113,16 @@ class UpdateViewController: NSViewController {
     }
     
     @IBAction private func downloadClicked(_ sender: Any) {
-        if let url = URL(string: release.htmlUrl) {
-            NSWorkspace.shared.open(url)
+        if isUpdating {
+            return
         }
-        closeSheet()
+
+        startAutomaticUpdateIfNeeded(forceRestart: true)
     }
     
     @IBAction private func laterClicked(_ sender: Any) {
+        updateTask?.cancel()
+        updateTask = nil
         closeSheet()
     }
     
@@ -132,5 +146,100 @@ class UpdateViewController: NSViewController {
         if let targetWindow = targetWindow {
             targetWindow.beginSheet(updateWindow, completionHandler: nil)
         }
+    }
+
+    private var releaseNotesTitle: String {
+        let releaseName = release.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let titleSuffix = releaseName.isEmpty ? release.tagName : releaseName
+        return "Release Notes (\(titleSuffix)):"
+    }
+
+    private func startAutomaticUpdateIfNeeded(forceRestart: Bool = false) {
+        guard !hasStartedUpdate || forceRestart else { return }
+        hasStartedUpdate = true
+        isUpdating = true
+
+        setUpdatingState(
+            title: "Downloading update…",
+            detail: "Downloading gitui \(release.tagName) and preparing installation.",
+            buttonTitle: "Updating…"
+        )
+
+        updateTask = Task { [weak self] in
+            guard let self else { return }
+
+            do {
+                let preparedUpdate = try await UpdateService.shared.prepareUpdate(for: self.release)
+
+                await MainActor.run {
+                    self.setUpdatingState(
+                        title: "Installing update…",
+                        detail: "Replacing the current app and preparing to relaunch.",
+                        buttonTitle: "Installing…"
+                    )
+                }
+
+                try UpdateService.shared.installPreparedUpdate(preparedUpdate)
+
+                await MainActor.run {
+                    self.setUpdatingState(
+                        title: "Restarting gitui…",
+                        detail: "Finishing the update and relaunching the app.",
+                        buttonTitle: "Restarting…"
+                    )
+                    self.laterButton.isEnabled = false
+                }
+
+                try? await Task.sleep(nanoseconds: 300_000_000)
+                await MainActor.run {
+                    self.closeSheet()
+                    NSApp.terminate(nil)
+                }
+            } catch is CancellationError {
+                await MainActor.run {
+                    self.updateTask = nil
+                    self.isUpdating = false
+                    self.hasStartedUpdate = false
+                    self.titleLabel.stringValue = "Update paused"
+                    self.notesLabel.stringValue = self.releaseNotesTitle
+                    self.downloadButton.title = "Resume Update"
+                    self.downloadButton.isEnabled = true
+                    self.laterButton.title = "Later"
+                }
+            } catch {
+                await MainActor.run {
+                    self.updateTask = nil
+                    self.presentUpdateFailure(error)
+                }
+            }
+        }
+    }
+
+    private func setUpdatingState(title: String, detail: String, buttonTitle: String) {
+        titleLabel.stringValue = title
+        notesLabel.stringValue = detail
+        downloadButton.title = buttonTitle
+        downloadButton.isEnabled = false
+        laterButton.title = "Cancel"
+        laterButton.isEnabled = true
+    }
+
+    private func presentUpdateFailure(_ error: Error) {
+        isUpdating = false
+        hasStartedUpdate = false
+
+        titleLabel.stringValue = "Update failed"
+        notesLabel.stringValue = releaseNotesTitle
+        downloadButton.title = "Try Again"
+        downloadButton.isEnabled = true
+        laterButton.title = "Later"
+        laterButton.isEnabled = true
+
+        let alert = NSAlert()
+        alert.messageText = "Auto-update failed"
+        alert.informativeText = error.localizedDescription
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "OK")
+        alert.runModal()
     }
 }

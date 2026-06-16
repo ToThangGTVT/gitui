@@ -246,7 +246,10 @@ private struct ToolbarButtonView: View {
                 if badgeCount > 0 {
                     ToolbarBadgeView(
                         count: badgeCount,
-                        color: badgeColor
+                        color: badgeColor,
+                        fontSize: action == .pull ? 10 : 8,
+                        horizontalPadding: action == .pull ? 5 : 4,
+                        minSize: action == .pull ? 16 : 12
                     )
                     .offset(x: 8, y: -4)
                 }
@@ -271,13 +274,16 @@ private struct ToolbarButtonView: View {
 private struct ToolbarBadgeView: View {
     let count: Int
     let color: Color
+    let fontSize: CGFloat
+    let horizontalPadding: CGFloat
+    let minSize: CGFloat
 
     var body: some View {
         Text("\(count)")
-            .font(.system(size: 8, weight: .bold))
+            .font(.system(size: fontSize, weight: .bold))
             .foregroundStyle(.white)
-            .padding(.horizontal, 4)
-            .frame(minWidth: 12, minHeight: 12)
+            .padding(.horizontal, horizontalPadding)
+            .frame(minWidth: minSize, minHeight: minSize)
             .background(color)
             .clipShape(Capsule())
     }
