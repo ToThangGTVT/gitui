@@ -247,9 +247,9 @@ private struct ToolbarButtonView: View {
                     ToolbarBadgeView(
                         count: badgeCount,
                         color: badgeColor,
-                        fontSize: action == .pull ? 10 : 8,
-                        horizontalPadding: action == .pull ? 5 : 4,
-                        minSize: action == .pull ? 16 : 12
+                        fontSize: 10,
+                        horizontalPadding: 5,
+                        minSize: 12
                     )
                     .offset(x: 8, y: -4)
                 }
@@ -282,6 +282,8 @@ private struct ToolbarBadgeView: View {
         Text("\(count)")
             .font(.system(size: fontSize, weight: .bold))
             .foregroundStyle(.white)
+            .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
             .padding(.horizontal, horizontalPadding)
             .frame(minWidth: minSize, minHeight: minSize)
             .background(color)
